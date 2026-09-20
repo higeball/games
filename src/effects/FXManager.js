@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import confetti from 'canvas-confetti';
 
 export class FXManager {
   constructor(scene) {
@@ -12,8 +11,13 @@ export class FXManager {
     this.maxCoins = 50;
     this.coins = [];
 
+    // Three.js ネイティブ紙吹雪プール（UIやタッチイベントを一切阻害しない安全な実装）
+    this.maxConfetti = 120;
+    this.confettiPieces = [];
+
     this.initParticlePool();
     this.initCoinPool();
+    this.initConfettiPool();
   }
 
   initParticlePool() {
@@ -56,7 +60,30 @@ export class FXManager {
         active: false,
         pos: new THREE.Vector3(),
         vel: new THREE.Vector3(),
-        homingDelay: 0.2, // 少し飛び散ってから吸引開始
+        homingDelay: 0.25,
+        life: 0
+      });
+    }
+  }
+
+  initConfettiPool() {
+    const colors = [0xff1744, 0x00e5ff, 0x76ff03, 0xffd600, 0xe040fb, 0xffffff];
+    const geo = new THREE.PlaneGeometry(0.24, 0.16);
+
+    for (let i = 0; i < this.maxConfetti; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: colors[i % colors.length],
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+
+      this.confettiPieces.push({
+        mesh,
+        active: false,
+        vel: new THREE.Vector3(),
+        rotSpeed: new THREE.Vector3(),
         life: 0
       });
     }
@@ -94,7 +121,6 @@ export class FXManager {
         c.pos.copy(pos);
         c.mesh.position.copy(c.pos);
 
-        // 放射状にポンと飛び散る
         c.vel.set(
           (Math.random() - 0.5) * 8,
           Math.random() * 6 + 3,
@@ -126,12 +152,36 @@ export class FXManager {
     });
   }
 
-  triggerVictoryConfetti() {
-    confetti({ particleCount: 140, spread: 85, origin: { y: 0.6 } });
-    setTimeout(() => {
-      confetti({ particleCount: 90, angle: 60, spread: 60, origin: { x: 0 } });
-      confetti({ particleCount: 90, angle: 120, spread: 60, origin: { x: 1 } });
-    }, 280);
+  triggerVictoryConfetti(playerPos) {
+    // プレイヤーの頭上からキラキラ舞い落ちるThree.jsネイティブ紙吹雪
+    const basePos = playerPos || new THREE.Vector3(0, 0, 0);
+
+    for (let i = 0; i < this.maxConfetti; i++) {
+      const cp = this.confettiPieces[i];
+      cp.active = true;
+      cp.mesh.visible = true;
+
+      // プレイヤーの前方〜上空に配置
+      cp.mesh.position.set(
+        basePos.x + (Math.random() - 0.5) * 12,
+        basePos.y + Math.random() * 8 + 6,
+        basePos.z - Math.random() * 10 - 2
+      );
+
+      cp.vel.set(
+        (Math.random() - 0.5) * 2.5,
+        - (Math.random() * 3.5 + 2.5),
+        (Math.random() - 0.5) * 2.5
+      );
+
+      cp.rotSpeed.set(
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10,
+        (Math.random() - 0.5) * 10
+      );
+
+      cp.life = 4.5;
+    }
   }
 
   update(delta, playerPos, onCoinCollectCallback) {
@@ -154,7 +204,7 @@ export class FXManager {
       p.mesh.scale.set(scale, scale, scale);
     }
 
-    // コインの吸引更新（プレイヤーに向かって急加速で吸い寄せられる）
+    // コインの吸引更新
     for (let i = 0; i < this.maxCoins; i++) {
       const c = this.coins[i];
       if (!c.active) continue;
@@ -163,29 +213,47 @@ export class FXManager {
       c.homingDelay -= delta;
 
       if (c.homingDelay > 0) {
-        // 初期飛散
         c.vel.y -= 18.0 * delta;
         c.pos.addScaledVector(c.vel, delta);
       } else {
-        // プレイヤーへホーミング吸引
-        const dir = playerPos.clone().sub(c.pos);
-        const dist = dir.length();
+        if (playerPos) {
+          const dir = playerPos.clone().sub(c.pos);
+          const dist = dir.length();
 
-        if (dist < 1.2 || c.life <= 0) {
-          // コイン回収！
-          c.active = false;
-          c.mesh.visible = false;
-          if (onCoinCollectCallback) onCoinCollectCallback();
-          continue;
+          if (dist < 1.2 || c.life <= 0) {
+            c.active = false;
+            c.mesh.visible = false;
+            if (onCoinCollectCallback) onCoinCollectCallback();
+            continue;
+          }
+
+          dir.normalize();
+          const speed = Math.min(35.0, 10.0 + (1.8 - c.life) * 20.0);
+          c.pos.addScaledVector(dir, speed * delta);
         }
-
-        dir.normalize();
-        const speed = Math.min(35.0, 10.0 + (1.8 - c.life) * 20.0);
-        c.pos.addScaledVector(dir, speed * delta);
       }
 
       c.mesh.position.copy(c.pos);
       c.mesh.rotation.y += delta * 10.0;
+    }
+
+    // 紙吹雪の舞い落ち更新
+    for (let i = 0; i < this.maxConfetti; i++) {
+      const cp = this.confettiPieces[i];
+      if (!cp.active) continue;
+
+      cp.life -= delta;
+      if (cp.life <= 0 || cp.mesh.position.y <= 0) {
+        cp.active = false;
+        cp.mesh.visible = false;
+        continue;
+      }
+
+      // ひらひら舞い落ちる
+      cp.mesh.position.addScaledVector(cp.vel, delta);
+      cp.mesh.rotation.x += cp.rotSpeed.x * delta;
+      cp.mesh.rotation.y += cp.rotSpeed.y * delta;
+      cp.mesh.rotation.z += cp.rotSpeed.z * delta;
     }
 
     // リングエフェクトの更新
@@ -214,6 +282,10 @@ export class FXManager {
     for (let i = 0; i < this.maxCoins; i++) {
       this.coins[i].active = false;
       this.coins[i].mesh.visible = false;
+    }
+    for (let i = 0; i < this.maxConfetti; i++) {
+      this.confettiPieces[i].active = false;
+      this.confettiPieces[i].mesh.visible = false;
     }
     for (const r of this.rings) {
       this.scene.remove(r.mesh);

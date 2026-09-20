@@ -416,12 +416,24 @@ class GameApp {
 
     this.ui.showGarySpeech("やったーー！ボス粉砕！", 3.0);
     setTimeout(() => this.ui.showMojiSpeech("見事だ、ゲイリー！ボーナス突入！", 3.0), 1200);
+
+    // フェイルセーフ：万一の座標ズレでも最大5.5秒後に確実にクリア画面へ
+    if (this.clearSafetyTimer) clearTimeout(this.clearSafetyTimer);
+    this.clearSafetyTimer = setTimeout(() => {
+      if (this.state === 'BONUS_ROAD') {
+        this.handleStageClear();
+      }
+    }, 5500);
   }
 
   handleStageClear() {
+    if (this.state === 'CLEAR') return; // 多重呼び出しガード
     this.state = 'CLEAR';
+    if (this.clearSafetyTimer) clearTimeout(this.clearSafetyTimer);
+
     this.sound.stopBgm();
-    this.fx.triggerVictoryConfetti();
+    this.sound.playGatePass(true);
+    this.fx.triggerVictoryConfetti(this.moji.position);
 
     // 最終スコア算出（ゲイリー生存数 × ボーナス倍率）
     const finalScore = Math.round(this.score + this.gary.count * 120 * this.stage.bonusMultiplier);
