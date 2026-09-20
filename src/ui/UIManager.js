@@ -81,7 +81,11 @@ export class UIManager {
     this.gameoverScreen.classList.add('hidden');
     this.clearScreen.classList.add('hidden');
     this.hudEl.classList.add('hidden');
-    if (this.buddyDockEl) this.buddyDockEl.classList.add('hidden');
+    if (this.buddyDockEl) {
+      this.buddyDockEl.classList.remove('hidden');
+      this.showMojiSpeech("出撃準備よし！", 3.0);
+      setTimeout(() => this.showGarySpeech("いつでもいけるよー！", 3.0), 1200);
+    }
   }
 
   startGame(levelTitle) {
@@ -122,7 +126,8 @@ export class UIManager {
   showGameOver(score) {
     document.getElementById('gameover-score').textContent = score.toLocaleString();
     this.gameoverScreen.classList.remove('hidden');
-    if (this.buddyDockEl) this.buddyDockEl.classList.add('hidden');
+    this.showMojiSpeech("次はリベンジだ！", 3.0);
+    setTimeout(() => this.showGarySpeech("もじさん、次こそ勝とう！", 3.0), 1200);
   }
 
   showClear(score, garyCount, bonusMult) {
@@ -130,7 +135,8 @@ export class UIManager {
     this.clearGaryEl.textContent = garyCount.toString();
     this.clearBonusEl.textContent = `×${bonusMult.toFixed(1)}`;
     this.clearScreen.classList.remove('hidden');
-    if (this.buddyDockEl) this.buddyDockEl.classList.add('hidden');
+    this.showGarySpeech("大勝利ーー！！", 3.0);
+    setTimeout(() => this.showMojiSpeech("よくやった、ゲイリー！", 3.0), 1200);
   }
 
   updateHUD(score, garyCount, hp, maxHp, progress) {
