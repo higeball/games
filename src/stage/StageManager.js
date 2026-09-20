@@ -276,15 +276,18 @@ export class StageManager {
   }
 
   addGatePair(z, leftOpt, rightOpt) {
+    const defaultW = 4.25;
     const leftGate = new Gate(this.scene, {
       ...leftOpt,
       z,
-      width: leftOpt.width || 3.8
+      x: leftOpt.x !== undefined ? leftOpt.x : -2.125,
+      width: leftOpt.width || (leftOpt.isMoving ? 3.8 : defaultW)
     });
     const rightGate = new Gate(this.scene, {
       ...rightOpt,
       z,
-      width: rightOpt.width || 3.8
+      x: rightOpt.x !== undefined ? rightOpt.x : 2.125,
+      width: rightOpt.width || (rightOpt.isMoving ? 3.8 : defaultW)
     });
     this.gates.push(leftGate, rightGate);
   }

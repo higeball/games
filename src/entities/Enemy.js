@@ -304,15 +304,15 @@ export class Enemy {
 
     // シールド装甲兵の正面弾防御ギミック！
     if (this.type === 'shielded' && bullet && !bullet.isMega) {
-      // 弾が正面（+Z手前側）からまっすぐ飛んできた場合は防盾が防御
+      // 弾が正面側から防盾（前面+Z側、横幅1.6m）に当たった場合のみ防御！
       const dz = bullet.pos.z - this.group.position.z;
       const dx = Math.abs(bullet.pos.x - this.group.position.x);
-      if (dz > 0.1 && dx < 0.85) {
+      if (dz >= -0.25 && dx < 0.95) {
         if (this.frontShield) {
           this.frontShield.scale.set(1.2, 1.2, 1.2);
           setTimeout(() => { if (this.frontShield) this.frontShield.scale.set(1, 1, 1); }, 60);
         }
-        return 'deflected'; // シールドで弾かれた！
+        return 'deflected'; // 正面のシールドで弾かれた！
       }
     }
 
@@ -363,7 +363,7 @@ export class Enemy {
       if (this.turretTimer >= 2.4 && onTurretAttack) {
         this.turretTimer = 0;
         const shotPos = this.group.position.clone();
-        shotPos.y += 0.5;
+        shotPos.y = 1.0;
         shotPos.z += 0.8;
         onTurretAttack(shotPos);
       }

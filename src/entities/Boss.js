@@ -130,7 +130,7 @@ export class Boss {
     const offsets = [-3.5, 3.5];
     offsets.forEach((xOffset) => {
       const mesh = new THREE.Mesh(pylonGeo, pylonMat);
-      mesh.position.set(xOffset, 3.2, 0);
+      mesh.position.set(xOffset, 0.4, 0);
       mesh.castShadow = true;
       this.group.add(mesh);
 
@@ -271,9 +271,9 @@ export class Boss {
     if (this.attackTimer >= this.attackInterval) {
       this.attackTimer = 0;
       if (onAttackCallback) {
-        // ボス正面から放射状に3発の攻撃弾を発射
+        // ボス正面から放射状に3発の攻撃弾を発射（プレイヤーの射撃高度に合わせる）
         const centerPos = this.group.position.clone();
-        centerPos.y += 2.0;
+        centerPos.y = 1.0;
         onAttackCallback(centerPos);
       }
     }
@@ -288,13 +288,13 @@ export class Boss {
       arm.rotation.z = Math.sin(this.animTime * 2.8 + i) * 0.25;
     });
 
-    // パイロン（シールド核）のアニメーション
+    // パイロン（シールド核）のアニメーション（撃ちやすい高度に保つ）
     if (this.hasPylons) {
       this.pylons.forEach((p, idx) => {
         if (p.alive) {
           p.mesh.rotation.y += delta * 3.0;
           p.mesh.rotation.z += delta * 1.5;
-          p.mesh.position.y = 3.2 + Math.sin(this.animTime * 3.0 + idx * Math.PI) * 0.4;
+          p.mesh.position.y = 0.4 + Math.sin(this.animTime * 3.0 + idx * Math.PI) * 0.3;
         }
       });
     }

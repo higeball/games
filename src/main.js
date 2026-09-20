@@ -119,7 +119,7 @@ class GameApp {
       );
 
       // 6. 衝突判定
-      this.handleCollisions();
+      this.handleCollisions(delta);
 
       // 7. エフェクト更新（コイン吸引コールバック付き）
       this.fx.update(delta, this.moji.position, () => {
@@ -201,7 +201,27 @@ class GameApp {
     this.sound.playEnemyHit();
   }
 
-  handleCollisions() {
+  isBulletCrossing(bullet, delta, targetX, targetZ, halfWidth, halfDepth) {
+    // 1. X軸判定（ターゲット幅 + 弾丸半径マージン）
+    const dx = Math.abs(bullet.pos.x - targetX);
+    const radiusMargin = bullet.isMega ? 1.0 : 0.45;
+    if (dx > halfWidth + radiusMargin) return false;
+
+    // 2. Y軸判定（プレイヤー弾と地上の的が自然に当たる許容範囲）
+    if (bullet.pos.y < -0.5 || bullet.pos.y > 4.5) return false;
+
+    // 3. Z軸連続衝突判定（CCD：前フレーム位置〜現フレーム位置の軌跡とターゲット深度の重なり）
+    const stepZ = (bullet.speed || 48.0) * (delta || 0.016);
+    const zNew = bullet.pos.z;
+    const zOld = bullet.pos.z + stepZ;
+
+    const minTargetZ = targetZ - halfDepth;
+    const maxTargetZ = targetZ + halfDepth;
+
+    return (zNew <= maxTargetZ && zOld >= minTargetZ);
+  }
+
+  handleCollisions(delta = 0.016) {
     const activeBullets = this.bullets.getActiveBullets();
     const activeEnemyBullets = this.bullets.getActiveEnemyBullets();
     const mojiPos = this.moji.position;
@@ -209,12 +229,13 @@ class GameApp {
     // A. 弾丸 vs ゲート
     for (const gate of this.stage.gates) {
       if (gate.passed) continue;
+      const halfW = gate.width / 2 + 0.25;
+      const halfD = 0.85;
+
       for (const bullet of activeBullets) {
         if (!bullet.active) continue;
 
-        const dz = Math.abs(bullet.pos.z - gate.z);
-        const dx = Math.abs(bullet.pos.x - gate.x);
-        if (dz < 0.9 && dx < gate.width / 2) {
+        if (this.isBulletCrossing(bullet, delta, gate.x, gate.z, halfW, halfD)) {
           bullet.active = false;
           bullet.mesh.visible = false;
           gate.onBulletHit();
@@ -225,8 +246,9 @@ class GameApp {
       }
 
       // プレイヤー軍団 vs ゲート通過判定
-      if (!gate.passed && Math.abs(mojiPos.z - gate.z) < 1.3) {
-        if (Math.abs(mojiPos.x - gate.x) < gate.width / 2) {
+      if (!gate.passed && Math.abs(mojiPos.z - gate.z) < 1.6) {
+        // 横幅判定（左右中央の隙間もカバーできるようマージンを持たせる）
+        if (Math.abs(mojiPos.x - gate.x) <= gate.width / 2 + 0.35) {
           const isPos = gate.applyEffect(this.gary, this.moji, this);
           this.sound.playGatePass(isPos);
           this.fx.spawnGateRing(gate.group.position, isPos ? 0x76ff03 : 0xff1744);
@@ -245,11 +267,38 @@ class GameApp {
     for (const enemy of this.stage.enemies) {
       if (!enemy.alive) continue;
 
+      let halfW = 0.95;
+      let halfD = 0.95;
+      if (enemy.type === 'cage') {
+        halfW = 1.25;
+        halfD = 1.2;
+      } else if (enemy.type === 'block') {
+        halfW = 1.15;
+        halfD = 1.1;
+      } else if (enemy.type === 'barrel') {
+        halfW = 1.05;
+        halfD = 1.0;
+      } else if (enemy.type === 'shielded') {
+        halfW = 1.25;
+        halfD = 1.1;
+      } else if (enemy.type === 'tank') {
+        halfW = 1.55;
+        halfD = 1.35;
+      } else if (enemy.type === 'drone') {
+        halfW = 1.25;
+        halfD = 1.1;
+      } else if (enemy.type === 'turret') {
+        halfW = 1.25;
+        halfD = 1.2;
+      }
+
+      const ePos = enemy.group.position;
+
+      // 弾丸の連続ヒット判定（すり抜け防止CCD）
       for (const bullet of activeBullets) {
         if (!bullet.active) continue;
 
-        const dist = bullet.pos.distanceTo(enemy.group.position);
-        if (dist < 1.3) {
+        if (this.isBulletCrossing(bullet, delta, ePos.x, ePos.z, halfW, halfD)) {
           const hitResult = enemy.takeDamage(bullet.damage, bullet);
 
           if (hitResult === 'deflected') {
@@ -276,24 +325,24 @@ class GameApp {
               const count = enemy.rescueCount || 6;
               this.gary.addCount(count);
               this.sound.playGatePass(true);
-              this.fx.spawnBurst(enemy.group.position, 0x64ff24, 30);
+              this.fx.spawnBurst(ePos, 0x64ff24, 30);
               this.renderer.addScreenShake(0.25);
               this.ui.showGarySpeech(`仲間を${count}体救出！やったー！`, 2.0);
               this.score += 300;
             } else if (enemy.type === 'barrel') {
               // ★爆発バレルの連鎖誘爆ギミック！★
               this.sound.playBarrelExplode();
-              this.fx.spawnBurst(enemy.group.position, 0xff5722, 35);
+              this.fx.spawnBurst(ePos, 0xff5722, 35);
               this.renderer.addScreenShake(0.55);
-              this.triggerBarrelExplosion(enemy.group.position);
+              this.triggerBarrelExplosion(ePos);
             } else {
               this.sound.playEnemyExplode();
-              this.fx.spawnBurst(enemy.group.position, (enemy.type === 'block' ? 0x90a4ae : (enemy.type === 'shielded' ? 0x00b0ff : 0xff1744)), 25);
+              this.fx.spawnBurst(ePos, (enemy.type === 'block' ? 0x90a4ae : (enemy.type === 'shielded' ? 0x00b0ff : 0xff1744)), 25);
               this.renderer.addScreenShake(0.25);
             }
 
             // コインの吸引エフェクト発生！
-            this.fx.spawnCoins(enemy.group.position, enemy.type === 'tank' ? 8 : (enemy.type === 'shielded' || enemy.type === 'turret' ? 6 : 4));
+            this.fx.spawnCoins(ePos, enemy.type === 'tank' ? 8 : (enemy.type === 'shielded' || enemy.type === 'turret' ? 6 : 4));
             this.score += (enemy.type === 'tank' ? 350 : (enemy.type === 'shielded' ? 280 : (enemy.type === 'block' ? 200 : 120)));
           }
           break;
@@ -303,10 +352,10 @@ class GameApp {
       // 敵・障害物 vs プレイヤー群集（接触判定）
       if (enemy.alive) {
         if (enemy.type === 'laser_fence') {
-          // レーザーフェンス（横幅 3.6m、厚さ 0.7m）
-          const dz = Math.abs(mojiPos.z - enemy.group.position.z);
-          const dx = Math.abs(mojiPos.x - enemy.group.position.x);
-          if (dz < 0.75 && dx < 1.9 && enemy.isLaserActive) {
+          // レーザーフェンス（横幅 3.8m、厚さ 0.8m）
+          const dz = Math.abs(mojiPos.z - ePos.z);
+          const dx = Math.abs(mojiPos.x - ePos.x);
+          if (dz < 0.85 && dx < 2.1 && enemy.isLaserActive) {
             if (this.moji.hasShield) {
               this.moji.takeDamage(10); // シールドが完全防御！
               this.fx.spawnBurst(mojiPos, 0x00e5ff, 25);
@@ -325,20 +374,31 @@ class GameApp {
             }
           }
         } else {
-          const distToMoji = mojiPos.distanceTo(enemy.group.position);
-          if (distToMoji < 1.5) {
+          // ゲイリー群集の広がり
+          const armyRadiusX = Math.min(3.8, 1.0 + Math.sqrt(this.gary.count) * 0.35);
+          const armyDepthZ = Math.min(3.5, 0.8 + Math.sqrt(this.gary.count) * 0.3);
+
+          const dxToMoji = Math.abs(mojiPos.x - ePos.x);
+          const dzToMoji = mojiPos.z - ePos.z;
+
+          // もじさん本体との直接衝突判定
+          const mojiHit = (dxToMoji < 1.4 && Math.abs(dzToMoji) < 1.4);
+          // 群集全体との接触判定
+          const swarmHit = (dxToMoji < armyRadiusX + 0.6 && dzToMoji >= -0.8 && dzToMoji <= armyDepthZ + 0.8);
+
+          if (mojiHit || swarmHit) {
             if (enemy.type === 'cage') {
-              // 接触でも救出可能！
+              // ゲイリー群集が触れても救出！
               enemy.alive = false;
               const count = enemy.rescueCount || 6;
               this.gary.addCount(count);
               this.sound.playGatePass(true);
-              this.fx.spawnBurst(enemy.group.position, 0x64ff24, 30);
+              this.fx.spawnBurst(ePos, 0x64ff24, 30);
               this.ui.showGarySpeech(`仲間を${count}体救出！`, 2.0);
               this.score += 300;
-            } else {
+            } else if (mojiHit) {
               enemy.alive = false;
-              this.fx.spawnBurst(enemy.group.position, 0xff5252, 20);
+              this.fx.spawnBurst(ePos, 0xff5252, 20);
               this.renderer.addScreenShake(0.4);
 
               if (this.moji.hasShield) {
@@ -351,31 +411,46 @@ class GameApp {
                 this.moji.takeDamage(25);
                 this.ui.showMojiSpeech("くっ、油断するな！", 1.8);
               }
+            } else if (this.gary.count > 0 && Math.abs(dzToMoji) < 1.2) {
+              // 群集端が衝突
+              enemy.alive = false;
+              this.fx.spawnBurst(ePos, 0xff5252, 16);
+              this.gary.addCount(-Math.min(this.gary.count, 3));
+              this.ui.showGarySpeech("痛っ！気をつけて！", 1.5);
             }
           }
         }
       }
     }
 
-    // C. 敵弾 vs プレイヤー / プレイヤー弾
+    // C. 敵弾 vs プレイヤー / プレイヤー弾（2.5D XZ判定）
     for (const eb of activeEnemyBullets) {
       if (!eb.active) continue;
 
       // 敵弾 vs プレイヤー弾（弾丸の相殺！）
       for (const pb of activeBullets) {
         if (!pb.active) continue;
-        if (eb.pos.distanceTo(pb.pos) < 0.8) {
+        const dx = Math.abs(eb.pos.x - pb.pos.x);
+        const dz = Math.abs(eb.pos.z - pb.pos.z);
+        if (dx < 0.85 && dz < 1.2) {
           eb.active = false;
           eb.mesh.visible = false;
-          pb.active = false;
-          pb.mesh.visible = false;
+          if (!pb.isMega) {
+            pb.active = false;
+            pb.mesh.visible = false;
+          }
           this.fx.spawnBurst(eb.pos, 0xffd54f, 10);
+          this.sound.playEnemyHit();
           break;
         }
       }
 
+      if (!eb.active) continue;
+
       // 敵弾 vs プレイヤー
-      if (eb.active && eb.pos.distanceTo(mojiPos) < 1.6) {
+      const dxToPlayer = Math.abs(eb.pos.x - mojiPos.x);
+      const dzToPlayer = Math.abs(eb.pos.z - mojiPos.z);
+      if (dxToPlayer < 1.35 && dzToPlayer < 1.35) {
         eb.active = false;
         eb.mesh.visible = false;
         this.fx.spawnBurst(eb.pos, 0xff1744, 18);
@@ -406,13 +481,13 @@ class GameApp {
       for (const bullet of activeBullets) {
         if (!bullet.active) continue;
 
-        // 1. パイロン（シールド核）への攻撃判定
+        // 1. パイロン（シールド核）への攻撃判定（CCD swept 判定）
         if (boss.hasPylons) {
           let hitPylon = false;
           boss.pylons.forEach((p, idx) => {
             if (!p.alive || hitPylon) return;
             const pWorld = boss.group.position.clone().add(p.mesh.position);
-            if (bullet.pos.distanceTo(pWorld) < 1.4) {
+            if (this.isBulletCrossing(bullet, delta, pWorld.x, pWorld.z, 1.3, 1.2)) {
               hitPylon = true;
               if (!bullet.isMega) {
                 bullet.active = false;
@@ -432,10 +507,8 @@ class GameApp {
           if (hitPylon) continue;
         }
 
-        // 2. ボス本体への攻撃判定
-        const dz = Math.abs(bullet.pos.z - boss.z);
-        const dx = Math.abs(bullet.pos.x);
-        if (dz < 2.6 && dx < 3.4) {
+        // 2. ボス本体への攻撃判定（CCD swept 判定）
+        if (this.isBulletCrossing(bullet, delta, 0, boss.z, 3.2, 2.5)) {
           if (!bullet.isMega) {
             bullet.active = false;
             bullet.mesh.visible = false;
@@ -461,11 +534,7 @@ class GameApp {
 
       // ボス直接接触
       if (boss.alive && mojiPos.z <= boss.z + 2.0) {
-        if (this.moji.hasShield) {
-          this.moji.takeDamage(100);
-        } else {
-          this.moji.takeDamage(100);
-        }
+        this.moji.takeDamage(100);
       }
     }
 
