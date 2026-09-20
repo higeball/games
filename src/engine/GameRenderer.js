@@ -68,10 +68,10 @@ export class GameRenderer {
   setupEnvironment() {
     // トラック・道路（スタイリッシュなネオンサイバーロード）
     const trackWidth = CONFIG.TRACK_WIDTH;
-    const trackLength = Math.abs(CONFIG.FINISH_Z) + 120;
+    const trackLength = 1000; // 全5ステージ＋EX＋ボーナスロードを余裕でカバー
 
     // メインロード（アスファルト調ダークブルー）
-    const roadGeo = new THREE.PlaneGeometry(trackWidth, trackLength, 1, 60);
+    const roadGeo = new THREE.PlaneGeometry(trackWidth, trackLength, 1, 100);
     const roadMat = new THREE.MeshStandardMaterial({
       color: 0x141f36,
       roughness: 0.35,
@@ -84,7 +84,7 @@ export class GameRenderer {
     this.scene.add(this.road);
 
     // レーンガイド（グリッド・ストライプライン）
-    const gridGeo = new THREE.PlaneGeometry(trackWidth, trackLength, 4, 80);
+    const gridGeo = new THREE.PlaneGeometry(trackWidth, trackLength, 4, 120);
     const gridMat = new THREE.MeshBasicMaterial({
       color: 0x00f0ff,
       wireframe: true,
@@ -119,11 +119,11 @@ export class GameRenderer {
       roughness: 0.7
     });
 
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 70; i++) {
       const p = new THREE.Mesh(pillarGeo, pillarMat);
       const side = (i % 2 === 0) ? -1 : 1;
       const x = side * (CONFIG.TRACK_WIDTH / 2 + 6 + Math.random() * 8);
-      const z = - (i * 18);
+      const z = - (i * 14);
       p.position.set(x, 10 + Math.random() * 5, z);
       this.scene.add(p);
     }
@@ -146,6 +146,29 @@ export class GameRenderer {
       this.renderer.setSize(width, height);
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     });
+  }
+
+  resetCamera(targetPos = { x: 0, y: 0, z: 0 }) {
+    const desiredPos = new THREE.Vector3(
+      targetPos.x * 0.3 + CONFIG.CAMERA_OFFSET.x,
+      targetPos.y + CONFIG.CAMERA_OFFSET.y,
+      targetPos.z + CONFIG.CAMERA_OFFSET.z
+    );
+    this.camera.position.copy(desiredPos);
+    const lookTarget = new THREE.Vector3(
+      targetPos.x * 0.4 + CONFIG.CAMERA_LOOK_AT.x,
+      targetPos.y + CONFIG.CAMERA_LOOK_AT.y,
+      targetPos.z + CONFIG.CAMERA_LOOK_AT.z
+    );
+    this.camera.lookAt(lookTarget);
+    this.shakeOffset.set(0, 0, 0);
+
+    if (this.dirLight) {
+      this.dirLight.position.x = targetPos.x + 15;
+      this.dirLight.position.z = targetPos.z + 20;
+      this.dirLight.target.position.set(targetPos.x, targetPos.y, targetPos.z);
+      this.dirLight.target.updateMatrixWorld();
+    }
   }
 
   updateCamera(targetPos, delta) {

@@ -62,6 +62,7 @@ class GameApp {
 
     this.input.reset();
     this.moji.reset();
+    this.renderer.resetCamera(this.moji.position);
     this.gary.reset();
     this.bullets.reset();
     this.fx.reset();
@@ -455,5 +456,5 @@ class GameApp {
 
 // ゲーム起動
 window.addEventListener('DOMContentLoaded', () => {
-  new GameApp();
+  window.__game = new GameApp();
 });

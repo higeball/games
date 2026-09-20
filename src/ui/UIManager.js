@@ -1,3 +1,5 @@
+import { CONFIG } from '../config.js';
+
 export class UIManager {
   constructor(callbacks = {}) {
     this.callbacks = callbacks; // onStart, onRestart, onNextStage, onToggleMute
@@ -34,36 +36,34 @@ export class UIManager {
   }
 
   bindEvents() {
-    if (this.startBtn) {
-      this.startBtn.addEventListener('click', (e) => {
+    const attachButtonHandler = (btn, callback) => {
+      if (!btn) return;
+      let lastTrigger = 0;
+      const trigger = (e) => {
         e.stopPropagation();
-        if (this.callbacks.onStart) this.callbacks.onStart();
-      });
-      // モバイルでタップの反応を早くする
-      this.startBtn.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTrigger < 350) return;
+        lastTrigger = now;
+        if (callback) callback();
+      };
+      btn.addEventListener('click', trigger);
+      btn.addEventListener('touchend', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        if (this.callbacks.onStart) this.callbacks.onStart();
+        trigger(e);
       });
-    }
+    };
 
-    if (this.restartBtn) {
-      const handleRestart = (e) => {
-        e.stopPropagation();
-        if (this.callbacks.onRestart) this.callbacks.onRestart();
-      };
-      this.restartBtn.addEventListener('click', handleRestart);
-      this.restartBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleRestart(e); });
-    }
+    attachButtonHandler(this.startBtn, () => {
+      if (this.callbacks.onStart) this.callbacks.onStart();
+    });
 
-    if (this.nextBtn) {
-      const handleNext = (e) => {
-        e.stopPropagation();
-        if (this.callbacks.onNextStage) this.callbacks.onNextStage();
-      };
-      this.nextBtn.addEventListener('click', handleNext);
-      this.nextBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleNext(e); });
-    }
+    attachButtonHandler(this.restartBtn, () => {
+      if (this.callbacks.onRestart) this.callbacks.onRestart();
+    });
+
+    attachButtonHandler(this.nextBtn, () => {
+      if (this.callbacks.onNextStage) this.callbacks.onNextStage();
+    });
 
     if (this.muteBtn) {
       this.muteBtn.addEventListener('click', (e) => {
