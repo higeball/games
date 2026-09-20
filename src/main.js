@@ -51,6 +51,7 @@ class GameApp {
 
     this.state = 'PLAYING';
     this.playerZ = 0;
+    this.bossAlerted = false;
     this.input.reset();
     this.moji.reset();
     this.gary.reset();
@@ -225,8 +226,10 @@ class GameApp {
 
           if (this.gary.count > 0) {
             this.gary.addCount(-Math.min(this.gary.count, 5));
+            this.ui.showGarySpeech("いたたたっ！負けないぞ！", 1.5);
           } else {
             this.moji.takeDamage(25);
+            this.ui.showMojiSpeech("くっ、油断するな！", 1.8);
           }
         }
       }
@@ -235,6 +238,13 @@ class GameApp {
     // C. 弾丸 vs ボス
     const boss = this.stage.boss;
     if (boss && boss.alive) {
+      // ボス接近アラート
+      if (!this.bossAlerted && Math.abs(mojiPos.z - boss.z) < 55) {
+        this.bossAlerted = true;
+        this.ui.showMojiSpeech("巨大ボス出現！総員突撃！", 3.0);
+        setTimeout(() => this.ui.showGarySpeech("ゲイリー砲、発射ーー！", 3.0), 1200);
+      }
+
       for (const bullet of activeBullets) {
         if (!bullet.active) continue;
 
@@ -299,6 +309,9 @@ class GameApp {
 
     this.score += 2000;
     this.state = 'BONUS_ROAD';
+
+    this.ui.showGarySpeech("やったーー！メガボス粉砕！", 3.0);
+    setTimeout(() => this.ui.showMojiSpeech("見事だ、ゲイリー！ボーナス突入！", 3.0), 1200);
   }
 
   handleStageClear() {

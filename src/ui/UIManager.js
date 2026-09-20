@@ -22,6 +22,14 @@ export class UIManager {
     this.clearBonusEl = document.getElementById('clear-bonus');
     this.levelTitleEl = document.getElementById('level-title');
 
+    // バディドック要素
+    this.buddyDockEl = document.querySelector('.buddy-dock');
+    this.garySubCountEl = document.getElementById('gary-sub-count');
+    this.mojiSpeechEl = document.getElementById('moji-speech');
+    this.garyDockSpeechEl = document.getElementById('gary-dock-speech');
+    this.mojiSpeechTimer = null;
+    this.garySpeechTimer = null;
+
     this.bindEvents();
   }
 
@@ -73,6 +81,7 @@ export class UIManager {
     this.gameoverScreen.classList.add('hidden');
     this.clearScreen.classList.add('hidden');
     this.hudEl.classList.add('hidden');
+    if (this.buddyDockEl) this.buddyDockEl.classList.add('hidden');
   }
 
   startGame(levelTitle) {
@@ -80,12 +89,40 @@ export class UIManager {
     this.gameoverScreen.classList.add('hidden');
     this.clearScreen.classList.add('hidden');
     this.hudEl.classList.remove('hidden');
+    if (this.buddyDockEl) this.buddyDockEl.classList.remove('hidden');
     if (this.levelTitleEl) this.levelTitleEl.textContent = levelTitle;
+
+    // 出撃時のバディ掛け合い
+    this.showMojiSpeech("ゲイリー、頼んだぞ！", 2.5);
+    setTimeout(() => {
+      this.showGarySpeech("もじさん、まかせてー！", 2.5);
+    }, 1200);
+  }
+
+  showMojiSpeech(text, duration = 2.0) {
+    if (!this.mojiSpeechEl) return;
+    this.mojiSpeechEl.textContent = text;
+    this.mojiSpeechEl.classList.add('visible');
+    if (this.mojiSpeechTimer) clearTimeout(this.mojiSpeechTimer);
+    this.mojiSpeechTimer = setTimeout(() => {
+      this.mojiSpeechEl.classList.remove('visible');
+    }, duration * 1000);
+  }
+
+  showGarySpeech(text, duration = 2.0) {
+    if (!this.garyDockSpeechEl) return;
+    this.garyDockSpeechEl.textContent = text;
+    this.garyDockSpeechEl.classList.add('visible');
+    if (this.garySpeechTimer) clearTimeout(this.garySpeechTimer);
+    this.garySpeechTimer = setTimeout(() => {
+      this.garyDockSpeechEl.classList.remove('visible');
+    }, duration * 1000);
   }
 
   showGameOver(score) {
     document.getElementById('gameover-score').textContent = score.toLocaleString();
     this.gameoverScreen.classList.remove('hidden');
+    if (this.buddyDockEl) this.buddyDockEl.classList.add('hidden');
   }
 
   showClear(score, garyCount, bonusMult) {
@@ -93,6 +130,7 @@ export class UIManager {
     this.clearGaryEl.textContent = garyCount.toString();
     this.clearBonusEl.textContent = `×${bonusMult.toFixed(1)}`;
     this.clearScreen.classList.remove('hidden');
+    if (this.buddyDockEl) this.buddyDockEl.classList.add('hidden');
   }
 
   updateHUD(score, garyCount, hp, maxHp, progress) {
@@ -101,10 +139,16 @@ export class UIManager {
       const prev = this.lastGaryCount;
       if (prev !== garyCount) {
         this.garyCountEl.textContent = `${garyCount}`;
+        if (this.garySubCountEl) this.garySubCountEl.textContent = `${garyCount}`;
         this.lastGaryCount = garyCount;
         this.garyCountEl.parentElement.classList.remove('pop-bounce');
         void this.garyCountEl.parentElement.offsetWidth; // リフロー
         this.garyCountEl.parentElement.classList.add('pop-bounce');
+
+        // ゲイリー数急増時のリアクション
+        if (prev !== undefined && garyCount > prev + 5) {
+          this.showGarySpeech(`+${garyCount - prev}体増殖！やったー！`, 2.0);
+        }
       }
     }
     if (this.hpFillEl) {

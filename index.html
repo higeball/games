@@ -320,6 +320,129 @@
       0%, 100% { opacity: 0.5; transform: translate(-50%, 0); }
       50% { opacity: 0.9; transform: translate(-50%, -4px); }
     }
+
+    /* バディ共闘ドック（画面下部左右のもじさん・ゲイリーカード） */
+    .buddy-dock {
+      position: absolute;
+      bottom: env(safe-area-inset-bottom, 14px);
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 0 12px;
+      pointer-events: none;
+      z-index: 15;
+    }
+
+    .buddy-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(14, 23, 48, 0.88);
+      backdrop-filter: blur(8px);
+      border-radius: 34px;
+      padding: 5px 12px 5px 5px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      pointer-events: none;
+      position: relative;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .buddy-card.moji {
+      border: 2px solid #00e5ff;
+      box-shadow: 0 4px 16px rgba(0, 229, 255, 0.35);
+    }
+
+    .buddy-card.gary {
+      border: 2px solid #64ff24;
+      box-shadow: 0 4px 16px rgba(100, 255, 36, 0.35);
+      flex-direction: row-reverse;
+      padding: 5px 5px 5px 12px;
+    }
+
+    /* もじさんイラストポートレート（concept.pngから切り抜き） */
+    .avatar-moji {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-image: url('./assets/moji-gary-concept.png');
+      background-size: 380% 380%;
+      background-position: 22% 28%;
+      background-repeat: no-repeat;
+      border: 2px solid #00e5ff;
+      box-shadow: 0 2px 8px rgba(0, 229, 255, 0.6);
+      flex-shrink: 0;
+    }
+
+    /* ゲイリーくんイラストポートレート（手を振る姿・concept.pngから切り抜き） */
+    .avatar-gary {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-image: url('./assets/moji-gary-concept.png');
+      background-size: 320% 320%;
+      background-position: 84% 31%;
+      background-repeat: no-repeat;
+      border: 2px solid #64ff24;
+      box-shadow: 0 2px 8px rgba(100, 255, 36, 0.6);
+      flex-shrink: 0;
+      animation: garyWave 3s ease-in-out infinite;
+    }
+
+    @keyframes garyWave {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.08) rotate(5deg); }
+    }
+
+    .buddy-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .buddy-name {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    .buddy-sub {
+      font-size: 0.65rem;
+      color: #90caf9;
+      font-weight: 600;
+    }
+
+    /* バディのセリフ吹き出し */
+    .buddy-speech {
+      position: absolute;
+      top: -34px;
+      background: rgba(255, 255, 255, 0.95);
+      color: #0b132b;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      pointer-events: none;
+    }
+
+    .buddy-speech.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .buddy-speech.left {
+      left: 4px;
+    }
+    .buddy-speech.right {
+      right: 4px;
+    }
   </style>
 </head>
 <body>
@@ -364,10 +487,28 @@
 
     <div class="guide-drag">左右スワイプで部隊を移動</div>
 
-    <div class="hud-bottom">
-      <div style="font-size: 0.75rem; color: #90caf9; font-weight: bold;">もじさん HP</div>
-      <div class="hp-bar-container">
-        <div id="hp-fill"></div>
+    <!-- バディ共闘ドック（画面下部左右のもじさん・ゲイリー） -->
+    <div class="buddy-dock">
+      <!-- もじさんカード -->
+      <div class="buddy-card moji">
+        <div class="avatar-moji"></div>
+        <div class="buddy-info">
+          <div class="buddy-name">もじさん (リーダー)</div>
+          <div class="hp-bar-container" style="width: 80px; height: 7px; margin-top: 2px;">
+            <div id="hp-fill"></div>
+          </div>
+        </div>
+        <div id="moji-speech" class="buddy-speech left">全速前進！</div>
+      </div>
+
+      <!-- ゲイリーくんカード -->
+      <div class="buddy-card gary">
+        <div class="avatar-gary"></div>
+        <div class="buddy-info" style="align-items: flex-end;">
+          <div class="buddy-name">ゲイリーくん (相棒)</div>
+          <div class="buddy-sub"><span id="gary-sub-count" style="color: #64ff24; font-weight: bold;">3</span>体 突撃中！</div>
+        </div>
+        <div id="gary-dock-speech" class="buddy-speech right">ぽよぽよ〜！</div>
       </div>
     </div>
   </div>
