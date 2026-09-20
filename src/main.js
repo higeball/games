@@ -28,8 +28,13 @@ class GameApp {
     this.currentLevel = 1;
     this.playerZ = 0;
 
+    // 武器バフ
+    this.hasSpreadShot = false;
+    this.hasMegaBeam = false;
+
     this.mojiFireTimer = 0;
     this.garyFireTimer = 0;
+    this.bossAlerted = false;
 
     this.lastTime = performance.now();
 
@@ -52,6 +57,9 @@ class GameApp {
     this.state = 'PLAYING';
     this.playerZ = 0;
     this.bossAlerted = false;
+    this.hasSpreadShot = false;
+    this.hasMegaBeam = false;
+
     this.input.reset();
     this.moji.reset();
     this.gary.reset();
@@ -78,7 +86,7 @@ class GameApp {
   animate(currentTime) {
     requestAnimationFrame(this.animate);
 
-    const delta = Math.min((currentTime - this.lastTime) / 1000, 0.05); // 最大50msにクランプ
+    const delta = Math.min((currentTime - this.lastTime) / 1000, 0.05);
     this.lastTime = currentTime;
 
     this.update(delta);
@@ -102,17 +110,21 @@ class GameApp {
       // 4. 弾丸更新
       this.bullets.update(delta);
 
-      // 5. ステージとエンティティの更新
-      this.stage.update(delta);
+      // 5. ステージとエンティティの更新（ボスの攻撃コールバック付き）
+      this.stage.update(delta, (bossPos) => this.handleBossAttack(bossPos));
 
       // 6. 衝突判定
       this.handleCollisions();
 
-      // 7. エフェクト更新
-      this.fx.update(delta);
+      // 7. エフェクト更新（コイン吸引コールバック付き）
+      this.fx.update(delta, this.moji.position, () => {
+        this.sound.playCoin();
+        this.score += 50;
+      });
 
       // 8. HUD更新
-      const totalDist = Math.abs(CONFIG.FINISH_Z);
+      const currentLevelData = CONFIG.LEVELS[(this.currentLevel - 1) % CONFIG.LEVELS.length];
+      const totalDist = currentLevelData.distance;
       const curDist = Math.min(totalDist, Math.abs(this.playerZ));
       const progress = curDist / totalDist;
       this.ui.updateHUD(this.score, this.gary.count, this.moji.hp, this.moji.maxHp, progress);
@@ -125,7 +137,7 @@ class GameApp {
       // アイドル・タイトル・クリア中
       this.moji.update(delta, 0, this.playerZ, false);
       this.gary.update(delta, this.moji.position, false);
-      this.fx.update(delta);
+      this.fx.update(delta, this.moji.position);
     }
   }
 
@@ -137,7 +149,7 @@ class GameApp {
     if (this.mojiFireTimer >= CONFIG.MOJI.FIRE_INTERVAL) {
       this.mojiFireTimer = 0;
       const gunPos = this.moji.getGunWorldPos();
-      this.bullets.spawnBullet(gunPos, true);
+      this.bullets.spawnBullet(gunPos, true, 0, this.hasMegaBeam);
       this.moji.triggerShoot();
       this.sound.playLaser();
     }
@@ -146,19 +158,40 @@ class GameApp {
     this.garyFireTimer += delta;
     if (this.garyFireTimer >= CONFIG.GARY.FIRE_INTERVAL && this.gary.count > 0) {
       this.garyFireTimer = 0;
-      const frontGaries = this.gary.getFrontPositions(Math.min(10, Math.ceil(this.gary.count / 3)));
+      const sampleCount = Math.min(10, Math.ceil(this.gary.count / 3));
+      const frontGaries = this.gary.getFrontPositions(sampleCount);
+
       frontGaries.forEach(pos => {
         const shotPos = pos.clone();
-        shotPos.y += 0.3;
-        shotPos.z -= 0.3;
-        this.bullets.spawnBullet(shotPos, false);
+        shotPos.y += 0.35;
+        shotPos.z -= 0.35;
+
+        // 通常正面ショット
+        this.bullets.spawnBullet(shotPos, false, 0);
+
+        // 3WAY拡散弾バフが有効なら左右斜めにも発射！
+        if (this.hasSpreadShot) {
+          this.bullets.spawnBullet(shotPos, false, -10);
+          this.bullets.spawnBullet(shotPos, false, 10);
+        }
       });
       this.sound.playSlimeShot();
     }
   }
 
+  handleBossAttack(bossPos) {
+    if (this.state !== 'PLAYING') return;
+    // ボスから手前のプレイヤー周辺へ3WAYエネルギー弾発射
+    const px = this.moji.position.x;
+    this.bullets.spawnEnemyBullet(bossPos, px - 2.5);
+    this.bullets.spawnEnemyBullet(bossPos, px);
+    this.bullets.spawnEnemyBullet(bossPos, px + 2.5);
+    this.sound.playEnemyHit();
+  }
+
   handleCollisions() {
     const activeBullets = this.bullets.getActiveBullets();
+    const activeEnemyBullets = this.bullets.getActiveEnemyBullets();
     const mojiPos = this.moji.position;
 
     // A. 弾丸 vs ゲート
@@ -167,10 +200,9 @@ class GameApp {
       for (const bullet of activeBullets) {
         if (!bullet.active) continue;
 
-        // ゲートとのバウンディング衝突
         const dz = Math.abs(bullet.pos.z - gate.z);
         const dx = Math.abs(bullet.pos.x - gate.x);
-        if (dz < 0.8 && dx < gate.width / 2) {
+        if (dz < 0.9 && dx < gate.width / 2) {
           bullet.active = false;
           bullet.mesh.visible = false;
           gate.onBulletHit();
@@ -181,17 +213,23 @@ class GameApp {
       }
 
       // プレイヤー軍団 vs ゲート通過判定
-      if (!gate.passed && Math.abs(mojiPos.z - gate.z) < 1.2) {
+      if (!gate.passed && Math.abs(mojiPos.z - gate.z) < 1.3) {
         if (Math.abs(mojiPos.x - gate.x) < gate.width / 2) {
-          const isPos = gate.applyEffect(this.gary, this.moji);
+          const isPos = gate.applyEffect(this.gary, this.moji, this);
           this.sound.playGatePass(isPos);
           this.fx.spawnGateRing(gate.group.position, isPos ? 0x76ff03 : 0xff1744);
-          this.renderer.addScreenShake(0.2);
+          this.renderer.addScreenShake(0.25);
+
+          if (gate.type === 'spread') {
+            this.ui.showGarySpeech("3WAY弾幕発動ー！", 2.2);
+          } else if (gate.type === 'power') {
+            this.ui.showMojiSpeech("メガビーム砲、点火！", 2.2);
+          }
         }
       }
     }
 
-    // B. 弾丸 vs 敵モンスター
+    // B. 弾丸 vs 敵モンスター＆障害物
     for (const enemy of this.stage.enemies) {
       if (!enemy.alive) continue;
 
@@ -199,27 +237,40 @@ class GameApp {
         if (!bullet.active) continue;
 
         const dist = bullet.pos.distanceTo(enemy.group.position);
-        if (dist < 1.1) {
-          bullet.active = false;
-          bullet.mesh.visible = false;
+        if (dist < 1.25) {
+          if (!bullet.isMega) {
+            bullet.active = false;
+            bullet.mesh.visible = false;
+          }
 
           const killed = enemy.takeDamage(bullet.damage);
           this.sound.playEnemyHit();
 
           if (killed) {
-            this.sound.playEnemyExplode();
-            this.fx.spawnBurst(enemy.group.position, 0xff1744, 25);
-            this.renderer.addScreenShake(0.3);
-            this.score += 150;
+            if (enemy.type === 'barrel') {
+              // ★爆発バレルの連鎖誘爆ギミック！★
+              this.sound.playBarrelExplode();
+              this.fx.spawnBurst(enemy.group.position, 0xff5722, 35);
+              this.renderer.addScreenShake(0.55);
+              this.triggerBarrelExplosion(enemy.group.position);
+            } else {
+              this.sound.playEnemyExplode();
+              this.fx.spawnBurst(enemy.group.position, (enemy.type === 'block' ? 0x90a4ae : 0xff1744), 25);
+              this.renderer.addScreenShake(0.25);
+            }
+
+            // コインの吸引エフェクト発生！
+            this.fx.spawnCoins(enemy.group.position, enemy.type === 'tank' ? 8 : 4);
+            this.score += (enemy.type === 'tank' ? 350 : (enemy.type === 'block' ? 200 : 120));
           }
           break;
         }
       }
 
-      // 敵 vs プレイヤー群集（ゲイリーまたはもじさんとの接触）
+      // 敵 vs プレイヤー群集（接触判定）
       if (enemy.alive) {
         const distToMoji = mojiPos.distanceTo(enemy.group.position);
-        if (distToMoji < 1.4) {
+        if (distToMoji < 1.5) {
           enemy.alive = false;
           this.fx.spawnBurst(enemy.group.position, 0xff5252, 20);
           this.renderer.addScreenShake(0.4);
@@ -235,14 +286,47 @@ class GameApp {
       }
     }
 
-    // C. 弾丸 vs ボス
+    // C. ボス敵弾 vs プレイヤー / プレイヤー弾
+    for (const eb of activeEnemyBullets) {
+      if (!eb.active) continue;
+
+      // 敵弾 vs プレイヤー弾（弾丸の相殺！）
+      for (const pb of activeBullets) {
+        if (!pb.active) continue;
+        if (eb.pos.distanceTo(pb.pos) < 0.8) {
+          eb.active = false;
+          eb.mesh.visible = false;
+          pb.active = false;
+          pb.mesh.visible = false;
+          this.fx.spawnBurst(eb.pos, 0xffd54f, 10);
+          break;
+        }
+      }
+
+      // 敵弾 vs プレイヤー
+      if (eb.active && eb.pos.distanceTo(mojiPos) < 1.6) {
+        eb.active = false;
+        eb.mesh.visible = false;
+        this.fx.spawnBurst(eb.pos, 0xff1744, 18);
+        this.renderer.addScreenShake(0.4);
+
+        if (this.gary.count > 0) {
+          this.gary.addCount(-Math.min(this.gary.count, 4));
+          this.ui.showGarySpeech("ゲイリーが守るよ！", 1.5);
+        } else {
+          this.moji.takeDamage(eb.damage);
+          this.ui.showMojiSpeech("被弾した！持ちこたえろ！", 1.8);
+        }
+      }
+    }
+
+    // D. 弾丸 vs ボス
     const boss = this.stage.boss;
     if (boss && boss.alive) {
-      // ボス接近アラート
       if (!this.bossAlerted && Math.abs(mojiPos.z - boss.z) < 55) {
         this.bossAlerted = true;
-        this.ui.showMojiSpeech("巨大ボス出現！総員突撃！", 3.0);
-        setTimeout(() => this.ui.showGarySpeech("ゲイリー砲、発射ーー！", 3.0), 1200);
+        this.ui.showMojiSpeech(`${boss.name} 出現！総員突撃！`, 3.0);
+        setTimeout(() => this.ui.showGarySpeech("ゲイリー軍団、いっけーー！", 3.0), 1200);
       }
 
       for (const bullet of activeBullets) {
@@ -250,13 +334,15 @@ class GameApp {
 
         const dz = Math.abs(bullet.pos.z - boss.z);
         const dx = Math.abs(bullet.pos.x);
-        if (dz < 2.5 && dx < 3.2) {
-          bullet.active = false;
-          bullet.mesh.visible = false;
+        if (dz < 2.6 && dx < 3.4) {
+          if (!bullet.isMega) {
+            bullet.active = false;
+            bullet.mesh.visible = false;
+          }
 
           const defeated = boss.takeDamage(bullet.damage);
           this.sound.playEnemyHit();
-          this.fx.spawnBurst(bullet.pos, 0xd500f9, 8);
+          this.fx.spawnBurst(bullet.pos, boss.color, 8);
 
           if (defeated) {
             this.handleBossDefeated();
@@ -264,13 +350,13 @@ class GameApp {
         }
       }
 
-      // ボスに到達してしまった場合
+      // ボス直接接触
       if (boss.alive && mojiPos.z <= boss.z + 2.0) {
         this.moji.takeDamage(100);
       }
     }
 
-    // D. ボーナスロードの通過判定
+    // E. ボーナスロードの通過判定
     if (this.state === 'BONUS_ROAD') {
       for (const zone of this.stage.bonusZones) {
         if (!zone.passed && mojiPos.z <= zone.z) {
@@ -282,35 +368,53 @@ class GameApp {
         }
       }
 
-      // ボーナスロード終点到達でクリア！
-      const lastZoneZ = CONFIG.FINISH_Z - 110;
+      const currentLevelData = CONFIG.LEVELS[(this.currentLevel - 1) % CONFIG.LEVELS.length];
+      const lastZoneZ = -currentLevelData.distance - 120;
       if (mojiPos.z <= lastZoneZ) {
         this.handleStageClear();
       }
     }
   }
 
+  triggerBarrelExplosion(barrelPos) {
+    // 範囲3.8m以内の敵すべてに誘爆大ダメージ
+    for (const other of this.stage.enemies) {
+      if (!other.alive) continue;
+      const d = other.group.position.distanceTo(barrelPos);
+      if (d < 3.8) {
+        const dead = other.takeDamage(150);
+        if (dead) {
+          this.sound.playEnemyExplode();
+          this.fx.spawnBurst(other.group.position, 0xff9100, 20);
+          this.fx.spawnCoins(other.group.position, 4);
+          this.score += 150;
+        }
+      }
+    }
+  }
+
   handleBossDefeated() {
     this.sound.playBossExplosion();
-    this.renderer.addScreenShake(0.8);
+    this.renderer.addScreenShake(0.85);
     const bossPos = this.stage.boss.group.position;
 
-    // 連続大爆発
-    for (let i = 0; i < 6; i++) {
+    // 連続大爆発＆大量コイン放出！
+    for (let i = 0; i < 7; i++) {
       setTimeout(() => {
         const offset = new THREE.Vector3(
-          (Math.random() - 0.5) * 4,
-          Math.random() * 3,
-          (Math.random() - 0.5) * 4
+          (Math.random() - 0.5) * 4.5,
+          Math.random() * 3.5,
+          (Math.random() - 0.5) * 4.5
         );
-        this.fx.spawnBurst(bossPos.clone().add(offset), 0xffd700, 30);
-      }, i * 120);
+        this.fx.spawnBurst(bossPos.clone().add(offset), 0xffd700, 35);
+        this.fx.spawnCoins(bossPos.clone().add(offset), 5);
+      }, i * 110);
     }
 
-    this.score += 2000;
+    this.score += 2500;
     this.state = 'BONUS_ROAD';
 
-    this.ui.showGarySpeech("やったーー！メガボス粉砕！", 3.0);
+    this.ui.showGarySpeech("やったーー！ボス粉砕！", 3.0);
     setTimeout(() => this.ui.showMojiSpeech("見事だ、ゲイリー！ボーナス突入！", 3.0), 1200);
   }
 
@@ -320,14 +424,14 @@ class GameApp {
     this.fx.triggerVictoryConfetti();
 
     // 最終スコア算出（ゲイリー生存数 × ボーナス倍率）
-    const finalScore = Math.round(this.score + this.gary.count * 100 * this.stage.bonusMultiplier);
-    this.ui.showClear(finalScore, this.gary.count, this.stage.bonusMultiplier);
+    const finalScore = Math.round(this.score + this.gary.count * 120 * this.stage.bonusMultiplier);
+    this.ui.showClear(finalScore, this.gary.count, this.stage.bonusMultiplier, this.currentLevel);
   }
 
   handleGameOver() {
     this.state = 'GAMEOVER';
     this.sound.stopBgm();
-    this.renderer.addScreenShake(0.6);
+    this.renderer.addScreenShake(0.65);
     this.ui.showGameOver(this.score);
   }
 

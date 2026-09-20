@@ -130,10 +130,25 @@ export class UIManager {
     setTimeout(() => this.showGarySpeech("もじさん、次こそ勝とう！", 3.0), 1200);
   }
 
-  showClear(score, garyCount, bonusMult) {
+  showClear(score, garyCount, bonusMult, currentLevel = 1) {
     this.clearScoreEl.textContent = score.toLocaleString();
     this.clearGaryEl.textContent = garyCount.toString();
     this.clearBonusEl.textContent = `×${bonusMult.toFixed(1)}`;
+
+    const clearTitleEl = document.getElementById('clear-title');
+    if (clearTitleEl) {
+      clearTitleEl.textContent = `STAGE ${currentLevel} CLEAR!!`;
+    }
+
+    if (this.nextBtn) {
+      const nextLevelData = CONFIG.LEVELS[currentLevel % CONFIG.LEVELS.length];
+      if (currentLevel >= 5) {
+        this.nextBtn.textContent = `EXモード (STAGE ${currentLevel + 1}) へ出撃！`;
+      } else {
+        this.nextBtn.textContent = `次のステージへ (${nextLevelData.title})`;
+      }
+    }
+
     this.clearScreen.classList.remove('hidden');
     this.showGarySpeech("大勝利ーー！！", 3.0);
     setTimeout(() => this.showMojiSpeech("よくやった、ゲイリー！", 3.0), 1200);

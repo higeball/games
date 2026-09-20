@@ -47,35 +47,63 @@ export const CONFIG = {
       POSITIVE: { bg: 'rgba(0, 160, 255, 0.75)', border: '#00e5ff', text: '#ffffff' },
       MULTIPLY: { bg: 'rgba(255, 179, 0, 0.75)', border: '#ffd700', text: '#ffffff' },
       NEGATIVE: { bg: 'rgba(230, 30, 60, 0.75)', border: '#ff1744', text: '#ffffff' },
-      BUFF:     { bg: 'rgba(156, 39, 176, 0.75)', border: '#e040fb', text: '#ffffff' }
+      BUFF_SPREAD: { bg: 'rgba(255, 64, 129, 0.75)', border: '#ff4081', text: '#ffffff' },
+      BUFF_SPEED:  { bg: 'rgba(156, 39, 176, 0.75)', border: '#e040fb', text: '#ffffff' },
+      BUFF_POWER:  { bg: 'rgba(255, 112, 67, 0.75)', border: '#ff5722', text: '#ffffff' }
     }
   },
 
-  // レベル・難易度
+  // 全5ステージの詳細設計
   LEVELS: [
     {
       id: 1,
-      title: "オフィス脱出！作戦開始",
+      title: "STAGE 1: 電脳オフィス脱出",
+      subtitle: "ゲートを撃ってゲイリーを爆発増殖させよ！",
       distance: 300,
-      bossHp: 600,
-      enemySpawnRate: 1.8,
-      bgTheme: 'cyber_office'
+      bossName: "アイアン・ガーディアン",
+      bossHp: 650,
+      bossColor: 0x00e5ff,
+      skyColor: 0x0b132b
     },
     {
       id: 2,
-      title: "電脳ハイウェイ大激突",
+      title: "STAGE 2: ネオンハイウェイ激突",
+      subtitle: "動くゲートを見極め、赤いバレルを爆破せよ！",
       distance: 360,
-      bossHp: 1200,
-      enemySpawnRate: 1.4,
-      bgTheme: 'neon_highway'
+      bossName: "サイバー・スパイダー",
+      bossHp: 1300,
+      bossColor: 0x9c27b0,
+      skyColor: 0x12002b
     },
     {
       id: 3,
-      title: "最終防衛線：メガ・バグ討伐",
+      title: "STAGE 3: 電脳ネオンシティ掃討",
+      subtitle: "3WAY拡散弾を獲得し、敵の大群をなぎ倒せ！",
       distance: 420,
+      bossName: "メカ・ドローン・マザー",
       bossHp: 2200,
-      enemySpawnRate: 1.1,
-      bgTheme: 'core_chamber'
+      bossColor: 0xff1744,
+      skyColor: 0x1a0914
+    },
+    {
+      id: 4,
+      title: "STAGE 4: データコア防衛突破",
+      subtitle: "超巨大ブロックを集中砲火で粉砕せよ！",
+      distance: 480,
+      bossName: "ダーク・ゴーレム",
+      bossHp: 3400,
+      bossColor: 0xff9100,
+      skyColor: 0x051a1a
+    },
+    {
+      id: 5,
+      title: "STAGE 5: 皇帝メガ・バグ決戦",
+      subtitle: "最強のゲイリー軍団でメガ・バグ皇帝を討伐せよ！",
+      distance: 560,
+      bossName: "皇帝メガ・バグ",
+      bossHp: 5200,
+      bossColor: 0xd500f9,
+      skyColor: 0x1c0022
     }
   ]
 };
