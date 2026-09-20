@@ -98,11 +98,14 @@ export class UIManager {
   updateHUD(score, garyCount, hp, maxHp, progress) {
     if (this.scoreEl) this.scoreEl.textContent = score.toLocaleString();
     if (this.garyCountEl) {
-      this.garyCountEl.textContent = `${garyCount}`;
-      // 数が増えた時にポヨンと跳ねるアニメーション
-      this.garyCountEl.parentElement.classList.remove('pop-bounce');
-      void this.garyCountEl.parentElement.offsetWidth; // リフロー
-      this.garyCountEl.parentElement.classList.add('pop-bounce');
+      const prev = this.lastGaryCount;
+      if (prev !== garyCount) {
+        this.garyCountEl.textContent = `${garyCount}`;
+        this.lastGaryCount = garyCount;
+        this.garyCountEl.parentElement.classList.remove('pop-bounce');
+        void this.garyCountEl.parentElement.offsetWidth; // リフロー
+        this.garyCountEl.parentElement.classList.add('pop-bounce');
+      }
     }
     if (this.hpFillEl) {
       const hpPct = Math.max(0, Math.min(100, (hp / maxHp) * 100));

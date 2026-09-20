@@ -20,12 +20,13 @@ export class BulletManager {
       opacity: 0.9
     });
 
-    // ゲイリー用スライム弾メッシュ
-    const slimeGeo = new THREE.SphereGeometry(0.16, 8, 8);
+    // ゲイリー用スライム弾メッシュ（大きくぷるぷる光るスライムボール）
+    const slimeGeo = new THREE.SphereGeometry(0.28, 12, 10);
+    slimeGeo.scale(1.1, 0.9, 1.2);
     const slimeMat = new THREE.MeshBasicMaterial({
-      color: 0x76ff03,
+      color: 0x64ff24,
       transparent: true,
-      opacity: 0.85
+      opacity: 0.95
     });
 
     for (let i = 0; i < this.maxBullets; i++) {

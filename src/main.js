@@ -61,6 +61,7 @@ class GameApp {
     this.stage.loadLevel(this.currentLevel);
 
     this.ui.startGame(levelData.title);
+    this.gary.showSpeech("もじさん、いくよー！");
   }
 
   restartGame() {

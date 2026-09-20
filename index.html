@@ -68,34 +68,45 @@
       width: 100%;
     }
 
-    /* ゲイリー数バブル */
+    /* ゲイリー数バブル（ぷるぷるスライムデザイン） */
     .gary-badge {
       display: flex;
       align-items: center;
-      background: linear-gradient(135deg, #76ff03, #00e676);
-      color: #003300;
-      padding: 6px 14px;
-      border-radius: 24px;
+      gap: 6px;
+      background: linear-gradient(135deg, #64ff24, #00e676);
+      color: #003800;
+      padding: 6px 16px;
+      border-radius: 26px;
       font-weight: 900;
       font-size: 1.15rem;
-      box-shadow: 0 4px 14px rgba(118, 255, 3, 0.4);
+      box-shadow: 0 4px 18px rgba(100, 255, 36, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.6);
       border: 2px solid #ffffff;
       transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     .pop-bounce {
-      animation: bouncePop 0.25s ease-out;
+      animation: bouncePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     @keyframes bouncePop {
       0% { transform: scale(1); }
-      50% { transform: scale(1.22); }
-      100% { transform: scale(1); }
+      40% { transform: scale(1.35) rotate(-4deg); }
+      70% { transform: scale(0.95) rotate(2deg); }
+      100% { transform: scale(1) rotate(0deg); }
     }
 
-    .gary-icon {
-      font-size: 1.4rem;
-      margin-right: 6px;
+    .gary-face-svg {
+      width: 28px;
+      height: 28px;
+      display: inline-block;
+      vertical-align: middle;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+    }
+
+    .gary-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      opacity: 0.9;
     }
 
     /* スコア */
@@ -319,7 +330,23 @@
     <div id="hud" class="hidden">
       <div class="hud-top">
         <div class="gary-badge">
-          <span class="gary-icon">🟢</span>
+          <svg class="gary-face-svg" viewBox="0 0 100 80">
+            <!-- スライム体型 -->
+            <path d="M 10 65 Q 10 25 50 15 Q 90 25 90 65 Q 85 75 50 75 Q 15 75 10 65 Z" fill="#64ff24" stroke="#ffffff" stroke-width="4"/>
+            <!-- 泡 -->
+            <circle cx="78" cy="28" r="8" fill="#64ff24" stroke="#ffffff" stroke-width="3"/>
+            <!-- 目 -->
+            <ellipse cx="38" cy="45" rx="6" ry="8" fill="#111111"/>
+            <circle cx="36" cy="42" r="2.5" fill="#ffffff"/>
+            <ellipse cx="62" cy="45" rx="6" ry="8" fill="#111111"/>
+            <circle cx="60" cy="42" r="2.5" fill="#ffffff"/>
+            <!-- 口 -->
+            <path d="M 44 55 Q 50 63 56 55 Z" fill="#b71c1c"/>
+            <!-- チーク -->
+            <circle cx="28" cy="52" r="4" fill="#ff4081" opacity="0.8"/>
+            <circle cx="72" cy="52" r="4" fill="#ff4081" opacity="0.8"/>
+          </svg>
+          <span class="gary-label">ゲイリー</span>
           <span id="gary-count">3</span>
         </div>
         <div style="display: flex; align-items: center;">

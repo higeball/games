@@ -23,18 +23,19 @@ export const CONFIG = {
   GARY: {
     INITIAL_COUNT: 3,         // 初期ゲイリー数
     MAX_COUNT: 250,           // 最大描画数（InstancedMesh上限）
-    BASE_RADIUS: 0.38,        // スライムの基本サイズ
-    FIRE_INTERVAL: 0.35,      // スライムショット間隔
-    BULLET_SPEED: 40.0,
-    BULLET_DAMAGE: 5,
-    COLOR_BODY: 0x76ff03,     // 鮮やかなライムグリーン
-    COLOR_EMISSIVE: 0x2e7d32,
+    BASE_RADIUS: 0.62,        // スライムの基本サイズ（見栄え重視で拡大）
+    MAIN_SCALE: 1.45,         // もじさんの隣にいるメインゲイリーの拡大倍率
+    FIRE_INTERVAL: 0.30,      // スライムショット間隔
+    BULLET_SPEED: 42.0,
+    BULLET_DAMAGE: 8,
+    COLOR_BODY: 0x64ff24,     // 鮮やかなネオンライムグリーン
+    COLOR_EMISSIVE: 0x3cd000, // 強い自己発光
     COLOR_EYE: 0x111111,
-    COLOR_CHEEK: 0xff80ab,
-    FORMATION_SPACING: 0.72,  // 隊列の間隔
-    FOLLOW_LERP: 10.0,        // もじさんへの追従レスポンス
-    BOUNCE_SPEED: 10.0,       // ぽよぽよ跳ねる周期
-    BOUNCE_HEIGHT: 0.35,
+    COLOR_CHEEK: 0xff4081,
+    FORMATION_SPACING: 0.95,  // 隊列の間隔
+    FOLLOW_LERP: 11.0,        // もじさんへの追従レスポンス
+    BOUNCE_SPEED: 11.0,       // ぽよぽよ跳ねる周期
+    BOUNCE_HEIGHT: 0.55,      // 跳ねる高さ
   },
 
   // ゲート設定
