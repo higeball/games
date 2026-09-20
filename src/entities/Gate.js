@@ -18,6 +18,13 @@ export class Gate {
     this.moveRange = options.moveRange || 1.8;
     this.moveTime = Math.random() * Math.PI * 2;
 
+    // 反転ゲート（FLIP GATE）機能
+    this.flipTarget = options.flipTarget || 20;
+    this.flipHitsNeeded = options.flipHitsNeeded || 5;
+    this.isMultiplyOnFlip = options.isMultiplyOnFlip || false;
+    this.isFlipped = false;
+    this.initialValue = this.value;
+
     this.shotsHit = 0;
     this.passed = false;
     this.popScale = 1.0;
@@ -30,7 +37,26 @@ export class Gate {
   }
 
   getStyle() {
-    if (this.type === 'add') {
+    if (this.type === 'transform') {
+      if (this.isFlipped) {
+        return {
+          bg: 'rgba(255, 179, 0, 0.92)',
+          border: '#ffd700',
+          label: this.isMultiplyOnFlip ? `×${this.value}` : `+${this.value}`,
+          sub: '★大逆転FLIP!★'
+        };
+      } else {
+        const remaining = Math.max(1, this.flipHitsNeeded - this.shotsHit);
+        return {
+          bg: 'rgba(194, 24, 91, 0.88)',
+          border: '#ff007f',
+          label: `-${Math.abs(this.value)}`,
+          sub: `撃って反転! 残り${remaining}発`
+        };
+      }
+    } else if (this.type === 'shield') {
+      return { bg: 'rgba(0, 229, 255, 0.88)', border: '#18ffff', label: 'SHIELD', sub: 'BARRIER PROTECT' };
+    } else if (this.type === 'add') {
       return { bg: 'rgba(0, 160, 255, 0.78)', border: '#00e5ff', label: `+${this.value}`, sub: 'GARY' };
     } else if (this.type === 'multiply') {
       return { bg: 'rgba(255, 179, 0, 0.78)', border: '#ffd700', label: `×${this.value}`, sub: 'GARY' };
@@ -143,9 +169,33 @@ export class Gate {
   onBulletHit() {
     if (this.passed) return;
     this.shotsHit++;
-    this.popScale = 1.15; // 弾が当たるとボヨンと膨らむ
+    this.popScale = 1.18; // 弾が当たるとボヨンと膨らむ
 
-    if (this.shotsHit % CONFIG.GATE.SHOTS_TO_UPGRADE === 0) {
+    if (this.type === 'transform') {
+      if (!this.isFlipped) {
+        if (this.shotsHit >= this.flipHitsNeeded) {
+          this.isFlipped = true;
+          this.value = this.flipTarget;
+          if (this.frameMesh) {
+            this.frameMesh.material.color.setHex(0xffd700);
+            this.frameMesh.material.emissive.setHex(0xffd700);
+          }
+        } else {
+          // 残り弾数に応じて減算ペナルティを徐々に緩和
+          const remainingRatio = (this.flipHitsNeeded - this.shotsHit) / this.flipHitsNeeded;
+          this.value = -Math.max(1, Math.round(Math.abs(this.initialValue) * remainingRatio));
+        }
+      } else {
+        // 反転後も撃ち込めばさらに数字が成長！
+        if (this.shotsHit % CONFIG.GATE.SHOTS_TO_UPGRADE === 0) {
+          if (this.isMultiplyOnFlip) {
+            this.value = Math.min(8, this.value + 1);
+          } else {
+            this.value += 5;
+          }
+        }
+      }
+    } else if (this.shotsHit % CONFIG.GATE.SHOTS_TO_UPGRADE === 0) {
       if (this.type === 'add') {
         this.value += 2;
       } else if (this.type === 'multiply' && this.value < 6) {
@@ -179,7 +229,25 @@ export class Gate {
     // 通過アニメーション（半透明化）
     this.panelMesh.material.opacity = 0.25;
 
-    if (this.type === 'add') {
+    if (this.type === 'transform') {
+      if (this.isFlipped) {
+        if (this.isMultiplyOnFlip) {
+          garyHorde.multiplyCount(this.value);
+        } else {
+          garyHorde.addCount(this.value);
+        }
+        if (app && app.ui) app.ui.showGarySpeech("反転大成功ーー！！", 2.0);
+        return true;
+      } else {
+        garyHorde.addCount(-Math.abs(this.value));
+        if (app && app.ui) app.ui.showMojiSpeech("くっ、反転しきれなかった！", 2.0);
+        return false;
+      }
+    } else if (this.type === 'shield') {
+      if (mojiSan && mojiSan.activateShield) mojiSan.activateShield();
+      if (app && app.ui) app.ui.showMojiSpeech("電磁シールド展開！", 2.2);
+      return true;
+    } else if (this.type === 'add') {
       garyHorde.addCount(this.value);
       return true;
     } else if (this.type === 'multiply') {

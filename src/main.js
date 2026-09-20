@@ -70,7 +70,7 @@ class GameApp {
     const levelData = CONFIG.LEVELS[(this.currentLevel - 1) % CONFIG.LEVELS.length];
     this.stage.loadLevel(this.currentLevel);
 
-    this.ui.startGame(levelData.title);
+    this.ui.startGame(levelData.title, levelData.strategyTip);
     this.gary.showSpeech("もじさん、いくよー！");
   }
 
@@ -111,8 +111,12 @@ class GameApp {
       // 4. 弾丸更新
       this.bullets.update(delta);
 
-      // 5. ステージとエンティティの更新（ボスの攻撃コールバック付き）
-      this.stage.update(delta, (bossPos) => this.handleBossAttack(bossPos));
+      // 5. ステージとエンティティの更新（ボス攻撃＆タワー砲撃コールバック付き）
+      this.stage.update(
+        delta,
+        (bossPos) => this.handleBossAttack(bossPos),
+        (turretPos) => this.handleTurretAttack(turretPos)
+      );
 
       // 6. 衝突判定
       this.handleCollisions();
@@ -128,7 +132,7 @@ class GameApp {
       const totalDist = currentLevelData.distance;
       const curDist = Math.min(totalDist, Math.abs(this.playerZ));
       const progress = curDist / totalDist;
-      this.ui.updateHUD(this.score, this.gary.count, this.moji.hp, this.moji.maxHp, progress);
+      this.ui.updateHUD(this.score, this.gary.count, this.moji.hp, this.moji.maxHp, progress, this.moji.hasShield);
 
       // ゲームオーバー判定
       if (this.moji.hp <= 0 || (this.gary.count <= 0 && this.state === 'PLAYING' && Math.abs(this.playerZ) > 30)) {
@@ -190,6 +194,13 @@ class GameApp {
     this.sound.playEnemyHit();
   }
 
+  handleTurretAttack(turretPos) {
+    if (this.state !== 'PLAYING') return;
+    // 砲撃タワーからプレイヤーのいるX座標へ向けたエネルギー砲撃
+    this.bullets.spawnEnemyBullet(turretPos, this.moji.position.x);
+    this.sound.playEnemyHit();
+  }
+
   handleCollisions() {
     const activeBullets = this.bullets.getActiveBullets();
     const activeEnemyBullets = this.bullets.getActiveEnemyBullets();
@@ -230,7 +241,7 @@ class GameApp {
       }
     }
 
-    // B. 弾丸 vs 敵モンスター＆障害物
+    // B. 弾丸 vs 敵モンスター＆障害物＆救助ケージ
     for (const enemy of this.stage.enemies) {
       if (!enemy.alive) continue;
 
@@ -238,17 +249,38 @@ class GameApp {
         if (!bullet.active) continue;
 
         const dist = bullet.pos.distanceTo(enemy.group.position);
-        if (dist < 1.25) {
+        if (dist < 1.3) {
+          const hitResult = enemy.takeDamage(bullet.damage, bullet);
+
+          if (hitResult === 'deflected') {
+            // シールド装甲兵の正面防盾で弾かれた！
+            if (!bullet.isMega) {
+              bullet.active = false;
+              bullet.mesh.visible = false;
+            }
+            this.sound.playGateHit();
+            this.fx.spawnBurst(bullet.pos, 0x00e5ff, 8);
+            break;
+          }
+
           if (!bullet.isMega) {
             bullet.active = false;
             bullet.mesh.visible = false;
           }
 
-          const killed = enemy.takeDamage(bullet.damage);
           this.sound.playEnemyHit();
 
-          if (killed) {
-            if (enemy.type === 'barrel') {
+          if (hitResult === true) {
+            if (enemy.type === 'cage') {
+              // ★ゲイリー救助カプセルの解放！★
+              const count = enemy.rescueCount || 6;
+              this.gary.addCount(count);
+              this.sound.playGatePass(true);
+              this.fx.spawnBurst(enemy.group.position, 0x64ff24, 30);
+              this.renderer.addScreenShake(0.25);
+              this.ui.showGarySpeech(`仲間を${count}体救出！やったー！`, 2.0);
+              this.score += 300;
+            } else if (enemy.type === 'barrel') {
               // ★爆発バレルの連鎖誘爆ギミック！★
               this.sound.playBarrelExplode();
               this.fx.spawnBurst(enemy.group.position, 0xff5722, 35);
@@ -256,38 +288,76 @@ class GameApp {
               this.triggerBarrelExplosion(enemy.group.position);
             } else {
               this.sound.playEnemyExplode();
-              this.fx.spawnBurst(enemy.group.position, (enemy.type === 'block' ? 0x90a4ae : 0xff1744), 25);
+              this.fx.spawnBurst(enemy.group.position, (enemy.type === 'block' ? 0x90a4ae : (enemy.type === 'shielded' ? 0x00b0ff : 0xff1744)), 25);
               this.renderer.addScreenShake(0.25);
             }
 
             // コインの吸引エフェクト発生！
-            this.fx.spawnCoins(enemy.group.position, enemy.type === 'tank' ? 8 : 4);
-            this.score += (enemy.type === 'tank' ? 350 : (enemy.type === 'block' ? 200 : 120));
+            this.fx.spawnCoins(enemy.group.position, enemy.type === 'tank' ? 8 : (enemy.type === 'shielded' || enemy.type === 'turret' ? 6 : 4));
+            this.score += (enemy.type === 'tank' ? 350 : (enemy.type === 'shielded' ? 280 : (enemy.type === 'block' ? 200 : 120)));
           }
           break;
         }
       }
 
-      // 敵 vs プレイヤー群集（接触判定）
+      // 敵・障害物 vs プレイヤー群集（接触判定）
       if (enemy.alive) {
-        const distToMoji = mojiPos.distanceTo(enemy.group.position);
-        if (distToMoji < 1.5) {
-          enemy.alive = false;
-          this.fx.spawnBurst(enemy.group.position, 0xff5252, 20);
-          this.renderer.addScreenShake(0.4);
+        if (enemy.type === 'laser_fence') {
+          // レーザーフェンス（横幅 3.6m、厚さ 0.7m）
+          const dz = Math.abs(mojiPos.z - enemy.group.position.z);
+          const dx = Math.abs(mojiPos.x - enemy.group.position.x);
+          if (dz < 0.75 && dx < 1.9 && enemy.isLaserActive) {
+            if (this.moji.hasShield) {
+              this.moji.takeDamage(10); // シールドが完全防御！
+              this.fx.spawnBurst(mojiPos, 0x00e5ff, 25);
+              this.renderer.addScreenShake(0.3);
+              this.ui.showMojiSpeech("シールドがレーザーを遮断！", 1.8);
+            } else {
+              this.fx.spawnBurst(mojiPos, 0xff1744, 25);
+              this.renderer.addScreenShake(0.5);
+              if (this.gary.count > 0) {
+                this.gary.addCount(-Math.min(this.gary.count, 6));
+                this.ui.showGarySpeech("レーザーが痛いよー！", 1.5);
+              } else {
+                this.moji.takeDamage(35);
+                this.ui.showMojiSpeech("電磁レーザー被弾！", 1.8);
+              }
+            }
+          }
+        } else {
+          const distToMoji = mojiPos.distanceTo(enemy.group.position);
+          if (distToMoji < 1.5) {
+            if (enemy.type === 'cage') {
+              // 接触でも救出可能！
+              enemy.alive = false;
+              const count = enemy.rescueCount || 6;
+              this.gary.addCount(count);
+              this.sound.playGatePass(true);
+              this.fx.spawnBurst(enemy.group.position, 0x64ff24, 30);
+              this.ui.showGarySpeech(`仲間を${count}体救出！`, 2.0);
+              this.score += 300;
+            } else {
+              enemy.alive = false;
+              this.fx.spawnBurst(enemy.group.position, 0xff5252, 20);
+              this.renderer.addScreenShake(0.4);
 
-          if (this.gary.count > 0) {
-            this.gary.addCount(-Math.min(this.gary.count, 5));
-            this.ui.showGarySpeech("いたたたっ！負けないぞ！", 1.5);
-          } else {
-            this.moji.takeDamage(25);
-            this.ui.showMojiSpeech("くっ、油断するな！", 1.8);
+              if (this.moji.hasShield) {
+                this.moji.takeDamage(20); // シールドが完全防御！
+                this.ui.showMojiSpeech("シールドが激突を防御！", 1.8);
+              } else if (this.gary.count > 0) {
+                this.gary.addCount(-Math.min(this.gary.count, 5));
+                this.ui.showGarySpeech("いたたたっ！負けないぞ！", 1.5);
+              } else {
+                this.moji.takeDamage(25);
+                this.ui.showMojiSpeech("くっ、油断するな！", 1.8);
+              }
+            }
           }
         }
       }
     }
 
-    // C. ボス敵弾 vs プレイヤー / プレイヤー弾
+    // C. 敵弾 vs プレイヤー / プレイヤー弾
     for (const eb of activeEnemyBullets) {
       if (!eb.active) continue;
 
@@ -311,7 +381,10 @@ class GameApp {
         this.fx.spawnBurst(eb.pos, 0xff1744, 18);
         this.renderer.addScreenShake(0.4);
 
-        if (this.gary.count > 0) {
+        if (this.moji.hasShield) {
+          this.moji.takeDamage(10); // シールドが完全防御！
+          this.ui.showMojiSpeech("シールドが被弾を防御！", 1.8);
+        } else if (this.gary.count > 0) {
           this.gary.addCount(-Math.min(this.gary.count, 4));
           this.ui.showGarySpeech("ゲイリーが守るよ！", 1.5);
         } else {
@@ -321,7 +394,7 @@ class GameApp {
       }
     }
 
-    // D. 弾丸 vs ボス
+    // D. 弾丸 vs ボス & シールド核（パイロン）
     const boss = this.stage.boss;
     if (boss && boss.alive) {
       if (!this.bossAlerted && Math.abs(mojiPos.z - boss.z) < 55) {
@@ -333,6 +406,33 @@ class GameApp {
       for (const bullet of activeBullets) {
         if (!bullet.active) continue;
 
+        // 1. パイロン（シールド核）への攻撃判定
+        if (boss.hasPylons) {
+          let hitPylon = false;
+          boss.pylons.forEach((p, idx) => {
+            if (!p.alive || hitPylon) return;
+            const pWorld = boss.group.position.clone().add(p.mesh.position);
+            if (bullet.pos.distanceTo(pWorld) < 1.4) {
+              hitPylon = true;
+              if (!bullet.isMega) {
+                bullet.active = false;
+                bullet.mesh.visible = false;
+              }
+              const pKilled = boss.takePylonDamage(idx, bullet.damage);
+              this.sound.playEnemyHit();
+              this.fx.spawnBurst(bullet.pos, 0x00e5ff, 12);
+              if (pKilled) {
+                this.sound.playBossExplosion();
+                this.fx.spawnBurst(pWorld, 0x00e5ff, 35);
+                this.renderer.addScreenShake(0.45);
+                this.ui.showGarySpeech("シールド核を破壊したぞ！", 2.2);
+              }
+            }
+          });
+          if (hitPylon) continue;
+        }
+
+        // 2. ボス本体への攻撃判定
         const dz = Math.abs(bullet.pos.z - boss.z);
         const dx = Math.abs(bullet.pos.x);
         if (dz < 2.6 && dx < 3.4) {
@@ -341,19 +441,31 @@ class GameApp {
             bullet.mesh.visible = false;
           }
 
-          const defeated = boss.takeDamage(bullet.damage);
-          this.sound.playEnemyHit();
-          this.fx.spawnBurst(bullet.pos, boss.color, 8);
+          const result = boss.takeDamage(bullet.damage);
+          if (result === 'shielded') {
+            this.sound.playGateHit();
+            this.fx.spawnBurst(bullet.pos, 0x00e5ff, 10);
+            if (Math.random() < 0.08) {
+              this.ui.showMojiSpeech("シールドに弾かれた！核を破壊せよ！", 2.0);
+            }
+          } else {
+            this.sound.playEnemyHit();
+            this.fx.spawnBurst(bullet.pos, boss.color, 8);
 
-          if (defeated) {
-            this.handleBossDefeated();
+            if (result === true) {
+              this.handleBossDefeated();
+            }
           }
         }
       }
 
       // ボス直接接触
       if (boss.alive && mojiPos.z <= boss.z + 2.0) {
-        this.moji.takeDamage(100);
+        if (this.moji.hasShield) {
+          this.moji.takeDamage(100);
+        } else {
+          this.moji.takeDamage(100);
+        }
       }
     }
 

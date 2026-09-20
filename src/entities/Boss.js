@@ -17,10 +17,19 @@ export class Boss {
     this.attackTimer = 0;
     this.attackInterval = 2.4;
 
+    // 高難度ステージ（Stage 3, 4, 5）の保護シールド核（パイロン）
+    this.hasPylons = (this.stageId >= 3);
+    this.pylons = [];
+    this.isStunned = false;
+    this.stunTimer = 0;
+
     this.group = new THREE.Group();
     this.group.position.set(0, 0, this.z);
 
     this.buildBossModel();
+    if (this.hasPylons) {
+      this.buildPylons();
+    }
     this.buildBossHpBar();
     this.scene.add(this.group);
   }
@@ -28,6 +37,18 @@ export class Boss {
   buildBossModel() {
     this.bossMesh = new THREE.Group();
     this.bossMesh.position.y = 3.0;
+
+    // 保護シールド球体（パイロン健在時、青く発光して本体を無敵化）
+    const shieldGeo = new THREE.SphereGeometry(3.6, 24, 20);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00e5ff,
+      transparent: true,
+      opacity: this.hasPylons ? 0.45 : 0,
+      wireframe: true
+    });
+    this.bossShieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+    this.bossShieldMesh.visible = this.hasPylons;
+    this.bossMesh.add(this.bossShieldMesh);
 
     // 中央巨大コア
     const coreGeo = (this.stageId === 5 ? new THREE.DodecahedronGeometry(2.6) : (this.stageId === 2 ? new THREE.IcosahedronGeometry(2.3) : new THREE.OctahedronGeometry(2.2, 1)));
@@ -96,6 +117,57 @@ export class Boss {
     this.group.add(this.bossMesh);
   }
 
+  buildPylons() {
+    const pylonGeo = new THREE.OctahedronGeometry(0.85);
+    const pylonMat = new THREE.MeshStandardMaterial({
+      color: 0x00e5ff,
+      emissive: 0x00b0ff,
+      emissiveIntensity: 0.9,
+      roughness: 0.15
+    });
+
+    const pylonHp = Math.round(this.maxHp * 0.18);
+    const offsets = [-3.5, 3.5];
+    offsets.forEach((xOffset) => {
+      const mesh = new THREE.Mesh(pylonGeo, pylonMat);
+      mesh.position.set(xOffset, 3.2, 0);
+      mesh.castShadow = true;
+      this.group.add(mesh);
+
+      this.pylons.push({
+        mesh,
+        x: xOffset,
+        hp: pylonHp,
+        maxHp: pylonHp,
+        alive: true
+      });
+    });
+  }
+
+  isShieldActive() {
+    return this.hasPylons && this.pylons.some(p => p.alive);
+  }
+
+  takePylonDamage(idx, amount) {
+    const p = this.pylons[idx];
+    if (!p || !p.alive) return false;
+    p.hp -= amount;
+    p.mesh.scale.set(1.25, 1.25, 1.25);
+    setTimeout(() => { if (p.mesh) p.mesh.scale.set(1, 1, 1); }, 60);
+
+    if (p.hp <= 0) {
+      p.alive = false;
+      p.mesh.visible = false;
+      if (!this.isShieldActive()) {
+        if (this.bossShieldMesh) this.bossShieldMesh.visible = false;
+        this.isStunned = true;
+        this.stunTimer = 4.5; // スタン＆大ダメージチャンス！
+      }
+      return true;
+    }
+    return false;
+  }
+
   buildBossHpBar() {
     this.hpCanvas = document.createElement('canvas');
     this.hpCanvas.width = 512;
@@ -121,34 +193,54 @@ export class Boss {
     ctx.roundRect(4, 4, 504, 64, 18);
     ctx.fill();
     ctx.lineWidth = 4;
-    ctx.strokeStyle = '#ff1744';
+    ctx.strokeStyle = this.isShieldActive() ? '#00e5ff' : (this.isStunned ? '#ffd700' : '#ff1744');
     ctx.roundRect(4, 4, 504, 64, 18);
     ctx.stroke();
 
     // HPバー
     const ratio = Math.max(0, this.hp / this.maxHp);
     const grad = ctx.createLinearGradient(12, 0, 500, 0);
-    grad.addColorStop(0, '#ff1744');
-    grad.addColorStop(1, '#ff9100');
+    if (this.isShieldActive()) {
+      grad.addColorStop(0, '#00b0ff');
+      grad.addColorStop(1, '#00e5ff');
+    } else if (this.isStunned) {
+      grad.addColorStop(0, '#ffd700');
+      grad.addColorStop(1, '#ff9100');
+    } else {
+      grad.addColorStop(0, '#ff1744');
+      grad.addColorStop(1, '#ff9100');
+    }
     ctx.fillStyle = grad;
     ctx.roundRect(10, 10, 492 * ratio, 52, 14);
     ctx.fill();
 
     // ボス名とHP数値
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px sans-serif';
+    ctx.font = 'bold 26px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = '#000000';
     ctx.shadowBlur = 6;
-    ctx.fillText(`${this.name}: ${this.hp} / ${this.maxHp}`, 256, 36);
+    const statusPrefix = this.isShieldActive() ? '🛡️シールド展開中 ' : (this.isStunned ? '⚡スタン中(1.5x) ' : '');
+    ctx.fillText(`${statusPrefix}${this.name}: ${this.hp} / ${this.maxHp}`, 256, 36);
 
     this.hpTexture.needsUpdate = true;
   }
 
   takeDamage(amount) {
     if (!this.alive) return false;
-    this.hp = Math.max(0, this.hp - amount);
+
+    // シールド核（パイロン）健在時は本体無敵！
+    if (this.isShieldActive()) {
+      if (this.bossShieldMesh) {
+        this.bossShieldMesh.scale.set(1.1, 1.1, 1.1);
+        setTimeout(() => { if (this.bossShieldMesh) this.bossShieldMesh.scale.set(1, 1, 1); }, 50);
+      }
+      return 'shielded';
+    }
+
+    const finalAmount = this.isStunned ? Math.round(amount * 1.5) : amount;
+    this.hp = Math.max(0, this.hp - finalAmount);
     this.updateHpBar();
 
     // 被弾フラッシュ
@@ -196,8 +288,31 @@ export class Boss {
       arm.rotation.z = Math.sin(this.animTime * 2.8 + i) * 0.25;
     });
 
-    // オーラリングの回転
-    this.auraRing.rotation.z += delta * 2.5;
+    // パイロン（シールド核）のアニメーション
+    if (this.hasPylons) {
+      this.pylons.forEach((p, idx) => {
+        if (p.alive) {
+          p.mesh.rotation.y += delta * 3.0;
+          p.mesh.rotation.z += delta * 1.5;
+          p.mesh.position.y = 3.2 + Math.sin(this.animTime * 3.0 + idx * Math.PI) * 0.4;
+        }
+      });
+    }
+
+    // スタンタイマーの減衰
+    if (this.isStunned) {
+      this.stunTimer -= delta;
+      if (this.stunTimer <= 0) {
+        this.isStunned = false;
+        this.updateHpBar();
+      }
+    }
+
+    // シールド球体のアニメーション
+    if (this.isShieldActive() && this.bossShieldMesh) {
+      this.bossShieldMesh.rotation.y += delta * 1.8;
+      this.bossShieldMesh.material.opacity = 0.38 + Math.sin(this.animTime * 4.5) * 0.15;
+    }
 
     // コアスケール復帰
     if (this.core.scale.x > 1.0) {

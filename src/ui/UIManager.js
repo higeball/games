@@ -23,6 +23,8 @@ export class UIManager {
     this.clearGaryEl = document.getElementById('clear-gary');
     this.clearBonusEl = document.getElementById('clear-bonus');
     this.levelTitleEl = document.getElementById('level-title');
+    this.strategyTipEl = document.getElementById('strategy-tip');
+    this.shieldIndicatorEl = document.getElementById('shield-indicator');
 
     // バディドック要素
     this.buddyDockEl = document.querySelector('.buddy-dock');
@@ -88,13 +90,14 @@ export class UIManager {
     }
   }
 
-  startGame(levelTitle) {
+  startGame(levelTitle, strategyTip = '') {
     this.titleScreen.classList.add('hidden');
     this.gameoverScreen.classList.add('hidden');
     this.clearScreen.classList.add('hidden');
     this.hudEl.classList.remove('hidden');
     if (this.buddyDockEl) this.buddyDockEl.classList.remove('hidden');
     if (this.levelTitleEl) this.levelTitleEl.textContent = levelTitle;
+    if (this.strategyTipEl) this.strategyTipEl.textContent = strategyTip ? `💡作戦: ${strategyTip}` : '';
 
     // 出撃時のバディ掛け合い
     this.showMojiSpeech("ゲイリー、頼んだぞ！", 2.5);
@@ -154,7 +157,7 @@ export class UIManager {
     setTimeout(() => this.showMojiSpeech("よくやった、ゲイリー！", 3.0), 1200);
   }
 
-  updateHUD(score, garyCount, hp, maxHp, progress) {
+  updateHUD(score, garyCount, hp, maxHp, progress, hasShield = false) {
     if (this.scoreEl) this.scoreEl.textContent = score.toLocaleString();
     if (this.garyCountEl) {
       const prev = this.lastGaryCount;
@@ -179,6 +182,9 @@ export class UIManager {
     if (this.progressFillEl) {
       const pPct = Math.max(0, Math.min(100, progress * 100));
       this.progressFillEl.style.width = `${pPct}%`;
+    }
+    if (this.shieldIndicatorEl) {
+      this.shieldIndicatorEl.style.display = hasShield ? 'inline-block' : 'none';
     }
   }
 }

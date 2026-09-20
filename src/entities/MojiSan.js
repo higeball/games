@@ -11,6 +11,8 @@ export class MojiSan {
     this.maxHp = CONFIG.MOJI.INIT_HP;
     this.fireTimer = 0;
     this.runCycle = 0;
+    this.hasShield = false;
+    this.shieldTime = 0;
 
     this.buildModel();
     this.scene.add(this.group);
@@ -157,11 +159,32 @@ export class MojiSan {
     rightShoe.castShadow = true;
     this.rightLeg.add(rightShoe);
     this.root.add(this.rightLeg);
+
+    // 8. 電磁エネルギーシールド（球状バリア）
+    const shieldGeo = new THREE.SphereGeometry(1.6, 24, 18);
+    const shieldMat = new THREE.MeshBasicMaterial({
+      color: 0x00e5ff,
+      transparent: true,
+      opacity: 0,
+      wireframe: true
+    });
+    this.shieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+    this.shieldMesh.position.y = 1.3;
+    this.shieldMesh.visible = false;
+    this.group.add(this.shieldMesh);
   }
 
   update(delta, currentX, currentZ, isRunning) {
     this.position.set(currentX, 0, currentZ);
     this.group.position.copy(this.position);
+
+    // シールドバリアのアニメーション
+    if (this.hasShield && this.shieldMesh) {
+      this.shieldTime += delta * 3.5;
+      this.shieldMesh.material.opacity = 0.4 + Math.sin(this.shieldTime) * 0.18;
+      this.shieldMesh.rotation.y += delta * 1.8;
+      this.shieldMesh.rotation.x += delta * 0.9;
+    }
 
     if (isRunning) {
       this.runCycle += delta * 12.0;
@@ -205,12 +228,33 @@ export class MojiSan {
   }
 
   takeDamage(amount) {
+    if (this.hasShield) {
+      this.breakShield();
+      return this.hp; // シールドが完全防御！
+    }
     this.hp = Math.max(0, this.hp - amount);
     return this.hp;
   }
 
+  activateShield() {
+    this.hasShield = true;
+    if (this.shieldMesh) {
+      this.shieldMesh.visible = true;
+      this.shieldMesh.material.opacity = 0.6;
+    }
+  }
+
+  breakShield() {
+    this.hasShield = false;
+    if (this.shieldMesh) {
+      this.shieldMesh.visible = false;
+      this.shieldMesh.material.opacity = 0;
+    }
+  }
+
   reset() {
     this.hp = this.maxHp;
+    this.breakShield();
     this.position.set(0, 0, 0);
     this.group.position.copy(this.position);
     this.runCycle = 0;
