@@ -1,727 +1,694 @@
-import * as THREE from 'three';
-import { CONFIG } from './config.js';
-import { GameRenderer } from './engine/GameRenderer.js';
-import { InputHandler } from './engine/InputHandler.js';
-import { SoundManager } from './audio/SoundManager.js';
-import { MojiSan } from './entities/MojiSan.js';
-import { GaryHorde } from './entities/GaryHorde.js';
-import { BulletManager } from './entities/BulletManager.js';
-import { StageManager } from './stage/StageManager.js';
-import { FXManager } from './effects/FXManager.js';
-import { UIManager } from './ui/UIManager.js';
+/**
+ * main.js - トルネコの大冒険 クローン メインゲームループ
+ * ターン制同期、マップ・モンスター・プレイヤー・アイテム制御
+ */
 
-class GameApp {
+import { CONFIG } from './config.js';
+import { DungeonGenerator } from './dungeon/DungeonGenerator.js';
+import { Player } from './entities/Player.js';
+import { Monster } from './entities/Monster.js';
+import { Item } from './items/Item.js';
+import { ItemManager } from './items/ItemManager.js';
+import { DungeonRenderer } from './render/DungeonRenderer.js';
+import { soundManager } from './audio/SoundManager.js';
+import { MessageLog } from './ui/MessageLog.js';
+import { InventoryModal } from './ui/InventoryModal.js';
+import { TouchControls } from './ui/TouchControls.js';
+
+class Game {
   constructor() {
     this.canvas = document.getElementById('game-canvas');
-    this.renderer = new GameRenderer(this.canvas);
-    this.input = new InputHandler(this.canvas);
-    this.sound = new SoundManager();
-    this.fx = new FXManager(this.renderer.scene);
+    this.renderer = new DungeonRenderer(this.canvas);
+    this.generator = new DungeonGenerator();
+    this.log = new MessageLog('message-window');
 
-    this.moji = new MojiSan(this.renderer.scene);
-    this.gary = new GaryHorde(this.renderer.scene);
-    this.bullets = new BulletManager(this.renderer.scene);
-    this.stage = new StageManager(this.renderer.scene);
+    this.floorNumber = 1;
+    this.player = null;
+    this.dungeon = null;
+    this.monsters = [];
 
-    this.state = 'TITLE'; // 'TITLE' | 'PLAYING' | 'BONUS_ROAD' | 'GAMEOVER' | 'CLEAR'
-    this.score = 0;
-    this.currentLevel = 1;
-    this.playerZ = 0;
+    this.isBusy = false;
+    this.isGameOver = false;
+    this.isGameClear = false;
 
-    // 武器バフ
-    this.hasSpreadShot = false;
-    this.hasMegaBeam = false;
+    window.game = this;
 
-    this.mojiFireTimer = 0;
-    this.garyFireTimer = 0;
-    this.bossAlerted = false;
+    this.initUI();
+    this.startNewGame();
+    this.setupGameLoop();
+  }
 
-    this.lastTime = performance.now();
-
-    this.ui = new UIManager({
-      onStart: () => this.startGame(),
-      onRestart: () => this.restartGame(),
-      onNextStage: () => this.nextStage(),
-      onToggleMute: () => this.sound.toggleMute()
+  initUI() {
+    // インベントリモーダル初期化
+    this.inventoryModal = new InventoryModal({
+      onAction: (action, item) => this.handleInventoryAction(action, item)
     });
 
-    this.ui.showTitle();
-    this.animate = this.animate.bind(this);
-    requestAnimationFrame(this.animate);
-  }
+    // タッチ＆キーボード操作初期化
+    this.controls = new TouchControls({
+      onMove: (dx, dy) => this.handlePlayerMove(dx, dy),
+      onAttack: () => this.handlePlayerAttack(),
+      onWait: () => this.handlePlayerWait(),
+      onInventory: () => this.openInventory(),
+      onShootArrow: () => this.handleShootArrow(),
+      onToggleMap: () => {
+        this.renderer.showMinimap = !this.renderer.showMinimap;
+      },
+      onChangeDirection: (dx, dy) => {
+        if (this.player) {
+          this.player.setDirection(dx, dy);
+        }
+      }
+    });
 
-  startGame() {
-    this.sound.init();
-    this.sound.startBgm();
-
-    this.state = 'PLAYING';
-    this.playerZ = 0;
-    this.bossAlerted = false;
-    this.hasSpreadShot = false;
-    this.hasMegaBeam = false;
-
-    this.input.reset();
-    this.moji.reset();
-    this.renderer.resetCamera(this.moji.position);
-    this.gary.reset();
-    this.bullets.reset();
-    this.fx.reset();
-
-    const levelData = CONFIG.LEVELS[(this.currentLevel - 1) % CONFIG.LEVELS.length];
-    this.stage.loadLevel(this.currentLevel);
-
-    this.ui.startGame(levelData.title, levelData.strategyTip);
-    this.gary.showSpeech("もじさん、いくよー！");
-  }
-
-  restartGame() {
-    this.score = 0;
-    this.startGame();
-  }
-
-  nextStage() {
-    this.currentLevel++;
-    this.startGame();
-  }
-
-  animate(currentTime) {
-    requestAnimationFrame(this.animate);
-
-    const delta = Math.min((currentTime - this.lastTime) / 1000, 0.05);
-    this.lastTime = currentTime;
-
-    this.update(delta);
-    this.render(delta);
-  }
-
-  update(delta) {
-    if (this.state === 'PLAYING' || this.state === 'BONUS_ROAD') {
-      // 1. 左右入力と前進移動
-      const currentX = this.input.update(delta);
-      const speed = (this.state === 'BONUS_ROAD') ? CONFIG.RUN_SPEED * 1.35 : CONFIG.RUN_SPEED;
-      this.playerZ -= speed * delta;
-
-      // 2. もじさんとゲイリーの位置更新
-      this.moji.update(delta, currentX, this.playerZ, true);
-      this.gary.update(delta, this.moji.position, true);
-
-      // 3. 射撃システム
-      this.handleShooting(delta);
-
-      // 4. 弾丸更新
-      this.bullets.update(delta);
-
-      // 5. ステージとエンティティの更新（ボス攻撃＆タワー砲撃コールバック付き）
-      this.stage.update(
-        delta,
-        (bossPos) => this.handleBossAttack(bossPos),
-        (turretPos) => this.handleTurretAttack(turretPos)
-      );
-
-      // 6. 衝突判定
-      this.handleCollisions(delta);
-
-      // 7. エフェクト更新（コイン吸引コールバック付き）
-      this.fx.update(delta, this.moji.position, () => {
-        this.sound.playCoin();
-        this.score += 50;
+    // リスタートボタン
+    const restartBtn = document.getElementById('btn-restart');
+    if (restartBtn) {
+      restartBtn.addEventListener('click', () => {
+        document.getElementById('end-modal').classList.add('hidden');
+        this.startNewGame();
       });
+    }
 
-      // 8. HUD更新
-      const currentLevelData = CONFIG.LEVELS[(this.currentLevel - 1) % CONFIG.LEVELS.length];
-      const totalDist = currentLevelData.distance;
-      const curDist = Math.min(totalDist, Math.abs(this.playerZ));
-      const progress = curDist / totalDist;
-      this.ui.updateHUD(this.score, this.gary.count, this.moji.hp, this.moji.maxHp, progress, this.moji.hasShield);
+    // 初回タップでオーディオ有効化
+    const unlockAudio = () => {
+      soundManager.init();
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
 
-      // ゲームオーバー判定
-      if (this.moji.hp <= 0 || (this.gary.count <= 0 && this.state === 'PLAYING' && Math.abs(this.playerZ) > 30)) {
-        this.handleGameOver();
+    // ウィンドウリサイズ対応
+    window.addEventListener('resize', () => this.renderer.resize());
+    this.renderer.resize();
+  }
+
+  // 新規ゲーム開始
+  startNewGame() {
+    this.floorNumber = 1;
+    this.isGameOver = false;
+    this.isGameClear = false;
+    this.log.clear();
+
+    // プレイヤー生成
+    this.player = new Player(0, 0);
+
+    // 初期装備・道具の付与
+    const starterSword = Item.fromCatalog(CONFIG.ITEMS.WEAPONS[0]); // こんぼう
+    const starterShield = Item.fromCatalog(CONFIG.ITEMS.SHIELDS[0]); // 皮の盾
+    const starterBread = Item.fromCatalog(CONFIG.ITEMS.BREADS[1]); // 大きいパン
+    const starterHerb = Item.fromCatalog(CONFIG.ITEMS.HERBS[0]); // 薬草
+
+    this.player.addItem(starterSword);
+    this.player.addItem(starterShield);
+    this.player.addItem(starterBread);
+    this.player.addItem(starterHerb);
+
+    this.player.equipItem(starterSword);
+    this.player.equipItem(starterShield);
+
+    // 1階層目の生成
+    this.loadFloor(1);
+
+    this.log.addMessage('もじさんの不思議のダンジョンへ ようこそ！');
+    this.log.addMessage('最深部10Fにある「奇跡の箱」を目指そう！');
+  }
+
+  // フロア読み込み＆生成
+  loadFloor(floorNum) {
+    this.floorNumber = floorNum;
+    this.dungeon = this.generator.generate(this.floorNumber);
+
+    // プレイヤー配置
+    this.player.x = this.dungeon.playerSpawn.x;
+    this.player.y = this.dungeon.playerSpawn.y;
+    this.player.prevX = this.player.x;
+    this.player.prevY = this.player.y;
+    this.player.animProgress = 1.0;
+
+    // モンスターインスタンス化
+    this.monsters = this.dungeon.monsterSpawns.map(sp => new Monster(sp.type.id, sp.x, sp.y));
+
+    // 視界計算
+    this.updateVisibility();
+    this.updateHUD();
+
+    if (floorNum > 1) {
+      this.log.addMessage(`地下 ${floorNum} 階 へ降りてきた。`);
+      soundManager.playStairs();
+    }
+  }
+
+  // 視界（FOV）とマップ記憶の更新
+  updateVisibility() {
+    const dungeon = this.dungeon;
+    const player = this.player;
+
+    // 視界をリセット
+    for (let y = 0; y < dungeon.height; y++) {
+      for (let x = 0; x < dungeon.width; x++) {
+        dungeon.visible[y][x] = false;
+      }
+    }
+
+    if (dungeon.allRevealed) {
+      for (let y = 0; y < dungeon.height; y++) {
+        for (let x = 0; x < dungeon.width; x++) {
+          dungeon.visible[y][x] = true;
+          dungeon.explored[y][x] = true;
+        }
+      }
+      return;
+    }
+
+    const currentRoomId = dungeon.roomMap[player.y][player.x];
+
+    if (currentRoomId !== -1) {
+      // 部屋の中にいる場合：部屋全体＋周囲1マスの扉や通路が視界内
+      const room = dungeon.rooms[currentRoomId];
+      if (room) {
+        for (let y = Math.max(0, room.y - 1); y <= Math.min(dungeon.height - 1, room.y + room.h); y++) {
+          for (let x = Math.max(0, room.x - 1); x <= Math.min(dungeon.width - 1, room.x + room.w); x++) {
+            dungeon.visible[y][x] = true;
+            dungeon.explored[y][x] = true;
+          }
+        }
       }
     } else {
-      // アイドル・タイトル・クリア中
-      this.moji.update(delta, 0, this.playerZ, false);
-      this.gary.update(delta, this.moji.position, false);
-      this.fx.update(delta, this.moji.position);
+      // 通路にいる場合：周囲1マスの視界
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          const nx = player.x + dx;
+          const ny = player.y + dy;
+          if (nx >= 0 && nx < dungeon.width && ny >= 0 && ny < dungeon.height) {
+            dungeon.visible[ny][nx] = true;
+            dungeon.explored[ny][nx] = true;
+          }
+        }
+      }
     }
   }
 
-  handleShooting(delta) {
-    if (this.state !== 'PLAYING') return;
+  // プレイヤー移動処理（8方向）
+  handlePlayerMove(dx, dy) {
+    if (this.isBusy || this.isGameOver || this.isGameClear || !this.player) return;
 
-    // もじさんのレーザー射撃
-    this.mojiFireTimer += delta;
-    if (this.mojiFireTimer >= CONFIG.MOJI.FIRE_INTERVAL) {
-      this.mojiFireTimer = 0;
-      const gunPos = this.moji.getGunWorldPos();
-      this.bullets.spawnBullet(gunPos, true, 0, this.hasMegaBeam);
-      this.moji.triggerShoot();
-      this.sound.playLaser();
+    // 睡眠中は行動不可
+    if (this.player.sleepTurns > 0) {
+      this.log.addMessage('もじさんは眠っていて動けない！');
+      this.executeTurn(false);
+      return;
     }
 
-    // ゲイリー軍団のスライム弾射撃
-    this.garyFireTimer += delta;
-    if (this.garyFireTimer >= CONFIG.GARY.FIRE_INTERVAL && this.gary.count > 0) {
-      this.garyFireTimer = 0;
-      const sampleCount = Math.min(10, Math.ceil(this.gary.count / 3));
-      const frontGaries = this.gary.getFrontPositions(sampleCount);
+    // 混乱時はランダム方向へ移動
+    if (this.player.confusedTurns > 0) {
+      const dirs = [
+        { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+        { dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 }
+      ];
+      const rand = dirs[Math.floor(Math.random() * dirs.length)];
+      dx = rand.dx;
+      dy = rand.dy;
+    }
 
-      frontGaries.forEach(pos => {
-        const shotPos = pos.clone();
-        shotPos.y += 0.35;
-        shotPos.z -= 0.35;
+    this.player.setDirection(dx, dy);
 
-        // 通常正面ショット
-        this.bullets.spawnBullet(shotPos, false, 0);
+    const targetX = this.player.x + dx;
+    const targetY = this.player.y + dy;
 
-        // 3WAY拡散弾バフが有効なら左右斜めにも発射！
-        if (this.hasSpreadShot) {
-          this.bullets.spawnBullet(shotPos, false, -10);
-          this.bullets.spawnBullet(shotPos, false, 10);
+    // 壁・範囲外判定
+    if (targetX < 0 || targetX >= this.dungeon.width || targetY < 0 || targetY >= this.dungeon.height) return;
+    if (this.dungeon.tiles[targetY][targetX] === CONFIG.TILE.WALL) {
+      // 壁に向かって進もうとした場合は向き変更のみ
+      return;
+    }
+
+    // 斜め移動時の壁角抜け防止
+    if (dx !== 0 && dy !== 0) {
+      if (this.dungeon.tiles[this.player.y][targetX] === CONFIG.TILE.WALL ||
+          this.dungeon.tiles[targetY][this.player.x] === CONFIG.TILE.WALL) {
+        return;
+      }
+    }
+
+    // 進行方向にモンスターがいるか確認
+    const monster = this.monsters.find(m => m.hp > 0 && m.x === targetX && m.y === targetY);
+    if (monster) {
+      // モンスターへの直接攻撃！
+      this.attackMonster(monster);
+      this.executeTurn(false);
+      return;
+    }
+
+    // 移動実行
+    this.player.startMove(targetX, targetY);
+    soundManager.playStep();
+
+    // 足元のアイテムチェック（奇跡の箱／ゴールド／自動拾い）
+    this.checkGroundAfterMove();
+
+    // 足元のワナチェック
+    this.checkTrapAfterMove();
+
+    // ターン実行（歩行ターン）
+    this.executeTurn(true);
+  }
+
+  // プレイヤー攻撃（前方のマスへ）
+  handlePlayerAttack() {
+    if (this.isBusy || this.isGameOver || this.isGameClear || !this.player) return;
+
+    if (this.player.sleepTurns > 0) {
+      this.log.addMessage('もじさんは眠っていて動けない！');
+      this.executeTurn(false);
+      return;
+    }
+
+    const tx = this.player.x + this.player.dir.dx;
+    const ty = this.player.y + this.player.dir.dy;
+
+    const monster = this.monsters.find(m => m.hp > 0 && m.x === tx && m.y === ty);
+    if (monster) {
+      this.attackMonster(monster);
+    } else {
+      // 素振り（空振り）
+      soundManager.playAttack();
+      this.renderer.addSlashEffect(tx, ty);
+    }
+
+    this.executeTurn(false);
+  }
+
+  // モンスター攻撃処理
+  attackMonster(monster) {
+    soundManager.playAttack();
+    this.renderer.addSlashEffect(monster.x, monster.y);
+
+    const dmg = this.player.calcDamageAgainst(monster);
+    monster.hp -= dmg;
+    monster.wakeUp();
+
+    this.renderer.addFloatingText(`${dmg}`, monster.x, monster.y, '#ffffff');
+    soundManager.playHit();
+    this.log.addMessage(`もじさんの攻撃！ ${monster.name} に ${dmg} のダメージ！`);
+
+    if (monster.hp <= 0) {
+      soundManager.playDefeat();
+      this.log.addMessage(`${monster.name} をたおした！`);
+      const expMsgs = this.player.gainExp(monster.exp);
+      expMsgs.forEach(m => this.log.addMessage(m));
+
+      // 確率でドロップ（20%でアイテムまたはゴールド）
+      if (Math.random() < 0.25) {
+        const dropped = this.generator._generateFloorItem(this.floorNumber, monster.x, monster.y);
+        if (dropped) {
+          this.dungeon.items.push(dropped);
+          this.log.addMessage(`${monster.name} は ${dropped.name} を落とした！`);
+        }
+      }
+    }
+  }
+
+  // 足踏み（待機）
+  handlePlayerWait() {
+    if (this.isBusy || this.isGameOver || this.isGameClear || !this.player) return;
+    this.executeTurn(false);
+  }
+
+  // 矢を射る
+  handleShootArrow() {
+    if (this.isBusy || this.isGameOver || this.isGameClear || !this.player) return;
+
+    // 矢の検索
+    const arrow = this.player.equippedArrow || this.player.inventory.find(i => i.type === 'arrow');
+    if (!arrow) {
+      this.log.addMessage('矢を持っていません！');
+      return;
+    }
+
+    ItemManager.throwItem(arrow, this.player, this.dungeon, this.monsters, msg => this.log.addMessage(msg));
+    this.executeTurn(false);
+  }
+
+  // 移動直後の足元判定
+  checkGroundAfterMove() {
+    const px = this.player.x;
+    const py = this.player.y;
+
+    // 奇跡の箱（クリアアイテム）
+    const boxIdx = this.dungeon.items.findIndex(i => i.id === 'miracle_box' && i.x === px && i.y === py);
+    if (boxIdx !== -1) {
+      this.triggerGameClear();
+      return;
+    }
+
+    // 通常アイテム
+    const itemIdx = this.dungeon.items.findIndex(i => i.x === px && i.y === py);
+    if (itemIdx !== -1) {
+      const item = this.dungeon.items[itemIdx];
+
+      if (item.type === 'gold') {
+        this.player.gold += item.goldAmount;
+        this.dungeon.items.splice(itemIdx, 1);
+        soundManager.playPickup();
+        this.log.addMessage(`${item.goldAmount} ゴールド を拾った！`);
+      } else {
+        // インベントリに空きがあれば自動拾い
+        const res = this.player.addItem(item);
+        if (res.success) {
+          this.dungeon.items.splice(itemIdx, 1);
+          soundManager.playPickup();
+          this.log.addMessage(`もじさんは ${item.name} を拾った！`);
+        } else {
+          this.log.addMessage(`足元に ${item.name} がある。（持ち物がいっぱい）`);
+        }
+      }
+    }
+
+    // 階段
+    if (this.dungeon.stairs && this.dungeon.stairs.x === px && this.dungeon.stairs.y === py) {
+      this.log.addMessage('降り階段がある。[道具]メニューから降りることができます。');
+    }
+  }
+
+  // ワナ判定
+  checkTrapAfterMove() {
+    const px = this.player.x;
+    const py = this.player.y;
+
+    const trap = this.dungeon.traps.find(t => t.x === px && t.y === py);
+    if (trap) {
+      trap.revealed = true;
+      this.log.addMessage(`${trap.name} を踏んでしまった！`);
+      soundManager.playPlayerHurt();
+
+      switch (trap.id) {
+        case 'arrow':
+          this.player.str = Math.max(1, this.player.str - 1);
+          this.log.addMessage(trap.desc);
+          break;
+        case 'mine':
+          const bombDmg = Math.max(1, Math.floor(this.player.hp / 2));
+          this.player.hp = Math.max(1, this.player.hp - bombDmg);
+          this.renderer.addFloatingText(`-${bombDmg}`, px, py, '#ef4444');
+          this.log.addMessage(trap.desc);
+          break;
+        case 'sleep':
+          this.player.sleepTurns = 4;
+          this.log.addMessage(trap.desc);
+          break;
+        case 'trip':
+          if (this.player.inventory.length > 0) {
+            const dropIdx = Math.floor(Math.random() * this.player.inventory.length);
+            const dropItem = this.player.inventory[dropIdx];
+            this.player.removeItem(dropItem);
+            dropItem.x = px;
+            dropItem.y = py;
+            this.dungeon.items.push(dropItem);
+            this.log.addMessage(`転んで ${dropItem.name} を落とした！`);
+          }
+          break;
+        case 'warp':
+          ItemManager.teleportEntity(this.player, this.dungeon, this.monsters);
+          this.log.addMessage(trap.desc);
+          break;
+      }
+    }
+  }
+
+  // 1ターンの解決（プレイヤー行動後、モンスター行動処理）
+  executeTurn(isMove = true) {
+    if (this.isGameOver || this.isGameClear) return;
+
+    // 1. プレイヤーターン処理（満腹度消費、自然回復、状態異常）
+    const pMessages = this.player.onTurnPassed(isMove);
+    pMessages.forEach(m => this.log.addMessage(m));
+
+    // 飢えで死亡チェック
+    if (this.player.hp <= 0) {
+      this.triggerGameOver('お腹が空いて力尽きてしまった...');
+      return;
+    }
+
+    // 2. モンスターの行動
+    this.monsters.forEach(m => {
+      if (m.hp <= 0) return;
+
+      const decision = m.decideAction(this.player, this.dungeon, this.monsters);
+
+      if (decision.action === 'move') {
+        m.startMove(decision.targetX, decision.targetY);
+      } else if (decision.action === 'attack') {
+        // プレイヤーへの直接攻撃
+        this.processMonsterAttack(m);
+      } else if (decision.action === 'skill') {
+        // 特殊スキル
+        this.processMonsterSkill(m, decision);
+      }
+    });
+
+    // 3. 視界・HUD更新
+    this.updateVisibility();
+    this.updateHUD();
+
+    // プレイヤー死亡チェック
+    if (this.player.hp <= 0) {
+      this.triggerGameOver('モンスターに倒されてしまった...');
+    }
+  }
+
+  // モンスターの通常攻撃
+  processMonsterAttack(monster) {
+    // 足元が聖域の巻物なら攻撃を受けない
+    const onSanctuary = this.dungeon.items.some(i => i.id === 'sanctuary' && i.x === this.player.x && i.y === this.player.y);
+    if (onSanctuary) {
+      this.log.addMessage(`聖域の力により、${monster.name} の攻撃を受け付けない！`);
+      return;
+    }
+
+    const dmg = this.player.takeDamage(monster.atk);
+    soundManager.playPlayerHurt();
+    this.renderer.addFloatingText(`-${dmg}`, this.player.x, this.player.y, '#ef4444');
+    this.log.addMessage(`${monster.name} のこうげき！ もじさんは ${dmg} のダメージを受けた！`);
+
+    // 特殊効果（おばけキノコの毒、くさった死体の腐敗）
+    if (monster.id === 'mushroom' && Math.random() < 0.3) {
+      if (this.player.equippedShield && this.player.equippedShield.antiPoison) {
+        this.log.addMessage('うろこの盾が毒の胞子を弾いた！');
+      } else {
+        this.player.str = Math.max(1, this.player.str - 1);
+        this.log.addMessage('毒の胞子を吸い込んでちからが 1 下がった！');
+      }
+    } else if (monster.id === 'zombie' && Math.random() < 0.25) {
+      const breads = this.player.inventory.filter(i => i.type === 'bread' && i.id !== 'rotten_bread');
+      if (breads.length > 0) {
+        const b = breads[0];
+        b.id = 'rotten_bread';
+        b.name = 'くさったパン';
+        b.icon = '🥖';
+        b.desc = 'お腹を30%回復するが、腹痛で睡眠や毒などの異常が起こる。';
+        this.log.addMessage(`大事なパンを腐らされてしまった！`);
+      }
+    }
+  }
+
+  // モンスターの特殊スキル処理
+  processMonsterSkill(monster, decision) {
+    this.log.addMessage(decision.skillMsg);
+
+    if (decision.skillType === 'dragon_breath') {
+      soundManager.playCastMagic();
+      let dmg = 15;
+      if (this.player.equippedShield && this.player.equippedShield.antiFire) {
+        dmg = 7;
+        this.log.addMessage('ドラゴンシールドが炎を軽減した！');
+      }
+      this.player.hp = Math.max(0, this.player.hp - dmg);
+      soundManager.playPlayerHurt();
+      this.renderer.addFloatingText(`-${dmg}`, this.player.x, this.player.y, '#ff5722');
+      this.log.addMessage(`もじさんは 炎に包まれ ${dmg} のダメージを受けた！`);
+    } else if (decision.skillType === 'sleep_spell') {
+      soundManager.playCastMagic();
+      this.player.sleepTurns = 4;
+      this.log.addMessage('もじさんは 眠ってしまった！');
+    }
+  }
+
+  // インベントリを開く
+  openInventory() {
+    if (this.isGameOver || this.isGameClear || !this.player) return;
+
+    // 足元のアイテム判定
+    const px = this.player.x;
+    const py = this.player.y;
+    const groundItem = this.dungeon.items.find(i => i.x === px && i.y === py) || null;
+    const isStairs = (this.dungeon.stairs && this.dungeon.stairs.x === px && this.dungeon.stairs.y === py);
+
+    this.inventoryModal.open(this.player, groundItem, isStairs);
+  }
+
+  // インベントリアクションハンドラ
+  handleInventoryAction(action, item) {
+    if (this.isGameOver || this.isGameClear || !this.player) return;
+
+    switch (action) {
+      case 'equip':
+        const equipMsg = this.player.equipItem(item);
+        if (equipMsg) this.log.addMessage(equipMsg);
+        this.executeTurn(false);
+        break;
+
+      case 'unequip':
+        const unequipMsg = this.player.unequipItem(item);
+        if (unequipMsg) this.log.addMessage(unequipMsg);
+        this.executeTurn(false);
+        break;
+
+      case 'use':
+        ItemManager.useItem(item, this.player, this.dungeon, this.monsters, msg => this.log.addMessage(msg));
+        this.executeTurn(false);
+        break;
+
+      case 'throw':
+        ItemManager.throwItem(item, this.player, this.dungeon, this.monsters, msg => this.log.addMessage(msg));
+        this.executeTurn(false);
+        break;
+
+      case 'drop':
+        this.player.removeItem(item);
+        item.x = this.player.x;
+        item.y = this.player.y;
+        this.dungeon.items.push(item);
+        this.log.addMessage(`もじさんは ${item.name} を足元に置いた。`);
+        this.executeTurn(false);
+        break;
+
+      case 'pickup_ground':
+        if (item) {
+          const res = this.player.addItem(item);
+          if (res.success) {
+            const idx = this.dungeon.items.indexOf(item);
+            if (idx !== -1) this.dungeon.items.splice(idx, 1);
+            soundManager.playPickup();
+            this.log.addMessage(`もじさんは ${item.name} を拾った！`);
+          } else {
+            this.log.addMessage(res.reason);
+          }
+          this.executeTurn(false);
+        }
+        break;
+
+      case 'use_ground':
+        if (item) {
+          const idx = this.dungeon.items.indexOf(item);
+          if (idx !== -1) this.dungeon.items.splice(idx, 1);
+          ItemManager.useItem(item, this.player, this.dungeon, this.monsters, msg => this.log.addMessage(msg));
+          this.executeTurn(false);
+        }
+        break;
+
+      case 'descend_stairs':
+        this.descendStairs();
+        break;
+    }
+
+    this.updateHUD();
+  }
+
+  // 階段を降りる
+  descendStairs() {
+    if (this.floorNumber >= CONFIG.DUNGEON.MAX_FLOORS) {
+      this.triggerGameClear();
+      return;
+    }
+    this.loadFloor(this.floorNumber + 1);
+  }
+
+  // ゲームオーバー
+  triggerGameOver(reason) {
+    this.isGameOver = true;
+    soundManager.playGameOver();
+    this.log.addMessage(`もじさんは 力尽きた...`);
+
+    const modal = document.getElementById('end-modal');
+    const title = document.getElementById('end-title');
+    const desc = document.getElementById('end-desc');
+    title.className = 'end-title game-over';
+    title.textContent = 'GAME OVER';
+    desc.textContent = reason;
+
+    document.getElementById('end-floor').textContent = `B${this.floorNumber}F`;
+    document.getElementById('end-level').textContent = `${this.player.level}`;
+    document.getElementById('end-gold').textContent = `${this.player.gold}G`;
+
+    modal.classList.remove('hidden');
+  }
+
+  // ゲームクリア
+  triggerGameClear() {
+    this.isGameClear = true;
+    soundManager.playVictory();
+    this.log.addMessage('奇跡の箱を手に入れた！ 冒険クリア！');
+
+    const modal = document.getElementById('end-modal');
+    const title = document.getElementById('end-title');
+    const desc = document.getElementById('end-desc');
+    title.className = 'end-title game-clear';
+    title.textContent = '★ ダンジョン制覇 ★';
+    desc.textContent = '見事にダンジョンの奥底から「奇跡の箱」を持ち帰った！伝説の商人として語り継がれるだろう！';
+
+    document.getElementById('end-floor').textContent = `B10F クリア！`;
+    document.getElementById('end-level').textContent = `${this.player.level}`;
+    document.getElementById('end-gold').textContent = `${this.player.gold}G`;
+
+    modal.classList.remove('hidden');
+  }
+
+  // HUD更新
+  updateHUD() {
+    if (!this.player) return;
+
+    document.getElementById('hud-floor').textContent = `B${this.floorNumber}F`;
+    document.getElementById('hud-level').textContent = this.player.level;
+    document.getElementById('hud-hp').textContent = this.player.hp;
+    document.getElementById('hud-maxhp').textContent = this.player.maxHp;
+
+    const hpPercent = Math.max(0, Math.min(100, (this.player.hp / this.player.maxHp) * 100));
+    document.getElementById('hud-hp-bar').style.width = `${hpPercent}%`;
+
+    document.getElementById('hud-satiety').textContent = `${Math.floor(this.player.satiety)}%`;
+    document.getElementById('hud-gold').textContent = this.player.gold;
+    document.getElementById('inv-count').textContent = this.player.inventory.length;
+  }
+
+  // メインループ（60fps レンダリング＆補間）
+  setupGameLoop() {
+    const loop = () => {
+      // プレイヤーのスムーズ補間
+      if (this.player && this.player.animProgress < 1.0) {
+        this.player.animProgress = Math.min(1.0, this.player.animProgress + 0.18);
+      }
+
+      // モンスターのスムーズ補間
+      this.monsters.forEach(m => {
+        if (m.animProgress < 1.0) {
+          m.animProgress = Math.min(1.0, m.animProgress + 0.18);
         }
       });
-      this.sound.playSlimeShot();
-    }
-  }
 
-  handleBossAttack(bossPos) {
-    if (this.state !== 'PLAYING') return;
-    // ボスから手前のプレイヤー周辺へ3WAYエネルギー弾発射
-    const px = this.moji.position.x;
-    this.bullets.spawnEnemyBullet(bossPos, px - 2.5);
-    this.bullets.spawnEnemyBullet(bossPos, px);
-    this.bullets.spawnEnemyBullet(bossPos, px + 2.5);
-    this.sound.playEnemyHit();
-  }
-
-  handleTurretAttack(turretPos) {
-    if (this.state !== 'PLAYING') return;
-    // 砲撃タワーからプレイヤーのいるX座標へ向けたエネルギー砲撃
-    this.bullets.spawnEnemyBullet(turretPos, this.moji.position.x);
-    this.sound.playEnemyHit();
-  }
-
-  isBulletCrossing(bullet, delta, targetX, targetZ, halfWidth, halfDepth) {
-    // 1. X軸判定（ターゲット幅 + 弾丸半径マージン）
-    const dx = Math.abs(bullet.pos.x - targetX);
-    const radiusMargin = bullet.isMega ? 1.0 : 0.45;
-    if (dx > halfWidth + radiusMargin) return false;
-
-    // 2. Y軸判定（プレイヤー弾と地上の的が自然に当たる許容範囲）
-    if (bullet.pos.y < -0.5 || bullet.pos.y > 4.5) return false;
-
-    // 3. Z軸連続衝突判定（CCD：前フレーム位置〜現フレーム位置の軌跡とターゲット深度の重なり）
-    const stepZ = (bullet.speed || 48.0) * (delta || 0.016);
-    const zNew = bullet.pos.z;
-    const zOld = bullet.pos.z + stepZ;
-
-    const minTargetZ = targetZ - halfDepth;
-    const maxTargetZ = targetZ + halfDepth;
-
-    return (zNew <= maxTargetZ && zOld >= minTargetZ);
-  }
-
-  handleCollisions(delta = 0.016) {
-    const activeBullets = this.bullets.getActiveBullets();
-    const activeEnemyBullets = this.bullets.getActiveEnemyBullets();
-    const mojiPos = this.moji.position;
-
-    // =========================================================================
-    // 1. プレイヤー弾 vs ゲート、敵、ボス（弾丸主導ループで全弾同時命中を保証！）
-    // =========================================================================
-    for (const bullet of activeBullets) {
-      if (!bullet.active) continue;
-
-      // 1-A. 弾丸 vs ゲート
-      for (const gate of this.stage.gates) {
-        if (gate.passed) continue;
-        const halfW = gate.width / 2 + 0.25;
-        const halfD = 0.85;
-
-        if (this.isBulletCrossing(bullet, delta, gate.x, gate.z, halfW, halfD)) {
-          if (!bullet.isMega) {
-            bullet.active = false;
-            bullet.mesh.visible = false;
-          }
-          gate.onBulletHit();
-          this.sound.playGateHit();
-          this.fx.spawnBurst(bullet.pos, 0x00e5ff, 6);
-          break; // この弾はゲートに命中
-        }
-      }
-      if (!bullet.active) continue;
-
-      // 1-B. 弾丸 vs 敵・障害物・救助ケージ
-      for (const enemy of this.stage.enemies) {
-        if (!enemy.alive) continue;
-
-        let halfW = 0.95;
-        let halfD = 0.95;
-        if (enemy.type === 'cage') {
-          halfW = 1.25;
-          halfD = 1.2;
-        } else if (enemy.type === 'block') {
-          halfW = 1.15;
-          halfD = 1.1;
-        } else if (enemy.type === 'barrel') {
-          halfW = 1.05;
-          halfD = 1.0;
-        } else if (enemy.type === 'shielded') {
-          halfW = 1.25;
-          halfD = 1.1;
-        } else if (enemy.type === 'tank') {
-          halfW = 1.55;
-          halfD = 1.35;
-        } else if (enemy.type === 'drone') {
-          halfW = 1.25;
-          halfD = 1.1;
-        } else if (enemy.type === 'turret') {
-          halfW = 1.25;
-          halfD = 1.2;
-        }
-
-        const ePos = enemy.group.position;
-
-        if (this.isBulletCrossing(bullet, delta, ePos.x, ePos.z, halfW, halfD)) {
-          const hitResult = enemy.takeDamage(bullet.damage, bullet);
-
-          if (hitResult === 'deflected') {
-            if (!bullet.isMega) {
-              bullet.active = false;
-              bullet.mesh.visible = false;
-            }
-            this.sound.playGateHit();
-            this.fx.spawnBurst(bullet.pos, 0x00e5ff, 8);
-            break;
-          }
-
-          if (!bullet.isMega) {
-            bullet.active = false;
-            bullet.mesh.visible = false;
-          }
-
-          this.sound.playEnemyHit();
-
-          if (hitResult === true) {
-            if (enemy.type === 'cage') {
-              const count = enemy.rescueCount || 6;
-              this.gary.addCount(count);
-              this.sound.playGatePass(true);
-              this.fx.spawnBurst(ePos, 0x64ff24, 30);
-              this.renderer.addScreenShake(0.25);
-              this.ui.showGarySpeech(`仲間を${count}体救出！やったー！`, 2.0);
-              this.score += 300;
-            } else if (enemy.type === 'barrel') {
-              this.sound.playBarrelExplode();
-              this.fx.spawnBurst(ePos, 0xff5722, 35);
-              this.renderer.addScreenShake(0.55);
-              this.triggerBarrelExplosion(ePos);
-            } else {
-              this.sound.playEnemyExplode();
-              this.fx.spawnBurst(ePos, (enemy.type === 'block' ? 0x90a4ae : (enemy.type === 'shielded' ? 0x00b0ff : 0xff1744)), 25);
-              this.renderer.addScreenShake(0.25);
-            }
-
-            this.fx.spawnCoins(ePos, enemy.type === 'tank' ? 8 : (enemy.type === 'shielded' || enemy.type === 'turret' ? 6 : 4));
-            this.score += (enemy.type === 'tank' ? 350 : (enemy.type === 'shielded' ? 280 : (enemy.type === 'block' ? 200 : 120)));
-          }
-          break; // この弾は敵に命中
-        }
-      }
-      if (!bullet.active) continue;
-
-      // 1-C. 弾丸 vs ボス & シールド核（パイロン）
-      const boss = this.stage.boss;
-      if (boss && boss.alive) {
-        let hitBossTarget = false;
-        if (boss.hasPylons) {
-          boss.pylons.forEach((p, idx) => {
-            if (!p.alive || hitBossTarget) return;
-            const pWorld = boss.group.position.clone().add(p.mesh.position);
-            if (this.isBulletCrossing(bullet, delta, pWorld.x, pWorld.z, 1.3, 1.2)) {
-              hitBossTarget = true;
-              if (!bullet.isMega) {
-                bullet.active = false;
-                bullet.mesh.visible = false;
-              }
-              const pKilled = boss.takePylonDamage(idx, bullet.damage);
-              this.sound.playEnemyHit();
-              this.fx.spawnBurst(bullet.pos, 0x00e5ff, 12);
-              if (pKilled) {
-                this.sound.playBossExplosion();
-                this.fx.spawnBurst(pWorld, 0x00e5ff, 35);
-                this.renderer.addScreenShake(0.45);
-                this.ui.showGarySpeech("シールド核を破壊したぞ！", 2.2);
-              }
-            }
-          });
-        }
-
-        if (!hitBossTarget && this.isBulletCrossing(bullet, delta, 0, boss.z, 3.2, 2.5)) {
-          if (!bullet.isMega) {
-            bullet.active = false;
-            bullet.mesh.visible = false;
-          }
-
-          const result = boss.takeDamage(bullet.damage);
-          if (result === 'shielded') {
-            this.sound.playGateHit();
-            this.fx.spawnBurst(bullet.pos, 0x00e5ff, 10);
-            if (Math.random() < 0.08) {
-              this.ui.showMojiSpeech("シールドに弾かれた！核を破壊せよ！", 2.0);
-            }
-          } else {
-            this.sound.playEnemyHit();
-            this.fx.spawnBurst(bullet.pos, boss.color, 8);
-
-            if (result === true) {
-              this.handleBossDefeated();
-            }
-          }
-        }
-      }
-    }
-
-    // =========================================================================
-    // 2. プレイヤー軍団 vs ゲート通過判定
-    // =========================================================================
-    for (const gate of this.stage.gates) {
-      if (!gate.passed && Math.abs(mojiPos.z - gate.z) < 1.6) {
-        if (Math.abs(mojiPos.x - gate.x) <= gate.width / 2 + 0.35) {
-          const isPos = gate.applyEffect(this.gary, this.moji, this);
-          this.sound.playGatePass(isPos);
-          this.fx.spawnGateRing(gate.group.position, isPos ? 0x76ff03 : 0xff1744);
-          this.renderer.addScreenShake(0.25);
-
-          if (gate.type === 'spread') {
-            this.ui.showGarySpeech("3WAY弾幕発動ー！", 2.2);
-          } else if (gate.type === 'power') {
-            this.ui.showMojiSpeech("メガビーム砲、点火！", 2.2);
-          }
-        }
-      }
-    }
-
-    // =========================================================================
-    // 3. プレイヤー群集 vs 敵・障害物接触判定（軍団の広がり・衝突物理）
-    // =========================================================================
-    const armyRadiusX = Math.min(3.8, 1.0 + Math.sqrt(this.gary.count) * 0.35);
-    const armyDepthZ = Math.min(3.5, 0.8 + Math.sqrt(this.gary.count) * 0.3);
-
-    for (const enemy of this.stage.enemies) {
-      if (!enemy.alive) continue;
-      const ePos = enemy.group.position;
-
-      if (enemy.type === 'laser_fence') {
-        const dz = Math.abs(mojiPos.z - ePos.z);
-        const dx = Math.abs(mojiPos.x - ePos.x);
-        if (dz < 0.85 && dx < 2.1 && enemy.isLaserActive) {
-          if (this.moji.hasShield) {
-            this.moji.takeDamage(10);
-            this.fx.spawnBurst(mojiPos, 0x00e5ff, 25);
-            this.renderer.addScreenShake(0.3);
-            this.ui.showMojiSpeech("シールドがレーザーを遮断！", 1.8);
-          } else {
-            this.fx.spawnBurst(mojiPos, 0xff1744, 25);
-            this.renderer.addScreenShake(0.5);
-            if (this.gary.count > 0) {
-              this.gary.addCount(-Math.min(this.gary.count, 6));
-              this.ui.showGarySpeech("レーザーが痛いよー！", 1.5);
-            } else {
-              this.moji.takeDamage(35);
-              this.ui.showMojiSpeech("電磁レーザー被弾！", 1.8);
-            }
-          }
-        }
-      } else {
-        const dxToMoji = Math.abs(mojiPos.x - ePos.x);
-        const dzRelMoji = ePos.z - mojiPos.z; // 正ならもじさんより後ろ（ゲイリー群集側）、負ならもじさんより前
-
-        // もじさん本体との直接衝突判定
-        const mojiHit = (dxToMoji < 1.4 && Math.abs(dzRelMoji) < 1.4);
-        // 群集全体との接触判定（もじさんの前方0.6m〜後方armyDepthZまでカバー）
-        const swarmHit = (dxToMoji < armyRadiusX + 0.8 && dzRelMoji >= -0.6 && dzRelMoji <= armyDepthZ + 0.8);
-
-        if (mojiHit || swarmHit) {
-          if (enemy.type === 'cage') {
-            // 救出ケージ：もじさんや群集が触れれば解放！
-            enemy.alive = false;
-            const count = enemy.rescueCount || 6;
-            this.gary.addCount(count);
-            this.sound.playGatePass(true);
-            this.fx.spawnBurst(ePos, 0x64ff24, 30);
-            this.ui.showGarySpeech(`仲間を${count}体救出！`, 2.0);
-            this.score += 300;
-          } else if (enemy.type === 'barrel') {
-            // 赤バレル：接触でも大爆発
-            enemy.alive = false;
-            this.sound.playBarrelExplode();
-            this.fx.spawnBurst(ePos, 0xff5722, 35);
-            this.renderer.addScreenShake(0.55);
-            this.triggerBarrelExplosion(ePos);
-            if (this.moji.hasShield) {
-              this.moji.takeDamage(10);
-            } else if (this.gary.count > 0) {
-              this.gary.addCount(-Math.min(this.gary.count, 6));
-            } else {
-              this.moji.takeDamage(30);
-            }
-          } else {
-            // ブロック・敵モンスター・戦車・シールド兵との衝突：
-            // 群集と敵が激突！敵のHPを削り、ゲイリーも犠牲になる
-            this.renderer.addScreenShake(0.35);
-            this.fx.spawnBurst(ePos, 0xff5252, 20);
-
-            if (this.moji.hasShield) {
-              this.moji.takeDamage(20);
-              const killed = enemy.takeDamage(100);
-              if (killed) {
-                this.sound.playEnemyExplode();
-                this.score += 200;
-              }
-              this.ui.showMojiSpeech("シールドが激突を防御！", 1.8);
-            } else if (this.gary.count > 0) {
-              // ゲイリー群集が敵に突撃してHPを削る！
-              const damageToEnemy = Math.min(enemy.hp, this.gary.count * 15);
-              const garyLoss = Math.min(this.gary.count, Math.max(2, Math.ceil(enemy.hp / 12)));
-              this.gary.addCount(-garyLoss);
-              const killed = enemy.takeDamage(damageToEnemy);
-              if (killed) {
-                this.sound.playEnemyExplode();
-                this.score += 200;
-                this.ui.showGarySpeech("体当たりで突破したぞ！", 1.8);
-              } else {
-                this.sound.playEnemyHit();
-                this.ui.showGarySpeech("いたたたっ！硬いよー！", 1.5);
-              }
-            } else {
-              // もじさん単身での被弾
-              this.moji.takeDamage(25);
-              const killed = enemy.takeDamage(40);
-              if (killed) {
-                this.sound.playEnemyExplode();
-                this.score += 200;
-              }
-              this.ui.showMojiSpeech("くっ、油断するな！", 1.8);
-            }
-          }
-        }
-      }
-    }
-
-    // C. 敵弾 vs プレイヤー / プレイヤー弾（2.5D XZ判定）
-    for (const eb of activeEnemyBullets) {
-      if (!eb.active) continue;
-
-      // 敵弾 vs プレイヤー弾（弾丸の相殺！）
-      for (const pb of activeBullets) {
-        if (!pb.active) continue;
-        const dx = Math.abs(eb.pos.x - pb.pos.x);
-        const dz = Math.abs(eb.pos.z - pb.pos.z);
-        if (dx < 0.85 && dz < 1.2) {
-          eb.active = false;
-          eb.mesh.visible = false;
-          if (!pb.isMega) {
-            pb.active = false;
-            pb.mesh.visible = false;
-          }
-          this.fx.spawnBurst(eb.pos, 0xffd54f, 10);
-          this.sound.playEnemyHit();
-          break;
-        }
+      if (this.dungeon && this.player) {
+        this.renderer.updateCamera(this.player);
+        this.renderer.render(this.dungeon, this.player, this.monsters);
       }
 
-      if (!eb.active) continue;
-
-      // 敵弾 vs プレイヤー
-      const dxToPlayer = Math.abs(eb.pos.x - mojiPos.x);
-      const dzToPlayer = Math.abs(eb.pos.z - mojiPos.z);
-      if (dxToPlayer < 1.35 && dzToPlayer < 1.35) {
-        eb.active = false;
-        eb.mesh.visible = false;
-        this.fx.spawnBurst(eb.pos, 0xff1744, 18);
-        this.renderer.addScreenShake(0.4);
-
-        if (this.moji.hasShield) {
-          this.moji.takeDamage(10); // シールドが完全防御！
-          this.ui.showMojiSpeech("シールドが被弾を防御！", 1.8);
-        } else if (this.gary.count > 0) {
-          this.gary.addCount(-Math.min(this.gary.count, 4));
-          this.ui.showGarySpeech("ゲイリーが守るよ！", 1.5);
-        } else {
-          this.moji.takeDamage(eb.damage);
-          this.ui.showMojiSpeech("被弾した！持ちこたえろ！", 1.8);
-        }
-      }
-    }
-
-    // D. 弾丸 vs ボス & シールド核（パイロン）
-    const boss = this.stage.boss;
-    if (boss && boss.alive) {
-      if (!this.bossAlerted && Math.abs(mojiPos.z - boss.z) < 55) {
-        this.bossAlerted = true;
-        this.ui.showMojiSpeech(`${boss.name} 出現！総員突撃！`, 3.0);
-        setTimeout(() => this.ui.showGarySpeech("ゲイリー軍団、いっけーー！", 3.0), 1200);
-      }
-
-      for (const bullet of activeBullets) {
-        if (!bullet.active) continue;
-
-        // 1. パイロン（シールド核）への攻撃判定（CCD swept 判定）
-        if (boss.hasPylons) {
-          let hitPylon = false;
-          boss.pylons.forEach((p, idx) => {
-            if (!p.alive || hitPylon) return;
-            const pWorld = boss.group.position.clone().add(p.mesh.position);
-            if (this.isBulletCrossing(bullet, delta, pWorld.x, pWorld.z, 1.3, 1.2)) {
-              hitPylon = true;
-              if (!bullet.isMega) {
-                bullet.active = false;
-                bullet.mesh.visible = false;
-              }
-              const pKilled = boss.takePylonDamage(idx, bullet.damage);
-              this.sound.playEnemyHit();
-              this.fx.spawnBurst(bullet.pos, 0x00e5ff, 12);
-              if (pKilled) {
-                this.sound.playBossExplosion();
-                this.fx.spawnBurst(pWorld, 0x00e5ff, 35);
-                this.renderer.addScreenShake(0.45);
-                this.ui.showGarySpeech("シールド核を破壊したぞ！", 2.2);
-              }
-            }
-          });
-          if (hitPylon) continue;
-        }
-
-        // 2. ボス本体への攻撃判定（CCD swept 判定）
-        if (this.isBulletCrossing(bullet, delta, 0, boss.z, 3.2, 2.5)) {
-          if (!bullet.isMega) {
-            bullet.active = false;
-            bullet.mesh.visible = false;
-          }
-
-          const result = boss.takeDamage(bullet.damage);
-          if (result === 'shielded') {
-            this.sound.playGateHit();
-            this.fx.spawnBurst(bullet.pos, 0x00e5ff, 10);
-            if (Math.random() < 0.08) {
-              this.ui.showMojiSpeech("シールドに弾かれた！核を破壊せよ！", 2.0);
-            }
-          } else {
-            this.sound.playEnemyHit();
-            this.fx.spawnBurst(bullet.pos, boss.color, 8);
-
-            if (result === true) {
-              this.handleBossDefeated();
-            }
-          }
-        }
-      }
-
-      // ボス直接接触
-      if (boss.alive && mojiPos.z <= boss.z + 2.0) {
-        this.moji.takeDamage(100);
-      }
-    }
-
-    // E. ボーナスロードの通過判定
-    if (this.state === 'BONUS_ROAD') {
-      for (const zone of this.stage.bonusZones) {
-        if (!zone.passed && mojiPos.z <= zone.z) {
-          zone.passed = true;
-          this.stage.bonusMultiplier = zone.multiplier;
-          this.sound.playGatePass(true);
-          this.fx.spawnGateRing(zone.mesh.position, 0xffd700);
-          this.renderer.addScreenShake(0.15);
-        }
-      }
-
-      const currentLevelData = CONFIG.LEVELS[(this.currentLevel - 1) % CONFIG.LEVELS.length];
-      const lastZoneZ = -currentLevelData.distance - 120;
-      if (mojiPos.z <= lastZoneZ) {
-        this.handleStageClear();
-      }
-    }
-  }
-
-  triggerBarrelExplosion(barrelPos) {
-    // 範囲3.8m以内の敵すべてに誘爆大ダメージ
-    for (const other of this.stage.enemies) {
-      if (!other.alive) continue;
-      const d = other.group.position.distanceTo(barrelPos);
-      if (d < 3.8) {
-        const dead = other.takeDamage(150);
-        if (dead) {
-          this.sound.playEnemyExplode();
-          this.fx.spawnBurst(other.group.position, 0xff9100, 20);
-          this.fx.spawnCoins(other.group.position, 4);
-          this.score += 150;
-        }
-      }
-    }
-  }
-
-  handleBossDefeated() {
-    this.sound.playBossExplosion();
-    this.renderer.addScreenShake(0.85);
-    const bossPos = this.stage.boss.group.position;
-
-    // 連続大爆発＆大量コイン放出！
-    for (let i = 0; i < 7; i++) {
-      setTimeout(() => {
-        const offset = new THREE.Vector3(
-          (Math.random() - 0.5) * 4.5,
-          Math.random() * 3.5,
-          (Math.random() - 0.5) * 4.5
-        );
-        this.fx.spawnBurst(bossPos.clone().add(offset), 0xffd700, 35);
-        this.fx.spawnCoins(bossPos.clone().add(offset), 5);
-      }, i * 110);
-    }
-
-    this.score += 2500;
-    this.state = 'BONUS_ROAD';
-
-    this.ui.showGarySpeech("やったーー！ボス粉砕！", 3.0);
-    setTimeout(() => this.ui.showMojiSpeech("見事だ、ゲイリー！ボーナス突入！", 3.0), 1200);
-
-    // フェイルセーフ：万一の座標ズレでも最大5.5秒後に確実にクリア画面へ
-    if (this.clearSafetyTimer) clearTimeout(this.clearSafetyTimer);
-    this.clearSafetyTimer = setTimeout(() => {
-      if (this.state === 'BONUS_ROAD') {
-        this.handleStageClear();
-      }
-    }, 5500);
-  }
-
-  handleStageClear() {
-    if (this.state === 'CLEAR') return; // 多重呼び出しガード
-    this.state = 'CLEAR';
-    if (this.clearSafetyTimer) clearTimeout(this.clearSafetyTimer);
-
-    this.sound.stopBgm();
-    this.sound.playGatePass(true);
-    this.fx.triggerVictoryConfetti(this.moji.position);
-
-    // 最終スコア算出（ゲイリー生存数 × ボーナス倍率）
-    const finalScore = Math.round(this.score + this.gary.count * 120 * this.stage.bonusMultiplier);
-    this.ui.showClear(finalScore, this.gary.count, this.stage.bonusMultiplier, this.currentLevel);
-  }
-
-  handleGameOver() {
-    this.state = 'GAMEOVER';
-    this.sound.stopBgm();
-    this.renderer.addScreenShake(0.65);
-    this.ui.showGameOver(this.score);
-  }
-
-  render(delta) {
-    this.renderer.updateCamera(this.moji.position, delta);
-    this.renderer.render();
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
   }
 }
 
 // ゲーム起動
 window.addEventListener('DOMContentLoaded', () => {
-  window.__game = new GameApp();
+  new Game();
 });
