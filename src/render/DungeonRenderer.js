@@ -211,80 +211,194 @@ export class DungeonRenderer {
     ctx.globalAlpha = 1.0;
   }
 
-  // 床タイル（DQ風ダンジョン敷石）
+  // 床タイル（本家トルネコ風・温かみのある敷石・石畳）
   _drawFloorTile(ctx, px, py) {
-    ctx.fillStyle = '#263042';
+    // 敷石ベースカラー
+    ctx.fillStyle = '#635342';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 敷石の目地
-    ctx.strokeStyle = '#18202c';
+    // 4つの石畳ブロックの割り付け（トルネコSFC風）
+    const mid = this.tileSize / 2;
+
+    // 石ブロック1 (左上)
+    ctx.fillStyle = '#6d5c4a';
+    ctx.fillRect(px + 1, py + 1, mid - 2, mid - 2);
+    ctx.fillStyle = '#84715d'; // 上左ハイライト
+    ctx.fillRect(px + 1, py + 1, mid - 2, 2);
+    ctx.fillRect(px + 1, py + 1, 2, mid - 2);
+    ctx.fillStyle = '#4c3e30'; // 右下シャドウ
+    ctx.fillRect(px + 1, py + mid - 3, mid - 2, 2);
+    ctx.fillRect(px + mid - 3, py + 1, 2, mid - 2);
+
+    // 石ブロック2 (右上)
+    ctx.fillStyle = '#5e4e3d';
+    ctx.fillRect(px + mid + 1, py + 1, mid - 2, mid - 2);
+    ctx.fillStyle = '#756350';
+    ctx.fillRect(px + mid + 1, py + 1, mid - 2, 2);
+    ctx.fillRect(px + mid + 1, py + 1, 2, mid - 2);
+    ctx.fillStyle = '#443628';
+    ctx.fillRect(px + mid + 1, py + mid - 3, mid - 2, 2);
+    ctx.fillRect(px + this.tileSize - 2, py + 1, 2, mid - 2);
+
+    // 石ブロック3 (左下)
+    ctx.fillStyle = '#594a3a';
+    ctx.fillRect(px + 1, py + mid + 1, mid - 2, mid - 2);
+    ctx.fillStyle = '#705e4c';
+    ctx.fillRect(px + 1, py + mid + 1, mid - 2, 2);
+    ctx.fillRect(px + 1, py + mid + 1, 2, mid - 2);
+    ctx.fillStyle = '#3e3124';
+    ctx.fillRect(px + 1, py + this.tileSize - 2, mid - 2, 2);
+    ctx.fillRect(px + mid - 3, py + mid + 1, 2, mid - 2);
+
+    // 石ブロック4 (右下)
+    ctx.fillStyle = '#685746';
+    ctx.fillRect(px + mid + 1, py + mid + 1, mid - 2, mid - 2);
+    ctx.fillStyle = '#7e6b57';
+    ctx.fillRect(px + mid + 1, py + mid + 1, mid - 2, 2);
+    ctx.fillRect(px + mid + 1, py + mid + 1, 2, mid - 2);
+    ctx.fillStyle = '#483a2d';
+    ctx.fillRect(px + mid + 1, py + this.tileSize - 2, mid - 2, 2);
+    ctx.fillRect(px + this.tileSize - 2, py + mid + 1, 2, mid - 2);
+
+    // 目地（黒褐色）
+    ctx.strokeStyle = '#2b2118';
     ctx.lineWidth = 1;
     ctx.strokeRect(px + 0.5, py + 0.5, this.tileSize - 1, this.tileSize - 1);
-
-    // タイル表面の微小な明暗（テクスチャ感）
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-    ctx.fillRect(px + 2, py + 2, this.tileSize - 4, this.tileSize / 2 - 2);
+    ctx.beginPath();
+    ctx.moveTo(px, py + mid);
+    ctx.lineTo(px + this.tileSize, py + mid);
+    ctx.moveTo(px + mid, py);
+    ctx.lineTo(px + mid, py + this.tileSize);
+    ctx.stroke();
   }
 
-  // 通路タイル
+  // 通路タイル（本家トルネコ風・狭い土と砂利の通路）
   _drawCorridorTile(ctx, px, py) {
-    ctx.fillStyle = '#171e28';
+    // 通路土ベース
+    ctx.fillStyle = '#3a2e22';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
-    ctx.strokeStyle = '#0f141b';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 0.5, py + 0.5, this.tileSize - 1, this.tileSize - 1);
+
+    // 通路両脇の深い岩陰
+    ctx.fillStyle = '#221911';
+    ctx.fillRect(px, py, 4, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 4, py, 4, this.tileSize);
+    ctx.fillRect(px, py, this.tileSize, 4);
+    ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
+
+    // 踏み固められた砂利テクスチャ
+    ctx.fillStyle = '#4e3e30';
+    ctx.fillRect(px + 10, py + 12, 6, 4);
+    ctx.fillRect(px + 28, py + 22, 5, 4);
+    ctx.fillRect(px + 16, py + 34, 7, 3);
+    ctx.fillStyle = '#2a2016';
+    ctx.fillRect(px + 12, py + 18, 4, 3);
+    ctx.fillRect(px + 24, py + 30, 4, 3);
   }
 
-  // 壁タイル（立体感・陰影）
+  // 壁タイル（本家トルネコ風・3段の石積み正面壁 ＆ 天井岩石）
   _drawWallTile(ctx, px, py, dungeon, x, y) {
-    // 壁上面
-    ctx.fillStyle = '#48566a';
-    ctx.fillRect(px, py, this.tileSize, this.tileSize);
-
-    // 上部ハイライト
-    ctx.fillStyle = '#62748d';
-    ctx.fillRect(px, py, this.tileSize, 3);
-
-    // 下側が床なら深めの影
     const southIsFloor = (y + 1 < dungeon.height && dungeon.tiles[y + 1][x] !== CONFIG.TILE.WALL);
-    if (southIsFloor) {
-      ctx.fillStyle = '#2e3846';
-      ctx.fillRect(px, py + this.tileSize - 14, this.tileSize, 14);
-      ctx.fillStyle = '#151b22';
-      ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
-    }
 
-    // レンガ目地
-    ctx.strokeStyle = '#323d4c';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
+    if (southIsFloor) {
+      // 部屋の北側に面する「正面石壁」（トルネコ名物の立体レンガ壁）
+      // 天井ヘリ（上部天板）
+      ctx.fillStyle = '#524333';
+      ctx.fillRect(px, py, this.tileSize, 6);
+      ctx.fillStyle = '#7a6652'; // ヘリの上面ハイライト
+      ctx.fillRect(px, py, this.tileSize, 2);
+
+      // 石積みレンガ3段
+      const brickH = 12;
+      // 1段目
+      ctx.fillStyle = '#453729';
+      ctx.fillRect(px, py + 6, this.tileSize, brickH);
+      ctx.fillStyle = '#614f3c';
+      ctx.fillRect(px, py + 6, this.tileSize, 2);
+      ctx.fillStyle = '#281e15';
+      ctx.fillRect(px + 22, py + 6, 2, brickH);
+
+      // 2段目
+      ctx.fillStyle = '#3a2d20';
+      ctx.fillRect(px, py + 18, this.tileSize, brickH);
+      ctx.fillStyle = '#544332';
+      ctx.fillRect(px, py + 18, this.tileSize, 2);
+      ctx.fillStyle = '#221911';
+      ctx.fillRect(px + 10, py + 18, 2, brickH);
+      ctx.fillRect(px + 34, py + 18, 2, brickH);
+
+      // 3段目
+      ctx.fillStyle = '#2e2217';
+      ctx.fillRect(px, py + 30, this.tileSize, brickH + 6);
+      ctx.fillStyle = '#463626';
+      ctx.fillRect(px, py + 30, this.tileSize, 2);
+      ctx.fillStyle = '#1a120c';
+      ctx.fillRect(px + 20, py + 30, 2, brickH + 6);
+
+      // 床へ落ちる深い黒影
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
+    } else {
+      // 内部の壁・天井岩盤
+      ctx.fillStyle = '#211912';
+      ctx.fillRect(px, py, this.tileSize, this.tileSize);
+
+      // 暗い石の目地
+      ctx.strokeStyle = '#2d2218';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
+
+      ctx.fillStyle = '#17110c';
+      ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
+    }
   }
 
-  // 扉タイル
+  // 扉タイル（本家トルネコ風・石造りのアーチ枠）
   _drawDoorTile(ctx, px, py) {
     this._drawCorridorTile(ctx, px, py);
-    ctx.fillStyle = '#6d4522';
-    ctx.fillRect(px + 6, py + 4, this.tileSize - 12, this.tileSize - 8);
-    ctx.strokeStyle = '#d4883b';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(px + 8, py + 6, this.tileSize - 16, this.tileSize - 12);
-    // 金属取っ手
-    ctx.fillStyle = '#ffd54f';
-    ctx.beginPath();
-    ctx.arc(px + this.tileSize - 12, py + this.tileSize / 2, 3, 0, Math.PI * 2);
-    ctx.fill();
+
+    // 左右の石柱
+    ctx.fillStyle = '#544434';
+    ctx.fillRect(px, py, 6, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 6, py, 6, this.tileSize);
+
+    ctx.fillStyle = '#7a6652';
+    ctx.fillRect(px, py, 6, 2);
+    ctx.fillRect(px + this.tileSize - 6, py, 6, 2);
+
+    // 中央の木製敷居
+    ctx.fillStyle = '#7d5328';
+    ctx.fillRect(px + 6, py + this.tileSize / 2 - 4, this.tileSize - 12, 8);
+    ctx.fillStyle = '#a8753e';
+    ctx.fillRect(px + 6, py + this.tileSize / 2 - 4, this.tileSize - 12, 2);
   }
 
-  // 階段タイル（オリジナル階段スプライト）
+  // 階段タイル（本家トルネコ風・深淵へ続く石の降り階段）
   _drawStairsTile(ctx, px, py) {
     this._drawFloorTile(ctx, px, py);
-    const stairsImg = this.getImage('./assets/props/stairs.png');
-    if (stairsImg) {
-      ctx.drawImage(stairsImg, px + 3, py + 3, this.tileSize - 6, this.tileSize - 6);
-    } else {
-      ctx.fillStyle = '#0284c7';
-      ctx.fillRect(px + 6, py + 6, this.tileSize - 12, this.tileSize - 12);
-    }
+
+    // 階段の掘り込み枠
+    ctx.fillStyle = '#2b2118';
+    ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
+
+    // 4段の石段（奥へ行くほど暗いブルーブラックの闇へ）
+    const steps = [
+      { y: 6, h: 8, bg: '#3a5068', hi: '#6e91b5' },
+      { y: 14, h: 8, bg: '#28394d', hi: '#4b698a' },
+      { y: 22, h: 8, bg: '#182433', hi: '#304761' },
+      { y: 30, h: 12, bg: '#0b131e', hi: '#1a293b' },
+    ];
+
+    steps.forEach(s => {
+      ctx.fillStyle = s.bg;
+      ctx.fillRect(px + 6, py + s.y, this.tileSize - 12, s.h);
+      ctx.fillStyle = s.hi; // 階段フチのハイライト
+      ctx.fillRect(px + 6, py + s.y, this.tileSize - 12, 2);
+    });
+
+    // 階段のフチ取り石枠
+    ctx.strokeStyle = '#7c6854';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(px + 5, py + 5, this.tileSize - 10, this.tileSize - 10);
   }
 
   // アイテム描画（オリジナルドット絵スプライト）
@@ -316,7 +430,7 @@ export class DungeonRenderer {
       // オリジナルスプライト描画
       const img = this.getImage(item.sprite);
       if (img) {
-        const maxDim = this.tileSize * 0.72;
+        const maxDim = 28; // タイル内に収まるレトロRPG適正サイズ
         const scale = Math.min(maxDim / img.width, maxDim / img.height);
         const sw = img.width * scale;
         const sh = img.height * scale;
@@ -356,23 +470,23 @@ export class DungeonRenderer {
       const py = (m.prevY + (m.y - m.prevY) * m.animProgress) * this.tileSize;
       const cx = px + this.tileSize / 2;
       const cy = py + this.tileSize / 2;
-      const wobble = Math.sin(now / 220 + m.instanceId * 1.5) * 2;
+      const wobble = Math.sin(now / 220 + m.instanceId * 1.5) * 1.5;
 
-      // モンスター足元の影
+      // モンスター足元の影（楕円）
       ctx.beginPath();
-      ctx.ellipse(cx, cy + this.tileSize / 2 - 4, 16, 5, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.ellipse(cx, cy + 12, 14, 4.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
       ctx.fill();
 
-      // モンスターのオリジナルスプライト描画
+      // モンスターのオリジナルスプライト描画（もじさんと同スケールで中央配置）
       const img = this.getImage(m.sprite);
       if (img) {
-        // ドラゴンとゴーレムは迫力ある大判サイズ
-        const maxDim = (m.id === 'dragon' || m.id === 'golem') ? this.tileSize * 1.05 : this.tileSize * 0.88;
+        // ドラゴンとゴーレムは少し大きめ(42px)、他は36px前後でもじさん(40px)と統一
+        const maxDim = (m.id === 'dragon' || m.id === 'golem') ? 44 : 38;
         const scale = Math.min(maxDim / img.width, maxDim / img.height);
         const sw = img.width * scale;
         const sh = img.height * scale;
-        ctx.drawImage(img, cx - sw / 2, cy + this.tileSize / 2 - sh - 2 + wobble, sw, sh);
+        ctx.drawImage(img, cx - sw / 2, cy - sh / 2 - 1 + wobble, sw, sh);
       } else {
         // ロード中フォールバック
         ctx.fillStyle = m.color;

@@ -155,29 +155,35 @@
       padding-bottom: env(safe-area-inset-bottom, 8px);
     }
 
-    /* メッセージウィンドウ（DQレトロ風） */
+    /* メッセージウィンドウ（DQレトロ風・3行完全表示） */
     #message-window {
       margin: 0 10px 8px 10px;
-      background: rgba(4, 10, 24, 0.92);
+      background: rgba(4, 9, 22, 0.95);
       border: 2px solid #ffffff;
       border-radius: 6px;
       box-shadow: 0 0 10px rgba(0,0,0,0.8), inset 0 0 4px rgba(255,255,255,0.3);
-      padding: 8px 12px;
-      min-height: 58px;
-      max-height: 64px;
-      overflow-y: hidden;
+      padding: 7px 12px;
+      height: 74px;
+      min-height: 74px;
+      max-height: 74px;
+      box-sizing: border-box;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      gap: 4px;
+      justify-content: flex-start;
+      gap: 3px;
     }
 
     .msg-line {
       color: #ffffff;
       font-size: 13px;
-      line-height: 1.35;
+      line-height: 18px;
+      height: 18px;
       letter-spacing: 0.5px;
       text-shadow: 1px 1px 0 #000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* コントロールパネル（スマホ向け8方向パッド＋アクションボタン） */
