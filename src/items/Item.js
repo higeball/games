@@ -12,7 +12,7 @@ export class Item {
     this.id = data.id || 'item';
     this.name = data.name || 'なぞの道具';
     this.type = data.type || 'herb';
-    this.icon = data.icon || '📦';
+    this.sprite = data.sprite || this._getDefaultSprite();
     this.desc = data.desc || '';
     this.price = data.price || 50;
 
@@ -39,10 +39,27 @@ export class Item {
 
     // ゴールド
     this.goldAmount = data.goldAmount || 0;
+    if (this.type === 'gold' && !data.sprite) {
+      this.sprite = './assets/props/gold.png';
+    }
 
     // 配置座標（マップ上）
     this.x = data.x !== undefined ? data.x : -1;
     this.y = data.y !== undefined ? data.y : -1;
+  }
+
+  _getDefaultSprite() {
+    switch (this.type) {
+      case 'weapon': return './assets/items/bronze_sword.png';
+      case 'shield': return './assets/items/bronze_shield.png';
+      case 'bread': return './assets/items/bread.png';
+      case 'scroll': return './assets/items/scroll.png';
+      case 'staff': return './assets/items/staff.png';
+      case 'arrow': return './assets/items/arrow.png';
+      case 'gold': return './assets/props/gold.png';
+      case 'treasure': return './assets/items/miracle_box.png';
+      default: return './assets/items/herb.png';
+    }
   }
 
   // 表示名（+1や装備マーク、残り回数を含む）
@@ -93,7 +110,7 @@ export class Item {
       id: 'miracle_box',
       name: '奇跡の箱',
       type: 'treasure',
-      icon: '🏆',
+      sprite: './assets/items/miracle_box.png',
       desc: 'ダンジョンの最深部に眠る伝説の秘宝。手に入れると冒険クリア！',
       x,
       y

@@ -109,6 +109,42 @@
 
     .satiety-badge {
       color: #ffb74d;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .hud-mini-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      vertical-align: middle;
+      display: inline-block;
+    }
+
+    .item-icon-img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+
+    .btn-icon {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      margin-bottom: 2px;
+    }
+
+    .btn-cmd-label {
+      font-size: 12px;
+      font-weight: 900;
+      color: #ffd54f;
+      letter-spacing: -0.5px;
+      margin-bottom: 2px;
     }
 
     /* 下部コントロール＆メッセージエリア */
@@ -503,11 +539,15 @@
       </div>
 
       <div class="status-item">
-        <span class="satiety-badge">🍖 <span id="hud-satiety">100%</span></span>
+        <span class="satiety-badge">
+          <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
+          <span id="hud-satiety">100%</span>
+        </span>
       </div>
 
       <div class="status-item">
-        <span>💰 <span id="hud-gold">0</span>G</span>
+        <img src="./assets/props/gold.png" class="hud-mini-icon" alt="ゴールド" />
+        <span><span id="hud-gold">0</span> G</span>
       </div>
     </div>
 
@@ -529,17 +569,35 @@
           <button class="dpad-btn" data-dx="1" data-dy="1">↘</button>
         </div>
 
-        <!-- 右側アクションボタン -->
+        <!-- 右側アクションボタン（ドラクエ風コマンド） -->
         <div class="action-group">
           <div class="action-row">
-            <button class="btn-circle btn-shoot" id="btn-shoot">🏹<br>矢</button>
-            <button class="btn-circle btn-turn" id="btn-turn">🔄<br>向き</button>
-            <button class="btn-circle btn-map" id="btn-map">🗺️<br>地図</button>
+            <button class="btn-circle btn-shoot" id="btn-shoot">
+              <img src="./assets/items/arrow.png" class="btn-icon" alt="矢" />
+              <span>矢</span>
+            </button>
+            <button class="btn-circle btn-turn" id="btn-turn">
+              <span class="btn-cmd-label">方向</span>
+              <span>向き</span>
+            </button>
+            <button class="btn-circle btn-map" id="btn-map">
+              <span class="btn-cmd-label">全図</span>
+              <span>地図</span>
+            </button>
           </div>
           <div class="action-row">
-            <button class="btn-circle btn-wait" id="btn-wait">⏳<br>待機</button>
-            <button class="btn-circle btn-items" id="btn-inventory">🎒<br>道具</button>
-            <button class="btn-circle btn-attack" id="btn-attack">⚔️<br>攻撃</button>
+            <button class="btn-circle btn-wait" id="btn-wait">
+              <span class="btn-cmd-label">足踏</span>
+              <span>待機</span>
+            </button>
+            <button class="btn-circle btn-items" id="btn-inventory">
+              <img src="./assets/items/miracle_box.png" class="btn-icon" alt="道具" />
+              <span>道具</span>
+            </button>
+            <button class="btn-circle btn-attack" id="btn-attack">
+              <img src="./assets/items/bronze_sword.png" class="btn-icon" alt="攻撃" />
+              <span>攻撃</span>
+            </button>
           </div>
         </div>
       </div>

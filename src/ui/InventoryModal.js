@@ -53,7 +53,7 @@ export class InventoryModal {
       const groundRow = document.createElement('div');
       groundRow.className = 'item-row ground-row';
       groundRow.innerHTML = `
-        <span class="item-icon">${this.groundItem.icon}</span>
+        <img class="item-icon-img" src="${this.groundItem.sprite}" alt="${this.groundItem.name}" />
         <span class="item-name">足元: ${this.groundItem.getDisplayName()}</span>
       `;
       groundRow.onclick = () => this.selectItem(this.groundItem, true);
@@ -62,7 +62,7 @@ export class InventoryModal {
       const stairsRow = document.createElement('div');
       stairsRow.className = 'item-row ground-row';
       stairsRow.innerHTML = `
-        <span class="item-icon">🪜</span>
+        <img class="item-icon-img" src="./assets/props/stairs.png" alt="降り階段" />
         <span class="item-name">足元: 降り階段</span>
       `;
       stairsRow.onclick = () => this.selectStairs();
@@ -81,7 +81,7 @@ export class InventoryModal {
       const row = document.createElement('div');
       row.className = `item-row ${this.selectedItem === item ? 'selected' : ''}`;
       row.innerHTML = `
-        <span class="item-icon">${item.icon}</span>
+        <img class="item-icon-img" src="${item.sprite}" alt="${item.name}" />
         <span class="item-name">${item.getDisplayName()}</span>
       `;
       row.onclick = () => this.selectItem(item, false);

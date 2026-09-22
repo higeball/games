@@ -20,7 +20,7 @@ export class Monster {
     this.def = this.data.def;
     this.exp = this.data.exp;
     this.color = this.data.color;
-    this.spriteType = this.data.spriteType;
+    this.sprite = this.data.sprite || `./assets/monsters/${this.id}.png`;
 
     this.x = x;
     this.y = y;

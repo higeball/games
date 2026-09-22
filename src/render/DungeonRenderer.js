@@ -1,6 +1,7 @@
 /**
  * DungeonRenderer - キャンバス描画エンジン
- * トルネコ風ピクセルアート描画、視界・暗闇、もじさんアニメーション、モンスター、ミニマップ
+ * 本家ドラゴンクエスト／トルネコ風のピクセルアート描画
+ * 絵文字を一切使用せず、オリジナルグラフィック・スプライトを描画
  */
 
 import { CONFIG } from '../config.js';
@@ -16,6 +17,59 @@ export class DungeonRenderer {
     this.effects = [];       // { type, x, y, life, maxLife, ... }
 
     this.showMinimap = true;
+
+    // スプライト画像キャッシュ
+    this.images = new Map();
+    this._preloadAssets();
+  }
+
+  _preloadAssets() {
+    const assets = [
+      // モンスター
+      './assets/monsters/slime.png',
+      './assets/monsters/dracky.png',
+      './assets/monsters/ghost.png',
+      './assets/monsters/mushroom.png',
+      './assets/monsters/mage.png',
+      './assets/monsters/zombie.png',
+      './assets/monsters/metal_slime.png',
+      './assets/monsters/golem.png',
+      './assets/monsters/dragon.png',
+      // アイテム
+      './assets/items/club.png',
+      './assets/items/bronze_sword.png',
+      './assets/items/iron_axe.png',
+      './assets/items/dragon_killer.png',
+      './assets/items/leather_shield.png',
+      './assets/items/bronze_shield.png',
+      './assets/items/dragon_shield.png',
+      './assets/items/bread.png',
+      './assets/items/big_bread.png',
+      './assets/items/rotten_bread.png',
+      './assets/items/herb.png',
+      './assets/items/otogiri.png',
+      './assets/items/scroll.png',
+      './assets/items/staff.png',
+      './assets/items/arrow.png',
+      './assets/items/miracle_box.png',
+      // プロップ
+      './assets/props/stairs.png',
+      './assets/props/gold.png',
+      './assets/props/trap.png',
+    ];
+
+    assets.forEach(src => this.getImage(src));
+  }
+
+  getImage(src) {
+    if (!src) return null;
+    let img = this.images.get(src);
+    if (!img) {
+      img = new Image();
+      img.src = src;
+      this.images.set(src, img);
+    }
+    return (img.complete && img.naturalWidth > 0) ? img : null;
   }
 
   resize() {
@@ -63,7 +117,7 @@ export class DungeonRenderer {
   // 全体描画
   render(dungeon, player, monsters) {
     const ctx = this.ctx;
-    ctx.fillStyle = '#06070a';
+    ctx.fillStyle = '#040711';
     ctx.fillRect(0, 0, this.width, this.height);
 
     ctx.save();
@@ -140,144 +194,199 @@ export class DungeonRenderer {
             break;
         }
 
-        // ワナ（発見済みまたは目薬状態）
+        // ワナ（発見済みまたは目薬状態）- オリジナル石板トラップスプライト
         const trap = dungeon.traps.find(t => t.x === x && t.y === y);
         if (trap && (trap.revealed || player.eyedropTurns > 0) && isVisible) {
-          ctx.font = '22px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('⚡', px + this.tileSize / 2, py + this.tileSize / 2);
+          const trapImg = this.getImage('./assets/props/trap.png');
+          if (trapImg) {
+            ctx.drawImage(trapImg, px + 6, py + 6, this.tileSize - 12, this.tileSize - 12);
+          } else {
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px + 8, py + 8, this.tileSize - 16, this.tileSize - 16);
+          }
         }
       }
     }
     ctx.globalAlpha = 1.0;
   }
 
-  // 床タイル
+  // 床タイル（DQ風ダンジョン敷石）
   _drawFloorTile(ctx, px, py) {
-    ctx.fillStyle = '#2c3540';
+    ctx.fillStyle = '#263042';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
-    ctx.strokeStyle = '#1e242d';
+
+    // 敷石の目地
+    ctx.strokeStyle = '#18202c';
     ctx.lineWidth = 1;
     ctx.strokeRect(px + 0.5, py + 0.5, this.tileSize - 1, this.tileSize - 1);
+
+    // タイル表面の微小な明暗（テクスチャ感）
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+    ctx.fillRect(px + 2, py + 2, this.tileSize - 4, this.tileSize / 2 - 2);
   }
 
   // 通路タイル
   _drawCorridorTile(ctx, px, py) {
-    ctx.fillStyle = '#1c222b';
+    ctx.fillStyle = '#171e28';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
-    ctx.strokeStyle = '#14181f';
+    ctx.strokeStyle = '#0f141b';
     ctx.lineWidth = 1;
     ctx.strokeRect(px + 0.5, py + 0.5, this.tileSize - 1, this.tileSize - 1);
   }
 
   // 壁タイル（立体感・陰影）
   _drawWallTile(ctx, px, py, dungeon, x, y) {
-    // 表面（上面）
-    ctx.fillStyle = '#475569';
+    // 壁上面
+    ctx.fillStyle = '#48566a';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 下側が床なら影をつける
+    // 上部ハイライト
+    ctx.fillStyle = '#62748d';
+    ctx.fillRect(px, py, this.tileSize, 3);
+
+    // 下側が床なら深めの影
     const southIsFloor = (y + 1 < dungeon.height && dungeon.tiles[y + 1][x] !== CONFIG.TILE.WALL);
     if (southIsFloor) {
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(px, py + this.tileSize - 12, this.tileSize, 12);
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(px, py + this.tileSize - 3, this.tileSize, 3);
+      ctx.fillStyle = '#2e3846';
+      ctx.fillRect(px, py + this.tileSize - 14, this.tileSize, 14);
+      ctx.fillStyle = '#151b22';
+      ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
     }
 
-    // レンガ風目地
-    ctx.strokeStyle = '#334155';
+    // レンガ目地
+    ctx.strokeStyle = '#323d4c';
     ctx.lineWidth = 1;
     ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
   }
 
   // 扉タイル
   _drawDoorTile(ctx, px, py) {
-    ctx.fillStyle = '#1c222b';
-    ctx.fillRect(px, py, this.tileSize, this.tileSize);
-    ctx.fillStyle = '#8d5b2d';
+    this._drawCorridorTile(ctx, px, py);
+    ctx.fillStyle = '#6d4522';
     ctx.fillRect(px + 6, py + 4, this.tileSize - 12, this.tileSize - 8);
-    ctx.strokeStyle = '#e6a15c';
+    ctx.strokeStyle = '#d4883b';
     ctx.lineWidth = 2;
     ctx.strokeRect(px + 8, py + 6, this.tileSize - 16, this.tileSize - 12);
+    // 金属取っ手
+    ctx.fillStyle = '#ffd54f';
+    ctx.beginPath();
+    ctx.arc(px + this.tileSize - 12, py + this.tileSize / 2, 3, 0, Math.PI * 2);
+    ctx.fill();
   }
 
-  // 階段タイル
+  // 階段タイル（オリジナル階段スプライト）
   _drawStairsTile(ctx, px, py) {
-    ctx.fillStyle = '#2c3540';
-    ctx.fillRect(px, py, this.tileSize, this.tileSize);
-
-    // 下り階段の段差
-    const stepH = this.tileSize / 4;
-    for (let i = 0; i < 4; i++) {
-      ctx.fillStyle = i % 2 === 0 ? '#0284c7' : '#0369a1';
-      ctx.fillRect(px + 6, py + 4 + i * stepH, this.tileSize - 12, stepH);
+    this._drawFloorTile(ctx, px, py);
+    const stairsImg = this.getImage('./assets/props/stairs.png');
+    if (stairsImg) {
+      ctx.drawImage(stairsImg, px + 3, py + 3, this.tileSize - 6, this.tileSize - 6);
+    } else {
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(px + 6, py + 6, this.tileSize - 12, this.tileSize - 12);
     }
-
-    // 階段の輝きアイコン
-    ctx.font = '22px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🪜', px + this.tileSize / 2, py + this.tileSize / 2);
   }
 
-  // アイテム描画
+  // アイテム描画（オリジナルドット絵スプライト）
   _renderItems(dungeon, player) {
     const ctx = this.ctx;
-    const bob = Math.sin(Date.now() / 250) * 3;
+    const now = Date.now();
 
     for (const item of dungeon.items) {
       if (!dungeon.visible[item.y][item.x]) continue;
 
       const px = item.x * this.tileSize;
       const py = item.y * this.tileSize;
+      const cx = px + this.tileSize / 2;
+      const cy = py + this.tileSize / 2;
+      const bob = Math.sin(now / 240 + (item.instanceId || 0)) * 2.5;
 
-      // アイテム背景の光るサークル
+      // 地面の丸い影
       ctx.beginPath();
-      ctx.arc(px + this.tileSize / 2, py + this.tileSize / 2 + bob, 16, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255, 235, 59, 0.25)';
+      ctx.ellipse(cx, cy + 12, 13, 4.5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
       ctx.fill();
 
-      // アイコン
-      ctx.font = '24px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(item.icon, px + this.tileSize / 2, py + this.tileSize / 2 + bob);
+      // アイテム背面のやわらかな光
+      ctx.beginPath();
+      ctx.arc(cx, cy + bob, 15, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 235, 59, 0.18)';
+      ctx.fill();
 
-      // アイテム名バッジ（足元直下の場合表示）
+      // オリジナルスプライト描画
+      const img = this.getImage(item.sprite);
+      if (img) {
+        const maxDim = this.tileSize * 0.72;
+        const scale = Math.min(maxDim / img.width, maxDim / img.height);
+        const sw = img.width * scale;
+        const sh = img.height * scale;
+        ctx.drawImage(img, cx - sw / 2, cy - sh / 2 + bob, sw, sh);
+      } else {
+        // ロード中フォールバック
+        ctx.fillStyle = '#ffd54f';
+        ctx.fillRect(cx - 8, cy - 8 + bob, 16, 16);
+      }
+
+      // プレイヤー直下のアイテム名プレート
       if (player.x === item.x && player.y === item.y) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(px - 10, py - 18, this.tileSize + 20, 16);
+        ctx.font = 'bold 11px sans-serif';
+        const textW = ctx.measureText(item.name).width;
+        ctx.fillStyle = 'rgba(4, 10, 24, 0.9)';
+        ctx.fillRect(cx - textW / 2 - 6, py - 20, textW + 12, 16);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cx - textW / 2 - 6, py - 20, textW + 12, 16);
         ctx.fillStyle = '#ffeb3b';
-        ctx.font = 'bold 10px sans-serif';
-        ctx.fillText(item.name, px + this.tileSize / 2, py - 10);
+        ctx.textAlign = 'center';
+        ctx.fillText(item.name, cx, py - 8);
       }
     }
   }
 
-  // モンスター描画
+  // モンスター描画（オリジナルDQモンスタードット絵スプライト）
   _renderMonsters(monsters, dungeon, player) {
     const ctx = this.ctx;
+    const now = Date.now();
 
     for (const m of monsters) {
       if (m.hp <= 0) continue;
-      // プレイヤーから視界内にあるか
       if (!dungeon.visible[m.y][m.x]) continue;
 
       const px = (m.prevX + (m.x - m.prevX) * m.animProgress) * this.tileSize;
       const py = (m.prevY + (m.y - m.prevY) * m.animProgress) * this.tileSize;
+      const cx = px + this.tileSize / 2;
+      const cy = py + this.tileSize / 2;
+      const wobble = Math.sin(now / 220 + m.instanceId * 1.5) * 2;
 
-      this._drawMonsterSprite(ctx, m, px, py);
+      // モンスター足元の影
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + this.tileSize / 2 - 4, 16, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fill();
 
-      // HPゲージ（ダメージを受けている場合）
+      // モンスターのオリジナルスプライト描画
+      const img = this.getImage(m.sprite);
+      if (img) {
+        // ドラゴンとゴーレムは迫力ある大判サイズ
+        const maxDim = (m.id === 'dragon' || m.id === 'golem') ? this.tileSize * 1.05 : this.tileSize * 0.88;
+        const scale = Math.min(maxDim / img.width, maxDim / img.height);
+        const sw = img.width * scale;
+        const sh = img.height * scale;
+        ctx.drawImage(img, cx - sw / 2, cy + this.tileSize / 2 - sh - 2 + wobble, sw, sh);
+      } else {
+        // ロード中フォールバック
+        ctx.fillStyle = m.color;
+        ctx.fillRect(px + 10, py + 10, this.tileSize - 20, this.tileSize - 20);
+      }
+
+      // HPゲージ（ダメージ時）
       if (m.hp < m.maxHp) {
         const barW = this.tileSize - 12;
         const barH = 5;
         const barX = px + 6;
-        const barY = py + this.tileSize - 4;
+        const barY = py + this.tileSize - 3;
 
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
 
         const hpRatio = Math.max(0, m.hp / m.maxHp);
@@ -285,116 +394,72 @@ export class DungeonRenderer {
         ctx.fillRect(barX, barY, Math.round(barW * hpRatio), barH);
       }
 
-      // 状態異常アイコン
+      // 状態異常（絵文字不使用、DQ風グラフィックシンボル）
       if (m.state === 'sleep' || m.statusSleep > 0) {
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillStyle = '#64b5f6';
-        ctx.fillText('💤', px + this.tileSize - 8, py + 12);
+        this._drawSleepBalloon(ctx, cx + 12, cy - 14);
       } else if (m.statusConfused > 0) {
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillStyle = '#e040fb';
-        ctx.fillText('💫', px + this.tileSize - 8, py + 12);
+        this._drawConfuseStars(ctx, cx, cy - 18, now);
       } else if (m.statusParalyzed) {
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillStyle = '#ffd600';
-        ctx.fillText('⚡', px + this.tileSize - 8, py + 12);
+        this._drawParalyzeSparks(ctx, cx, cy, now);
       }
     }
   }
 
-  // モンスターのグラフィック描画
-  _drawMonsterSprite(ctx, m, px, py) {
-    const cx = px + this.tileSize / 2;
-    const cy = py + this.tileSize / 2;
-    const wobble = Math.sin(Date.now() / 200 + m.instanceId) * 2;
+  // 睡眠フキダシ（レトロDQ風 "Zzz"）
+  _drawSleepBalloon(ctx, x, y) {
+    ctx.save();
+    ctx.fillStyle = '#041026';
+    ctx.strokeStyle = '#64b5f6';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x - 4, y - 10, 26, 15, 4);
+    ctx.fill();
+    ctx.stroke();
 
-    switch (m.spriteType) {
-      case 'slime':
-      case 'metal':
-        // スライム・はぐれメタル
-        ctx.beginPath();
-        ctx.arc(cx, cy + 4 + wobble, 16, 0, Math.PI);
-        ctx.quadraticCurveTo(cx - 16, cy - 8, cx, cy - 14 + wobble);
-        ctx.quadraticCurveTo(cx + 16, cy - 8, cx + 16, cy + 4 + wobble);
-        ctx.fillStyle = m.color;
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-        // 目
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(cx - 6, cy + wobble, 4, 0, Math.PI * 2);
-        ctx.arc(cx + 6, cy + wobble, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#000000';
-        ctx.beginPath();
-        ctx.arc(cx - 5, cy + wobble, 2, 0, Math.PI * 2);
-        ctx.arc(cx + 5, cy + wobble, 2, 0, Math.PI * 2);
-        ctx.fill();
-        break;
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = '#64b5f6';
+    ctx.textAlign = 'center';
+    ctx.fillText('Zzz', x + 9, y + 2);
+    ctx.restore();
+  }
 
-      case 'dracky':
-        // ドラキー（コウモリ）
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🦇', cx, cy + wobble);
-        break;
+  // 混乱星（レトロDQ風の回転星）
+  _drawConfuseStars(ctx, cx, cy, now) {
+    ctx.save();
+    const rot = (now / 300) % (Math.PI * 2);
+    for (let i = 0; i < 3; i++) {
+      const angle = rot + (i * Math.PI * 2) / 3;
+      const sx = cx + Math.cos(angle) * 12;
+      const sy = cy + Math.sin(angle) * 5;
 
-      case 'ghost':
-        // ゴースト
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('👻', cx, cy + wobble);
-        break;
-
-      case 'mushroom':
-        // おばけキノコ
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🍄', cx, cy + wobble);
-        break;
-
-      case 'mage':
-        // まどうし
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🧙‍♂️', cx, cy + wobble);
-        break;
-
-      case 'zombie':
-        // くさった死体
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🧟‍♂️', cx, cy + wobble);
-        break;
-
-      case 'golem':
-        // ゴーレム
-        ctx.font = '30px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🗿', cx, cy + wobble);
-        break;
-
-      case 'dragon':
-        // ドラゴン
-        ctx.font = '32px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🐉', cx, cy + wobble);
-        break;
-
-      default:
-        ctx.fillStyle = m.color;
-        ctx.fillRect(px + 8, py + 8, this.tileSize - 16, this.tileSize - 16);
-        break;
+      ctx.fillStyle = '#e040fb';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 3, 0, Math.PI * 2);
+      ctx.fill();
     }
+    ctx.restore();
+  }
+
+  // 金縛り電撃（黄色のスパーク）
+  _drawParalyzeSparks(ctx, cx, cy, now) {
+    ctx.save();
+    ctx.strokeStyle = '#ffd600';
+    ctx.lineWidth = 2;
+    const step = Math.floor(now / 100) % 2;
+    ctx.beginPath();
+    if (step === 0) {
+      ctx.moveTo(cx - 8, cy - 10);
+      ctx.lineTo(cx + 2, cy - 2);
+      ctx.lineTo(cx - 3, cy + 2);
+      ctx.lineTo(cx + 7, cy + 10);
+    } else {
+      ctx.moveTo(cx + 8, cy - 10);
+      ctx.lineTo(cx - 2, cy - 2);
+      ctx.lineTo(cx + 3, cy + 2);
+      ctx.lineTo(cx - 7, cy + 10);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   // プレイヤー（もじさん）描画
@@ -438,11 +503,9 @@ export class DungeonRenderer {
       ctx.fillText('も', cx, cy);
     }
 
-    // 睡眠状態の「Zzz」
+    // プレイヤー睡眠時の "Zzz"
     if (player.sleepTurns > 0) {
-      ctx.font = 'bold 16px sans-serif';
-      ctx.fillStyle = '#64b5f6';
-      ctx.fillText('💤', cx + 14, cy - 18);
+      this._drawSleepBalloon(ctx, cx + 14, cy - 20);
     }
   }
 
