@@ -1,6 +1,7 @@
 /**
  * InventoryModal - どうぐインベントリ・足元メニュー管理
  * トルネコ風の道具コマンド（使う、食べる、読む、振る、装備、はずす、投げる、置く）
+ * 16スロットを1画面（2列×8行）でスクロール不要で全一覧表示
  */
 
 import { soundManager } from '../audio/SoundManager.js';
@@ -8,7 +9,8 @@ import { soundManager } from '../audio/SoundManager.js';
 export class InventoryModal {
   constructor(options = {}) {
     this.modalEl = document.getElementById('inventory-modal');
-    this.listEl = document.getElementById('inventory-list');
+    this.groundContainer = document.getElementById('inv-ground-container');
+    this.gridEl = document.getElementById('inventory-grid');
     this.detailEl = document.getElementById('inventory-detail');
     this.actionsEl = document.getElementById('inventory-actions');
     this.closeBtn = document.getElementById('inventory-close-btn');
@@ -16,6 +18,7 @@ export class InventoryModal {
     this.onAction = options.onAction || (() => {});
     this.isOpen = false;
     this.selectedItem = null;
+    this.isGroundSelection = false;
 
     if (this.closeBtn) {
       this.closeBtn.addEventListener('click', () => this.close());
@@ -28,75 +31,117 @@ export class InventoryModal {
     this.groundItem = groundItem;
     this.isStairs = isStairs;
     this.selectedItem = null;
+    this.isGroundSelection = false;
 
     if (this.modalEl) {
       this.modalEl.classList.remove('hidden');
     }
 
-    this.renderList();
+    this.render();
   }
 
   close() {
     this.isOpen = false;
     this.selectedItem = null;
+    this.isGroundSelection = false;
     if (this.modalEl) {
       this.modalEl.classList.add('hidden');
     }
   }
 
-  renderList() {
-    if (!this.listEl) return;
-    this.listEl.innerHTML = '';
-
-    // 足元にあるアイテムまたは階段の特設行
-    if (this.groundItem) {
-      const groundRow = document.createElement('div');
-      groundRow.className = 'item-row ground-row';
-      groundRow.innerHTML = `
-        <img class="item-icon-img" src="${this.groundItem.sprite}" alt="${this.groundItem.name}" />
-        <span class="item-name">足元: ${this.groundItem.getDisplayName()}</span>
-      `;
-      groundRow.onclick = () => this.selectItem(this.groundItem, true);
-      this.listEl.appendChild(groundRow);
-    } else if (this.isStairs) {
-      const stairsRow = document.createElement('div');
-      stairsRow.className = 'item-row ground-row';
-      stairsRow.innerHTML = `
-        <img class="item-icon-img" src="./assets/props/stairs.png" alt="降り階段" />
-        <span class="item-name">足元: 降り階段</span>
-      `;
-      stairsRow.onclick = () => this.selectStairs();
-      this.listEl.appendChild(stairsRow);
+  render() {
+    // 足元判定の優先選択
+    if (!this.selectedItem && !this.isGroundSelection) {
+      if (this.groundItem) {
+        this.selectedItem = this.groundItem;
+        this.isGroundSelection = true;
+      } else if (this.isStairs) {
+        this.selectedItem = null;
+        this.isGroundSelection = true;
+      } else if (this.player.inventory.length > 0) {
+        this.selectedItem = this.player.inventory[0];
+        this.isGroundSelection = false;
+      }
     }
 
-    // インベントリ一覧
-    if (this.player.inventory.length === 0 && !this.groundItem && !this.isStairs) {
-      this.listEl.innerHTML += '<div class="empty-msg">道具を持っていません。</div>';
+    this.renderGround();
+    this.renderGrid();
+
+    if (this.isGroundSelection && this.isStairs) {
+      this.selectStairs();
+    } else if (this.selectedItem) {
+      this.selectItem(this.selectedItem, this.isGroundSelection);
+    } else {
       this.showDetail('持ち物はありません。');
       this.renderActions(null);
-      return;
     }
+  }
 
-    this.player.inventory.forEach((item, idx) => {
+  renderGround() {
+    if (!this.groundContainer) return;
+    this.groundContainer.innerHTML = '';
+
+    if (this.groundItem) {
       const row = document.createElement('div');
-      row.className = `item-row ${this.selectedItem === item ? 'selected' : ''}`;
+      row.className = `ground-slot ${this.isGroundSelection ? 'selected' : ''}`;
       row.innerHTML = `
-        <img class="item-icon-img" src="${item.sprite}" alt="${item.name}" />
-        <span class="item-name">${item.getDisplayName()}</span>
+        <span class="ground-tag">[足元]</span>
+        <img class="inv-slot-icon" src="${this.groundItem.sprite}" alt="${this.groundItem.name}" />
+        <span class="inv-slot-name">${this.groundItem.getDisplayName()}</span>
+        <span class="ground-hint">▼足元</span>
       `;
-      row.onclick = () => this.selectItem(item, false);
-      this.listEl.appendChild(row);
-    });
+      row.onclick = () => this.selectItem(this.groundItem, true);
+      this.groundContainer.appendChild(row);
+    } else if (this.isStairs) {
+      const row = document.createElement('div');
+      row.className = `ground-slot ${this.isGroundSelection ? 'selected' : ''}`;
+      row.innerHTML = `
+        <span class="ground-tag stairs-tag">[足元]</span>
+        <img class="inv-slot-icon" src="./assets/props/stairs.png" alt="降り階段" />
+        <span class="inv-slot-name">降り階段（次の階層へ降りる）</span>
+        <span class="ground-hint">▼階段</span>
+      `;
+      row.onclick = () => this.selectStairs();
+      this.groundContainer.appendChild(row);
+    }
+  }
 
-    // デフォルト選択（足元優先、無ければ先頭アイテム）
-    if (!this.selectedItem) {
-      if (this.groundItem) {
-        this.selectItem(this.groundItem, true);
-      } else if (this.isStairs) {
-        this.selectStairs();
-      } else if (this.player.inventory.length > 0) {
-        this.selectItem(this.player.inventory[0], false);
+  renderGrid() {
+    if (!this.gridEl) return;
+    this.gridEl.innerHTML = '';
+
+    const inv = this.player.inventory;
+    const maxSlots = 16; // 16スロット（2列×8行）
+
+    for (let i = 0; i < maxSlots; i++) {
+      const slot = document.createElement('div');
+
+      if (i < inv.length) {
+        const item = inv[i];
+        const isSelected = (!this.isGroundSelection && this.selectedItem === item);
+        slot.className = `inv-slot ${isSelected ? 'selected' : ''}`;
+
+        const marker = isSelected ? '<span class="inv-cursor">▶</span>' : '<span class="inv-cursor-space">　</span>';
+        const equipBadge = item.equipped ? '<span class="inv-equip-badge">E </span>' : '';
+        const cleanName = item.getItemCleanName ? item.getItemCleanName() : item.name;
+
+        slot.innerHTML = `
+          ${marker}
+          <img class="inv-slot-icon" src="${item.sprite}" alt="${item.name}" />
+          ${equipBadge}
+          <span class="inv-slot-name">${cleanName}</span>
+        `;
+        slot.onclick = () => this.selectItem(item, false);
+      } else {
+        // 空きスロット（視認性向上のため、所持可能残枠を表示）
+        slot.className = 'inv-slot empty';
+        slot.innerHTML = `
+          <span class="inv-cursor-space">　</span>
+          <span class="empty-slot-label">・ (あき)</span>
+        `;
       }
+
+      this.gridEl.appendChild(slot);
     }
   }
 
@@ -104,10 +149,8 @@ export class InventoryModal {
     this.selectedItem = item;
     this.isGroundSelection = isGround;
 
-    // リストの選択ハイライト更新
-    const rows = this.listEl.querySelectorAll('.item-row');
-    rows.forEach(r => r.classList.remove('selected'));
-    // 行をクリック時のハイライト
+    this.renderGround();
+    this.renderGrid();
 
     let desc = item.desc;
     if (item.type === 'weapon') desc = `攻撃力 +${item.getEffectiveAtk()}。${desc}`;
@@ -119,10 +162,15 @@ export class InventoryModal {
 
   selectStairs() {
     this.selectedItem = null;
-    this.showDetail('次の階層へ降りる階段です。');
+    this.isGroundSelection = true;
+
+    this.renderGround();
+    this.renderGrid();
+
+    this.showDetail('次の階層へ降りる階段です。足元でコマンドを実行すると降ります。');
     if (!this.actionsEl) return;
     this.actionsEl.innerHTML = `
-      <button class="action-btn primary" id="btn-descend">降りる</button>
+      <button class="dq-action-btn primary" id="btn-descend">降りる</button>
     `;
     const btn = document.getElementById('btn-descend');
     if (btn) {
@@ -150,7 +198,7 @@ export class InventoryModal {
     if (isGround) {
       // 足元のアイテムに対するコマンド
       const pickBtn = document.createElement('button');
-      pickBtn.className = 'action-btn primary';
+      pickBtn.className = 'dq-action-btn primary';
       pickBtn.textContent = '拾う';
       pickBtn.onclick = () => {
         this.close();
@@ -161,7 +209,7 @@ export class InventoryModal {
       // その場で使う
       if (['herb', 'bread', 'scroll', 'staff'].includes(item.type)) {
         const useBtn = document.createElement('button');
-        useBtn.className = 'action-btn';
+        useBtn.className = 'dq-action-btn';
         useBtn.textContent = this._getVerbForType(item.type);
         useBtn.onclick = () => {
           this.close();
@@ -176,7 +224,7 @@ export class InventoryModal {
     // 1. 使う / 食べる / 飲む / 読む / 振る / 装備
     if (item.type === 'weapon' || item.type === 'shield' || item.type === 'arrow') {
       const equipBtn = document.createElement('button');
-      equipBtn.className = 'action-btn primary';
+      equipBtn.className = 'dq-action-btn primary';
       equipBtn.textContent = item.equipped ? 'はずす' : '装備する';
       equipBtn.onclick = () => {
         this.close();
@@ -185,7 +233,7 @@ export class InventoryModal {
       this.actionsEl.appendChild(equipBtn);
     } else {
       const useBtn = document.createElement('button');
-      useBtn.className = 'action-btn primary';
+      useBtn.className = 'dq-action-btn primary';
       useBtn.textContent = this._getVerbForType(item.type);
       useBtn.onclick = () => {
         this.close();
@@ -194,9 +242,9 @@ export class InventoryModal {
       this.actionsEl.appendChild(useBtn);
     }
 
-    // 2. 投げる
+    // 2. 投げる / 射つ
     const throwBtn = document.createElement('button');
-    throwBtn.className = 'action-btn';
+    throwBtn.className = 'dq-action-btn';
     throwBtn.textContent = item.type === 'arrow' ? '射つ' : '投げる';
     throwBtn.onclick = () => {
       this.close();
@@ -206,7 +254,7 @@ export class InventoryModal {
 
     // 3. 置く
     const dropBtn = document.createElement('button');
-    dropBtn.className = 'action-btn danger';
+    dropBtn.className = 'dq-action-btn danger';
     dropBtn.textContent = '足元に置く';
     dropBtn.onclick = () => {
       this.close();

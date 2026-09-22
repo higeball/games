@@ -64,15 +64,21 @@ export class Item {
 
   // 表示名（+1や装備マーク、残り回数を含む）
   getDisplayName() {
+    let title = this.getItemCleanName();
+    if ((this.type === 'weapon' || this.type === 'shield') && this.equipped) {
+      title += ' [E]';
+    }
+    return title;
+  }
+
+  // 装備マークなしの名称（リストスロットやHUD表示用）
+  getItemCleanName() {
     let title = this.name;
     if (this.type === 'weapon' || this.type === 'shield') {
       if (this.refine > 0) {
         title += `+${this.refine}`;
       } else if (this.refine < 0) {
         title += `${this.refine}`;
-      }
-      if (this.equipped) {
-        title += ' [E]';
       }
     } else if (this.type === 'staff') {
       title += ` [${this.uses}]`;

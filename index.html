@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#06070a">
+  <meta name="theme-color" content="#000000">
   <title>もじさんの不思議のダンジョン - トルネコの大冒険クローン</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -19,9 +22,14 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background-color: #06070a;
-      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background-color: #000000;
+      font-family: 'DotGothic16', 'Hiragino Kaku Gothic ProN', 'MS Gothic', monospace, sans-serif;
       touch-action: none;
+      -webkit-font-smoothing: none;
+    }
+
+    button, input, select {
+      font-family: inherit;
     }
 
     #game-canvas {
@@ -52,99 +60,105 @@
       pointer-events: auto;
     }
 
-    /* 上部ステータスバー（ドラクエ風） */
-    #status-bar {
-      width: 100%;
-      padding: env(safe-area-inset-top, 8px) 12px 6px 12px;
-      background: linear-gradient(180deg, rgba(6, 12, 24, 0.95), rgba(6, 12, 24, 0.75));
-      border-bottom: 2px solid #334e68;
+    /* 上部ステータスウィンドウ（本家ドラクエ／トルネコ風・黒地に白枠） */
+    #status-window {
+      margin: env(safe-area-inset-top, 6px) 8px 0 8px;
+      padding: 5px 8px;
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #ffffff;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .status-primary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #ffffff;
+      flex-wrap: wrap;
+      gap: 3px 6px;
       font-size: 13px;
+      line-height: 16px;
+    }
+
+    .status-cell {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+    }
+
+    .dq-label {
+      color: #ffd54f;
+      font-size: 11px;
+    }
+
+    .dq-val {
+      color: #ffffff;
       font-weight: bold;
-      text-shadow: 1px 1px 2px #000;
-      gap: 8px;
     }
 
-    .status-item {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .badge-floor {
-      background: #0284c7;
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .hp-gauge-container {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      background: rgba(0,0,0,0.5);
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid #486581;
-    }
-
-    .hp-bar-bg {
-      width: 65px;
-      height: 10px;
-      background: #334e68;
-      border-radius: 5px;
+    .hp-gauge-mini {
+      width: 38px;
+      height: 7px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 2px;
       overflow: hidden;
+      margin-left: 2px;
     }
 
     .hp-bar-fill {
       width: 100%;
       height: 100%;
       background: #00e676;
-      transition: width 0.2s ease;
+      transition: width 0.15s ease;
     }
 
-    .satiety-badge {
-      color: #ffb74d;
+    /* 装備常時表示サブストリップ */
+    .status-equip-row {
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: flex-start;
+      gap: 10px;
+      padding-top: 3px;
+      border-top: 1px dashed rgba(255, 255, 255, 0.35);
+      font-size: 12px;
+      line-height: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .equip-cell {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      overflow: hidden;
+    }
+
+    .equip-tag {
+      color: #60a5fa;
+      font-size: 11px;
+      font-weight: bold;
     }
 
     .hud-mini-icon {
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
       object-fit: contain;
       image-rendering: pixelated;
       vertical-align: middle;
       display: inline-block;
     }
 
-    .item-icon-img {
-      width: 32px;
-      height: 32px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      flex-shrink: 0;
-    }
-
-    .btn-icon {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      margin-bottom: 2px;
-    }
-
-    .btn-cmd-label {
-      font-size: 12px;
-      font-weight: 900;
-      color: #ffd54f;
-      letter-spacing: -0.5px;
-      margin-bottom: 2px;
+    .equip-name {
+      color: #ffffff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100px;
     }
 
     /* 下部コントロール＆メッセージエリア */
@@ -152,26 +166,26 @@
       width: 100%;
       display: flex;
       flex-direction: column;
-      padding-bottom: env(safe-area-inset-bottom, 8px);
+      padding-bottom: env(safe-area-inset-bottom, 6px);
     }
 
-    /* メッセージウィンドウ（DQレトロ風・3行完全表示） */
+    /* メッセージウィンドウ（ドラクエ風・3行完全表示） */
     #message-window {
-      margin: 0 10px 8px 10px;
-      background: rgba(4, 9, 22, 0.95);
+      margin: 0 8px 6px 8px;
+      background: rgba(0, 0, 0, 0.95);
       border: 2px solid #ffffff;
-      border-radius: 6px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.8), inset 0 0 4px rgba(255,255,255,0.3);
-      padding: 7px 12px;
-      height: 74px;
-      min-height: 74px;
-      max-height: 74px;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
+      padding: 6px 10px;
+      height: 72px;
+      min-height: 72px;
+      max-height: 72px;
       box-sizing: border-box;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      gap: 3px;
+      gap: 2px;
     }
 
     .msg-line {
@@ -186,271 +200,352 @@
       text-overflow: ellipsis;
     }
 
-    /* コントロールパネル（スマホ向け8方向パッド＋アクションボタン） */
+    /* コントロールパネル（8方向パッド ＋ ドラクエ風コマンドウィンドウ） */
     #controls-panel {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      padding: 4px 12px 6px 12px;
+      padding: 0 8px 4px 8px;
+      gap: 6px;
     }
 
-    /* 8方向バーチャルパッド */
+    /* 8方向バーチャルパッド（DQウィンドウ風） */
+    .dpad-container {
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      padding: 3px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
+    }
+
     .dpad-grid {
       display: grid;
-      grid-template-columns: repeat(3, 46px);
-      grid-template-rows: repeat(3, 46px);
-      gap: 4px;
-      background: rgba(15, 23, 42, 0.7);
-      padding: 6px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.2);
+      grid-template-columns: repeat(3, 44px);
+      grid-template-rows: repeat(3, 44px);
+      gap: 2px;
     }
 
     .dpad-btn {
-      background: linear-gradient(180deg, #334155, #1e293b);
-      border: 1px solid #475569;
-      color: #f8fafc;
+      background: #081122;
+      border: 1px solid #334155;
+      color: #ffffff;
       font-size: 16px;
-      font-weight: 900;
-      border-radius: 8px;
+      font-weight: bold;
+      border-radius: 4px;
       display: flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-      active: scale(0.92);
     }
 
     .dpad-btn:active {
-      background: #0284c7;
-      transform: scale(0.94);
+      background: #1e3a8a;
+      border-color: #ffd700;
+      color: #ffd700;
+      transform: scale(0.95);
     }
 
     .dpad-center {
-      background: linear-gradient(180deg, #0284c7, #0369a1);
-      color: #fff;
+      background: #0f1f3d;
+      border: 1.5px solid #ffffff;
+      color: #ffd54f;
       font-size: 12px;
     }
 
-    /* アクションボタン群 */
-    .action-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: flex-end;
+    /* ドラクエ風コマンドウィンドウ（右側アクションボタン群） */
+    .dq-cmd-window {
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      padding: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      grid-template-rows: repeat(2, 48px);
+      gap: 4px;
     }
 
-    .action-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-circle {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,255,255,0.3);
-      font-weight: bold;
-      font-size: 13px;
+    .dq-cmd-btn {
+      background: #081122;
+      border: 1.5px solid #ffffff;
+      border-radius: 4px;
+      color: #ffffff;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       cursor: pointer;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.6);
-      text-shadow: 1px 1px 2px #000;
+      padding: 2px 2px;
+      box-shadow: inset 0 0 3px rgba(0,0,0,0.6);
     }
 
-    .btn-circle:active {
-      transform: scale(0.92);
+    .dq-cmd-btn:active {
+      background: #1e3a8a;
+      border-color: #ffd700;
+      color: #ffd700;
+      transform: scale(0.95);
     }
 
-    .btn-attack {
-      background: linear-gradient(135deg, #ef4444, #b91c1c);
-      color: #fff;
-      width: 58px;
-      height: 58px;
-      font-size: 14px;
+    .dq-cmd-btn.active {
+      background: #1e3a8a;
+      border-color: #ffd700;
+      box-shadow: 0 0 8px #ffd700;
+      color: #ffd700;
     }
 
-    .btn-items {
-      background: linear-gradient(135deg, #10b981, #047857);
-      color: #fff;
+    .dq-cmd-btn.btn-main-attack {
+      border-color: #ffd700;
     }
 
-    .btn-wait {
-      background: linear-gradient(135deg, #f59e0b, #b45309);
-      color: #fff;
+    .dq-cmd-icon {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      margin-bottom: 1px;
     }
 
-    .btn-turn {
-      background: linear-gradient(135deg, #6366f1, #4338ca);
-      color: #fff;
+    .dq-cmd-sub {
+      font-size: 10px;
+      color: #ffd54f;
+      line-height: 11px;
+      letter-spacing: -0.5px;
     }
 
-    .btn-turn.active {
-      border: 2px solid #facc15;
-      box-shadow: 0 0 10px #facc15;
-      background: #7c3aed;
+    .dq-cmd-text {
+      font-size: 12px;
+      font-weight: bold;
+      line-height: 14px;
     }
 
-    .btn-shoot {
-      background: linear-gradient(135deg, #06b6d4, #0891b2);
-      color: #fff;
-    }
-
-    .btn-map {
-      background: linear-gradient(135deg, #475569, #1e293b);
-      color: #fff;
-      width: 44px;
-      height: 44px;
-      font-size: 11px;
-    }
-
-    /* どうぐメニューモーダル（トルネコ風） */
+    /* どうぐメニューモーダル（トルネコ風・1画面全16スロット一覧） */
     #inventory-modal {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       z-index: 50;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px;
+      padding: 8px;
     }
 
     #inventory-modal.hidden {
       display: none;
     }
 
-    .retro-dialog {
-      background: #04091a;
+    .dq-inv-dialog {
+      background: #000000;
       border: 3px solid #ffffff;
-      border-radius: 8px;
+      border-radius: 6px;
       width: 100%;
-      max-width: 420px;
-      max-height: 85vh;
+      max-width: 390px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.95);
+      color: #ffffff;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.9), inset 0 0 8px rgba(255,255,255,0.4);
-      color: #fff;
       overflow: hidden;
     }
 
     .dialog-header {
-      padding: 10px 14px;
-      background: #0a1835;
+      padding: 6px 10px;
+      background: #060e22;
       border-bottom: 2px solid #ffffff;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
     }
 
     .close-btn {
       background: none;
-      border: none;
-      color: #fff;
-      font-size: 20px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .inventory-body {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      flex: 1;
-    }
-
-    #inventory-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      max-height: 240px;
-    }
-
-    .item-row {
+      border: 1px solid #ffffff;
+      border-radius: 3px;
+      color: #ffffff;
+      width: 22px;
+      height: 22px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 4px;
-      cursor: pointer;
-      border: 1px solid transparent;
+      justify-content: center;
       font-size: 14px;
+      cursor: pointer;
     }
 
-    .item-row:hover, .item-row.selected {
-      background: rgba(2, 132, 199, 0.4);
-      border-color: #38bdf8;
+    .close-btn:hover {
+      background: #1e3a8a;
+      border-color: #ffd700;
     }
 
-    .ground-row {
-      background: rgba(245, 158, 11, 0.2);
-      border: 1px dashed #f59e0b;
+    /* 足元アイテム枠 */
+    #inv-ground-container {
+      border-bottom: 1px dashed rgba(255,255,255,0.4);
     }
 
-    .item-icon {
-      font-size: 18px;
-    }
-
-    .empty-msg {
-      text-align: center;
-      padding: 24px;
-      color: #94a3b8;
-    }
-
-    #inventory-detail {
-      padding: 10px 14px;
-      background: #060e22;
-      border-top: 1px solid #1e293b;
+    .ground-slot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      background: #141208;
+      border-left: 4px solid #f59e0b;
       font-size: 12px;
-      color: #cbd5e1;
-      min-height: 48px;
-      line-height: 1.4;
+      cursor: pointer;
     }
 
+    .ground-slot.selected {
+      background: #1e3a8a;
+      border-left-color: #ffd700;
+      color: #ffd700;
+    }
+
+    .ground-tag {
+      color: #f59e0b;
+      font-weight: bold;
+      font-size: 11px;
+    }
+
+    .ground-tag.stairs-tag {
+      color: #60a5fa;
+    }
+
+    .ground-hint {
+      color: #ffd54f;
+      font-size: 10px;
+      margin-left: auto;
+    }
+
+    /* 16スロット 2列×8行 グリッド（1画面収容・スクロール不要） */
+    .inv-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(8, 26px);
+      gap: 3px 5px;
+      padding: 5px 6px;
+      background: #020612;
+    }
+
+    .inv-slot {
+      height: 26px;
+      padding: 1px 4px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #060e22;
+      border: 1px solid #1e293b;
+      border-radius: 3px;
+      font-size: 11px;
+      color: #ffffff;
+      cursor: pointer;
+      overflow: hidden;
+      white-space: nowrap;
+      box-sizing: border-box;
+    }
+
+    .inv-slot:hover, .inv-slot.selected {
+      background: #1e3a8a;
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+
+    .inv-slot.empty {
+      color: #475569;
+      background: #02050f;
+      border: 1px dashed #1e293b;
+      cursor: default;
+    }
+
+    .inv-cursor {
+      color: #ffd700;
+      font-size: 9px;
+      margin-right: -1px;
+    }
+
+    .inv-cursor-space {
+      display: inline-block;
+      width: 9px;
+    }
+
+    .inv-slot-icon {
+      width: 17px;
+      height: 17px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+
+    .inv-slot-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .inv-equip-badge {
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 10px;
+      margin-right: 1px;
+    }
+
+    .empty-slot-label {
+      opacity: 0.35;
+      font-size: 10px;
+    }
+
+    /* アイテム説明枠 */
+    #inventory-detail {
+      padding: 5px 8px;
+      background: #000000;
+      border-top: 1px solid #334155;
+      font-size: 11px;
+      line-height: 15px;
+      min-height: 34px;
+      color: #cbd5e1;
+    }
+
+    /* アクションコマンド枠 */
     #inventory-actions {
-      padding: 10px 14px;
-      background: #0a1835;
+      padding: 5px 8px;
+      background: #060e22;
       border-top: 2px solid #ffffff;
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 6px;
       justify-content: flex-end;
+      flex-wrap: wrap;
     }
 
-    .action-btn {
-      padding: 8px 14px;
-      background: #334155;
-      border: 1px solid #64748b;
-      border-radius: 4px;
-      color: #fff;
+    .dq-action-btn {
+      padding: 4px 10px;
+      background: #081122;
+      border: 1.5px solid #ffffff;
+      border-radius: 3px;
+      color: #ffffff;
       font-weight: bold;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
     }
 
-    .action-btn.primary {
-      background: #0284c7;
-      border-color: #38bdf8;
+    .dq-action-btn:active {
+      background: #1e3a8a;
+      border-color: #ffd700;
+      color: #ffd700;
     }
 
-    .action-btn.danger {
-      background: #b91c1c;
+    .dq-action-btn.primary {
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+
+    .dq-action-btn.danger {
+      color: #f87171;
       border-color: #ef4444;
     }
 
-    /* ゲームオーバー／クリア画面モーダル */
+    /* リザルト / ゲームオーバー / クリアモーダル */
     #end-modal {
       position: absolute;
       top: 0;
@@ -470,25 +565,25 @@
     }
 
     .end-content {
-      background: #040a1b;
+      background: #000000;
       border: 3px solid #ffffff;
-      border-radius: 12px;
-      padding: 24px;
+      border-radius: 6px;
+      padding: 20px;
       width: 100%;
-      max-width: 380px;
+      max-width: 360px;
       text-align: center;
       color: #fff;
-      box-shadow: 0 10px 35px rgba(0,0,0,0.9);
+      box-shadow: 0 10px 35px rgba(0,0,0,0.95);
     }
 
     .end-title {
-      font-size: 24px;
-      font-weight: 900;
+      font-size: 22px;
+      font-weight: bold;
       margin-bottom: 12px;
     }
 
     .game-clear {
-      color: #facc15;
+      color: #ffd700;
     }
 
     .game-over {
@@ -496,28 +591,33 @@
     }
 
     .end-stats {
-      margin: 16px 0;
+      margin: 14px 0;
       text-align: left;
-      background: rgba(255,255,255,0.05);
-      padding: 12px;
-      border-radius: 6px;
-      font-size: 14px;
+      background: #060e22;
+      border: 1px solid #334155;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 13px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
 
     .restart-btn {
-      margin-top: 14px;
+      margin-top: 12px;
       width: 100%;
-      padding: 12px;
-      background: #0284c7;
-      border: 2px solid #38bdf8;
-      border-radius: 6px;
-      color: #fff;
-      font-size: 16px;
+      padding: 10px;
+      background: #081122;
+      border: 2px solid #ffd700;
+      border-radius: 4px;
+      color: #ffd700;
+      font-size: 14px;
       font-weight: bold;
       cursor: pointer;
+    }
+
+    .restart-btn:active {
+      background: #1e3a8a;
     }
   </style>
 </head>
@@ -527,33 +627,56 @@
 
   <!-- UIオーバーレイ -->
   <div id="ui-container">
-    <!-- 上部ステータスバー -->
-    <div id="status-bar">
-      <div class="status-item">
-        <span class="badge-floor" id="hud-floor">B1F</span>
-        <span>LV <span id="hud-level">1</span></span>
-      </div>
-
-      <div class="status-item">
-        <div class="hp-gauge-container">
-          <span>HP</span>
-          <div class="hp-bar-bg">
+    <!-- 上部ステータスウィンドウ（ドラクエ風・ちから＆装備常時表示） -->
+    <div id="status-window" class="interactive">
+      <!-- 1行目: メインステータス -->
+      <div class="status-primary-row">
+        <div class="status-cell">
+          <span class="dq-label">階</span>
+          <span class="dq-val" id="hud-floor">B1F</span>
+        </div>
+        <div class="status-cell">
+          <span class="dq-label">LV</span>
+          <span class="dq-val" id="hud-level">1</span>
+        </div>
+        <div class="status-cell">
+          <span class="dq-label">HP</span>
+          <span class="dq-val"><span id="hud-hp">15</span>/<span id="hud-maxhp">15</span></span>
+          <div class="hp-gauge-mini">
             <div class="hp-bar-fill" id="hud-hp-bar"></div>
           </div>
-          <span><span id="hud-hp">15</span>/<span id="hud-maxhp">15</span></span>
+        </div>
+        <div class="status-cell">
+          <span class="dq-label">ちから</span>
+          <span class="dq-val"><span id="hud-str">8</span>/<span id="hud-maxstr">8</span></span>
+        </div>
+        <div class="status-cell">
+          <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
+          <span class="dq-val" id="hud-satiety">100%</span>
+        </div>
+        <div class="status-cell">
+          <img src="./assets/props/gold.png" class="hud-mini-icon" alt="G" />
+          <span class="dq-val"><span id="hud-gold">0</span>G</span>
         </div>
       </div>
 
-      <div class="status-item">
-        <span class="satiety-badge">
-          <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
-          <span id="hud-satiety">100%</span>
-        </span>
-      </div>
-
-      <div class="status-item">
-        <img src="./assets/props/gold.png" class="hud-mini-icon" alt="ゴールド" />
-        <span><span id="hud-gold">0</span> G</span>
+      <!-- 2行目: 装備武器・防具・矢（常時表示） -->
+      <div class="status-equip-row">
+        <div class="equip-cell">
+          <span class="equip-tag">[武]</span>
+          <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" />
+          <span class="equip-name" id="hud-weapon">こんぼう</span>
+        </div>
+        <div class="equip-cell">
+          <span class="equip-tag">[盾]</span>
+          <img id="hud-shield-icon" class="hud-mini-icon" src="./assets/items/leather_shield.png" alt="盾" />
+          <span class="equip-name" id="hud-shield">皮の盾</span>
+        </div>
+        <div class="equip-cell">
+          <span class="equip-tag">[矢]</span>
+          <img id="hud-arrow-icon" class="hud-mini-icon" src="./assets/items/arrow.png" alt="矢" style="display:none;" />
+          <span class="equip-name" id="hud-arrow">なし</span>
+        </div>
       </div>
     </div>
 
@@ -562,66 +685,74 @@
       <div id="message-window" class="interactive"></div>
 
       <div id="controls-panel" class="interactive">
-        <!-- 8方向十字パッド -->
-        <div class="dpad-grid">
-          <button class="dpad-btn" data-dx="-1" data-dy="-1">↖</button>
-          <button class="dpad-btn" data-dx="0" data-dy="-1">↑</button>
-          <button class="dpad-btn" data-dx="1" data-dy="-1">↗</button>
-          <button class="dpad-btn" data-dx="-1" data-dy="0">←</button>
-          <button class="dpad-btn dpad-center" data-dx="0" data-dy="0">足踏</button>
-          <button class="dpad-btn" data-dx="1" data-dy="0">→</button>
-          <button class="dpad-btn" data-dx="-1" data-dy="1">↙</button>
-          <button class="dpad-btn" data-dx="0" data-dy="1">↓</button>
-          <button class="dpad-btn" data-dx="1" data-dy="1">↘</button>
+        <!-- 8方向十字パッド（DQウィンドウ風） -->
+        <div class="dpad-container">
+          <div class="dpad-grid">
+            <button class="dpad-btn" data-dx="-1" data-dy="-1">↖</button>
+            <button class="dpad-btn" data-dx="0" data-dy="-1">↑</button>
+            <button class="dpad-btn" data-dx="1" data-dy="-1">↗</button>
+            <button class="dpad-btn" data-dx="-1" data-dy="0">←</button>
+            <button class="dpad-btn dpad-center" data-dx="0" data-dy="0">足踏</button>
+            <button class="dpad-btn" data-dx="1" data-dy="0">→</button>
+            <button class="dpad-btn" data-dx="-1" data-dy="1">↙</button>
+            <button class="dpad-btn" data-dx="0" data-dy="1">↓</button>
+            <button class="dpad-btn" data-dx="1" data-dy="1">↘</button>
+          </div>
         </div>
 
-        <!-- 右側アクションボタン（ドラクエ風コマンド） -->
-        <div class="action-group">
-          <div class="action-row">
-            <button class="btn-circle btn-shoot" id="btn-shoot">
-              <img src="./assets/items/arrow.png" class="btn-icon" alt="矢" />
-              <span>矢</span>
-            </button>
-            <button class="btn-circle btn-turn" id="btn-turn">
-              <span class="btn-cmd-label">方向</span>
-              <span>向き</span>
-            </button>
-            <button class="btn-circle btn-map" id="btn-map">
-              <span class="btn-cmd-label">全図</span>
-              <span>地図</span>
-            </button>
-          </div>
-          <div class="action-row">
-            <button class="btn-circle btn-wait" id="btn-wait">
-              <span class="btn-cmd-label">足踏</span>
-              <span>待機</span>
-            </button>
-            <button class="btn-circle btn-items" id="btn-inventory">
-              <img src="./assets/items/miracle_box.png" class="btn-icon" alt="道具" />
-              <span>道具</span>
-            </button>
-            <button class="btn-circle btn-attack" id="btn-attack">
-              <img src="./assets/items/bronze_sword.png" class="btn-icon" alt="攻撃" />
-              <span>攻撃</span>
-            </button>
-          </div>
+        <!-- 右側アクションボタン（ドラクエ風コマンドウィンドウ） -->
+        <div class="dq-cmd-window">
+          <!-- 上段: 矢、向き、地図 -->
+          <button class="dq-cmd-btn" id="btn-shoot">
+            <img src="./assets/items/arrow.png" class="dq-cmd-icon" alt="矢" />
+            <span class="dq-cmd-text">矢</span>
+          </button>
+          <button class="dq-cmd-btn" id="btn-turn">
+            <span class="dq-cmd-sub">方向</span>
+            <span class="dq-cmd-text">向き</span>
+          </button>
+          <button class="dq-cmd-btn" id="btn-map">
+            <span class="dq-cmd-sub">全体</span>
+            <span class="dq-cmd-text">地図</span>
+          </button>
+
+          <!-- 下段: 足踏み、道具、攻撃 -->
+          <button class="dq-cmd-btn" id="btn-wait">
+            <span class="dq-cmd-sub">待機</span>
+            <span class="dq-cmd-text">足踏</span>
+          </button>
+          <button class="dq-cmd-btn" id="btn-inventory">
+            <img src="./assets/items/miracle_box.png" class="dq-cmd-icon" alt="道具" />
+            <span class="dq-cmd-text">道具</span>
+          </button>
+          <button class="dq-cmd-btn btn-main-attack" id="btn-attack">
+            <img src="./assets/items/bronze_sword.png" class="dq-cmd-icon" alt="攻撃" />
+            <span class="dq-cmd-text">攻撃</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- どうぐモーダル -->
+  <!-- どうぐモーダル（トルネコ風・1画面全16スロット一覧） -->
   <div id="inventory-modal" class="hidden interactive">
-    <div class="retro-dialog">
+    <div class="dq-inv-dialog">
       <div class="dialog-header">
-        <span>どうぐ一覧 (<span id="inv-count">0</span>/16)</span>
+        <span>▶ どうぐ一覧 (<span id="inv-count">0</span>/16)</span>
         <button class="close-btn" id="inventory-close-btn">×</button>
       </div>
-      <div class="inventory-body">
-        <div id="inventory-list"></div>
-        <div id="inventory-detail"></div>
-        <div id="inventory-actions"></div>
-      </div>
+
+      <!-- 足元枠 -->
+      <div id="inv-ground-container"></div>
+
+      <!-- 16スロット 2列×8行 グリッド -->
+      <div id="inventory-grid" class="inv-grid"></div>
+
+      <!-- 詳細説明枠 -->
+      <div id="inventory-detail"></div>
+
+      <!-- アクションコマンド枠 -->
+      <div id="inventory-actions"></div>
     </div>
   </div>
 

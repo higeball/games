@@ -645,21 +645,97 @@ class Game {
     modal.classList.remove('hidden');
   }
 
-  // HUD更新
+  // HUD更新（ステータス常時表示＆装備品常時表示）
   updateHUD() {
     if (!this.player) return;
 
-    document.getElementById('hud-floor').textContent = `B${this.floorNumber}F`;
-    document.getElementById('hud-level').textContent = this.player.level;
-    document.getElementById('hud-hp').textContent = this.player.hp;
-    document.getElementById('hud-maxhp').textContent = this.player.maxHp;
+    // フロア・LV・HP
+    const floorEl = document.getElementById('hud-floor');
+    if (floorEl) floorEl.textContent = `B${this.floorNumber}F`;
+
+    const levelEl = document.getElementById('hud-level');
+    if (levelEl) levelEl.textContent = this.player.level;
+
+    const hpEl = document.getElementById('hud-hp');
+    if (hpEl) hpEl.textContent = this.player.hp;
+
+    const maxhpEl = document.getElementById('hud-maxhp');
+    if (maxhpEl) maxhpEl.textContent = this.player.maxHp;
 
     const hpPercent = Math.max(0, Math.min(100, (this.player.hp / this.player.maxHp) * 100));
-    document.getElementById('hud-hp-bar').style.width = `${hpPercent}%`;
+    const hpBar = document.getElementById('hud-hp-bar');
+    if (hpBar) hpBar.style.width = `${hpPercent}%`;
 
-    document.getElementById('hud-satiety').textContent = `${Math.floor(this.player.satiety)}%`;
-    document.getElementById('hud-gold').textContent = this.player.gold;
-    document.getElementById('inv-count').textContent = this.player.inventory.length;
+    // ちから（Strength常時表示）
+    const strEl = document.getElementById('hud-str');
+    if (strEl) strEl.textContent = this.player.str;
+
+    const maxstrEl = document.getElementById('hud-maxstr');
+    if (maxstrEl) maxstrEl.textContent = this.player.maxStr;
+
+    // 満腹度・ゴールド・道具所持数
+    const satietyEl = document.getElementById('hud-satiety');
+    if (satietyEl) satietyEl.textContent = `${Math.floor(this.player.satiety)}%`;
+
+    const goldEl = document.getElementById('hud-gold');
+    if (goldEl) goldEl.textContent = this.player.gold;
+
+    const invCountEl = document.getElementById('inv-count');
+    if (invCountEl) invCountEl.textContent = this.player.inventory.length;
+
+    // 装備中の武器（常時表示）
+    const weaponEl = document.getElementById('hud-weapon');
+    const weaponIcon = document.getElementById('hud-weapon-icon');
+    if (weaponEl) {
+      if (this.player.equippedWeapon) {
+        let wName = this.player.equippedWeapon.name;
+        if (this.player.equippedWeapon.refine > 0) wName += `+${this.player.equippedWeapon.refine}`;
+        else if (this.player.equippedWeapon.refine < 0) wName += `${this.player.equippedWeapon.refine}`;
+        weaponEl.textContent = wName;
+        if (weaponIcon) {
+          weaponIcon.src = this.player.equippedWeapon.sprite;
+          weaponIcon.style.display = 'inline-block';
+        }
+      } else {
+        weaponEl.textContent = '素手';
+        if (weaponIcon) weaponIcon.style.display = 'none';
+      }
+    }
+
+    // 装備中の盾（常時表示）
+    const shieldEl = document.getElementById('hud-shield');
+    const shieldIcon = document.getElementById('hud-shield-icon');
+    if (shieldEl) {
+      if (this.player.equippedShield) {
+        let sName = this.player.equippedShield.name;
+        if (this.player.equippedShield.refine > 0) sName += `+${this.player.equippedShield.refine}`;
+        else if (this.player.equippedShield.refine < 0) sName += `${this.player.equippedShield.refine}`;
+        shieldEl.textContent = sName;
+        if (shieldIcon) {
+          shieldIcon.src = this.player.equippedShield.sprite;
+          shieldIcon.style.display = 'inline-block';
+        }
+      } else {
+        shieldEl.textContent = 'なし';
+        if (shieldIcon) shieldIcon.style.display = 'none';
+      }
+    }
+
+    // 装備中の矢（常時表示）
+    const arrowEl = document.getElementById('hud-arrow');
+    const arrowIcon = document.getElementById('hud-arrow-icon');
+    if (arrowEl) {
+      if (this.player.equippedArrow) {
+        arrowEl.textContent = `${this.player.equippedArrow.name}(${this.player.equippedArrow.count})`;
+        if (arrowIcon) {
+          arrowIcon.src = this.player.equippedArrow.sprite;
+          arrowIcon.style.display = 'inline-block';
+        }
+      } else {
+        arrowEl.textContent = 'なし';
+        if (arrowIcon) arrowIcon.style.display = 'none';
+      }
+    }
   }
 
   // メインループ（60fps レンダリング＆補間）
