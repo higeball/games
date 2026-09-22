@@ -45,49 +45,51 @@ export const CONFIG = {
     SPRITE_FRAMES_DIR: './assets/character/frames-64/',
   },
 
-  // レベルアップ経験値テーブル
+  // レベルアップ経験値テーブル（SFCトルネコ解析データ準拠）
   LEVEL_TABLE: [
-    { level: 1, exp: 0,    hp: 15, str: 8 },
-    { level: 2, exp: 10,   hp: 19, str: 9 },
-    { level: 3, exp: 30,   hp: 24, str: 10 },
-    { level: 4, exp: 70,   hp: 30, str: 11 },
-    { level: 5, exp: 130,  hp: 37, str: 12 },
-    { level: 6, exp: 210,  hp: 45, str: 13 },
-    { level: 7, exp: 320,  hp: 54, str: 14 },
-    { level: 8, exp: 460,  hp: 64, str: 15 },
-    { level: 9, exp: 640,  hp: 75, str: 16 },
-    { level: 10, exp: 860, hp: 87, str: 17 },
-    { level: 11, exp: 1150, hp: 100, str: 18 },
-    { level: 12, exp: 1500, hp: 114, str: 19 },
-    { level: 13, exp: 1950, hp: 129, str: 20 },
-    { level: 14, exp: 2500, hp: 145, str: 21 },
-    { level: 15, exp: 3200, hp: 162, str: 22 },
+    { level: 1, exp: 0,    hp: 15, str: 8,  baseAtk: 5 },
+    { level: 2, exp: 10,   hp: 19, str: 9,  baseAtk: 7 },
+    { level: 3, exp: 30,   hp: 24, str: 10, baseAtk: 9 },
+    { level: 4, exp: 60,   hp: 30, str: 11, baseAtk: 11 },
+    { level: 5, exp: 100,  hp: 37, str: 12, baseAtk: 13 },
+    { level: 6, exp: 150,  hp: 45, str: 13, baseAtk: 16 },
+    { level: 7, exp: 230,  hp: 54, str: 14, baseAtk: 19 },
+    { level: 8, exp: 350,  hp: 64, str: 15, baseAtk: 22 },
+    { level: 9, exp: 500,  hp: 75, str: 16, baseAtk: 25 },
+    { level: 10, exp: 700, hp: 87, str: 17, baseAtk: 29 },
+    { level: 11, exp: 950, hp: 100, str: 18, baseAtk: 33 },
+    { level: 12, exp: 1200, hp: 114, str: 19, baseAtk: 37 },
+    { level: 13, exp: 1500, hp: 129, str: 20, baseAtk: 41 },
+    { level: 14, exp: 1800, hp: 145, str: 21, baseAtk: 46 },
+    { level: 15, exp: 2300, hp: 162, str: 22, baseAtk: 51 },
   ],
 
-  // アイテム定義カタログ
+  // アイテム定義カタログ（SFCトルネコ解析データ準拠）
   ITEMS: {
-    // 武器（剣）
+    // 武器（剣の強さ）
     WEAPONS: [
-      { id: 'club', name: 'こんぼう', type: 'weapon', atk: 2, price: 150, sprite: './assets/items/club.png' },
-      { id: 'bronze_sword', name: 'どうのつるぎ', type: 'weapon', atk: 3, price: 300, sprite: './assets/items/bronze_sword.png' },
-      { id: 'iron_axe', name: '鉄の斧', type: 'weapon', atk: 5, price: 600, sprite: './assets/items/iron_axe.png' },
-      { id: 'dragon_killer', name: 'ドラゴンキラー', type: 'weapon', atk: 8, price: 1500, sprite: './assets/items/dragon_killer.png', vsDragon: true },
-      { id: 'metal_king_sword', name: 'はぐれメタルの剣', type: 'weapon', atk: 12, price: 3000, sprite: './assets/items/dragon_killer.png' }
+      { id: 'club', name: 'こん棒', type: 'weapon', atk: 1, price: 50, sprite: './assets/items/club.png' },
+      { id: 'bronze_sword', name: '銅の剣', type: 'weapon', atk: 3, price: 75, sprite: './assets/items/bronze_sword.png' },
+      { id: 'iron_axe', name: '鉄の斧', type: 'weapon', atk: 4, price: 100, sprite: './assets/items/iron_axe.png' },
+      { id: 'dragon_killer', name: 'ドラゴンキラー', type: 'weapon', atk: 5, price: 300, sprite: './assets/items/dragon_killer.png', vsDragon: true },
+      { id: 'metal_king_sword', name: 'はぐれメタルの剣', type: 'weapon', atk: 7, price: 750, sprite: './assets/items/dragon_killer.png' },
+      { id: 'soroban', name: '正義のソロバン', type: 'weapon', atk: 10, price: 5000, sprite: './assets/items/dragon_killer.png' }
     ],
 
-    // 盾
+    // 盾（盾の強さ）
     SHIELDS: [
-      { id: 'leather_shield', name: '皮の盾', type: 'shield', def: 2, price: 200, sprite: './assets/items/leather_shield.png', slowHunger: true },
-      { id: 'bronze_shield', name: '青銅の盾', type: 'shield', def: 3, price: 400, sprite: './assets/items/bronze_shield.png' },
-      { id: 'scale_shield', name: 'うろこの盾', type: 'shield', def: 4, price: 650, sprite: './assets/items/bronze_shield.png', antiPoison: true },
-      { id: 'iron_shield', name: '鉄の盾', type: 'shield', def: 6, price: 1000, sprite: './assets/items/dragon_shield.png' },
-      { id: 'dragon_shield', name: 'ドラゴンシールド', type: 'shield', def: 9, price: 2200, sprite: './assets/items/dragon_shield.png', antiFire: true }
+      { id: 'leather_shield', name: '皮の盾', type: 'shield', def: 2, price: 40, sprite: './assets/items/leather_shield.png', slowHunger: true },
+      { id: 'bronze_shield', name: '青銅の盾', type: 'shield', def: 3, price: 80, sprite: './assets/items/bronze_shield.png' },
+      { id: 'scale_shield', name: 'うろこの盾', type: 'shield', def: 4, price: 150, sprite: './assets/items/bronze_shield.png', antiPoison: true },
+      { id: 'steel_shield', name: '鋼鉄の盾', type: 'shield', def: 6, price: 200, sprite: './assets/items/dragon_shield.png' },
+      { id: 'dragon_shield', name: 'ドラゴンシールド', type: 'shield', def: 7, price: 500, sprite: './assets/items/dragon_shield.png', antiFire: true },
+      { id: 'metal_king_shield', name: 'はぐれメタルの盾', type: 'shield', def: 10, price: 1500, sprite: './assets/items/dragon_shield.png' }
     ],
 
     // 食料（パン）
     BREADS: [
-      { id: 'bread', name: 'パン', type: 'bread', satiety: 50, price: 80, sprite: './assets/items/bread.png', desc: 'お腹を50%回復する。' },
-      { id: 'big_bread', name: '大きいパン', type: 'bread', satiety: 100, price: 150, sprite: './assets/items/big_bread.png', desc: 'お腹を100%回復する。満腹時に食べると最大満腹度が5%アップ！' },
+      { id: 'bread', name: 'パン', type: 'bread', satiety: 50, price: 50, sprite: './assets/items/bread.png', desc: 'お腹を50%回復する。' },
+      { id: 'big_bread', name: '大きいパン', type: 'bread', satiety: 100, price: 100, sprite: './assets/items/big_bread.png', desc: 'お腹を100%回復する。満腹時に食べると最大満腹度が5%アップ！' },
       { id: 'rotten_bread', name: 'くさったパン', type: 'bread', satiety: 30, price: 20, sprite: './assets/items/rotten_bread.png', desc: 'お腹を30%回復するが、腹痛で睡眠や毒などの異常が起こる。' }
     ],
 
@@ -125,55 +127,55 @@ export const CONFIG = {
 
     // 矢
     ARROWS: [
-      { id: 'wood_arrow', name: '木の矢', type: 'arrow', count: 10, price: 100, sprite: './assets/items/arrow.png', desc: '正面遠くの敵へ射ち出す。1本で6ダメージ。' },
-      { id: 'iron_arrow', name: '鉄の矢', type: 'arrow', count: 8, price: 200, sprite: './assets/items/arrow.png', desc: '硬い鉄の矢。1本で12ダメージ。' }
+      { id: 'wood_arrow', name: '木の矢', type: 'arrow', atk: 4, count: 10, price: 100, sprite: './assets/items/arrow.png', desc: '正面遠くの敵へ射ち出す。（攻撃力4）' },
+      { id: 'iron_arrow', name: '鉄の矢', type: 'arrow', atk: 12, count: 8, price: 200, sprite: './assets/items/arrow.png', desc: '硬い鉄の矢。（攻撃力12）' }
     ]
   },
 
-  // モンスター図鑑（階層別出現テーブル）
+  // モンスター図鑑（SFCトルネコ解析データ準拠: HP, ATK, DEF, EXP）
   MONSTERS: {
     slime: {
-      id: 'slime', name: 'スライム', hp: 6, atk: 3, def: 1, exp: 2,
+      id: 'slime', name: 'スライム', hp: 5, atk: 2, def: 1, exp: 1,
       minFloor: 1, maxFloor: 3, color: '#00b0ff', sprite: './assets/monsters/slime.png',
       desc: 'おなじみの青いスライム。最初は寝ていることが多い。'
     },
     dracky: {
-      id: 'dracky', name: 'ドラキー', hp: 9, atk: 5, def: 2, exp: 4,
+      id: 'dracky', name: 'ドラキー', hp: 7, atk: 3, def: 1, exp: 2,
       minFloor: 1, maxFloor: 4, color: '#7e57c2', sprite: './assets/monsters/dracky.png',
       desc: '羽ばたくコウモリ。ふらふらと不規則に移動する。'
     },
     ghost: {
-      id: 'ghost', name: 'ゴースト', hp: 13, atk: 7, def: 3, exp: 7,
+      id: 'ghost', name: 'ゴースト', hp: 5, atk: 3, def: 9, exp: 2,
       minFloor: 2, maxFloor: 5, color: '#ff7043', sprite: './assets/monsters/ghost.png',
-      desc: '赤い三角帽子のオバケ。通路の角をすり抜けて迫る。'
+      desc: '赤い三角帽子のオバケ。2倍速で素早く迫る。'
     },
     mushroom: {
-      id: 'mushroom', name: 'おばけキノコ', hp: 18, atk: 9, def: 4, exp: 12,
+      id: 'mushroom', name: 'おばけキノコ', hp: 17, atk: 6, def: 8, exp: 6,
       minFloor: 3, maxFloor: 6, color: '#ffb300', sprite: './assets/monsters/mushroom.png',
-      desc: '胞子を撒き散らし、プレイヤーのちからや満腹度を奪う！'
+      desc: '胞子を撒き散らし、プレイヤーのちからを奪う！'
     },
     mage: {
-      id: 'mage', name: 'まどうし', hp: 22, atk: 10, def: 5, exp: 18,
+      id: 'mage', name: 'まどうし', hp: 16, atk: 6, def: 11, exp: 12,
       minFloor: 4, maxFloor: 8, color: '#8e24aa', sprite: './assets/monsters/mage.png',
       desc: 'ラリホー（睡眠呪文）を唱えてプレイヤーを眠らせる厄介者。'
     },
     zombie: {
-      id: 'zombie', name: 'くさった死体', hp: 32, atk: 14, def: 6, exp: 26,
+      id: 'zombie', name: 'くさった死体', hp: 30, atk: 0, def: 19, exp: 25,
       minFloor: 5, maxFloor: 9, color: '#689f38', sprite: './assets/monsters/zombie.png',
-      desc: '持っているパンを腐らせたり、装備の盾をサビさせる！'
+      desc: '腐った液を吐き、盾の強さをサビさせたりパンを腐らせる！'
     },
     metal_slime: {
-      id: 'metal_slime', name: 'はぐれメタル', hp: 5, atk: 4, def: 99, exp: 150,
+      id: 'metal_slime', name: 'はぐれメタル', hp: 3, atk: 30, def: 49, exp: 500,
       minFloor: 4, maxFloor: 10, color: '#cfd8dc', sprite: './assets/monsters/metal_slime.png',
-      desc: 'すばやく逃げ回るが、倒せば莫大な経験値を獲得できる！'
+      desc: 'すばやく逃げ回るが、倒せば500EXPを獲得できる！ダメージは1固定。'
     },
     golem: {
-      id: 'golem', name: 'ゴーレム', hp: 50, atk: 22, def: 10, exp: 45,
+      id: 'golem', name: 'ゴーレム', hp: 52, atk: 32, def: 27, exp: 180,
       minFloor: 7, maxFloor: 10, color: '#8d6e63', sprite: './assets/monsters/golem.png',
       desc: 'レンガでできた巨躯。強烈な一撃を繰り出してくる。'
     },
     dragon: {
-      id: 'dragon', name: 'ドラゴン', hp: 70, atk: 28, def: 14, exp: 90,
+      id: 'dragon', name: 'ドラゴン', hp: 100, atk: 68, def: 30, exp: 3000,
       minFloor: 9, maxFloor: 10, color: '#2e7d32', sprite: './assets/monsters/dragon.png',
       desc: '最下層に君臨する巨大竜。一直線に届く炎のブレスを吐く！'
     }

@@ -209,7 +209,7 @@
       gap: 6px;
     }
 
-    /* 8方向バーチャルパッド（DQウィンドウ風） */
+    /* 8方向バーチャルパッド（拡大＆押し間違い防止） */
     .dpad-container {
       background: rgba(0, 0, 0, 0.95);
       border: 2px solid #ffffff;
@@ -220,17 +220,17 @@
 
     .dpad-grid {
       display: grid;
-      grid-template-columns: repeat(3, 44px);
-      grid-template-rows: repeat(3, 44px);
-      gap: 2px;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(3, 52px);
+      gap: 3px;
     }
 
     .dpad-btn {
       background: #081122;
       border: 1px solid #334155;
       color: #ffffff;
-      font-size: 16px;
-      font-weight: bold;
+      font-size: 20px;
+      font-weight: 900;
       border-radius: 4px;
       display: flex;
       justify-content: center;
@@ -242,14 +242,15 @@
       background: #1e3a8a;
       border-color: #ffd700;
       color: #ffd700;
-      transform: scale(0.95);
+      transform: scale(0.94);
     }
 
-    .dpad-center {
-      background: #0f1f3d;
-      border: 1.5px solid #ffffff;
-      color: #ffd54f;
-      font-size: 12px;
+    /* 中央の無効ピボット（足踏み押し間違いを完全防止） */
+    .dpad-pivot {
+      background: #040816;
+      border: 1px dashed #1e293b;
+      border-radius: 4px;
+      pointer-events: none;
     }
 
     /* ドラクエ風コマンドウィンドウ（右側アクションボタン群） */
@@ -257,12 +258,12 @@
       background: rgba(0, 0, 0, 0.95);
       border: 2px solid #ffffff;
       border-radius: 6px;
-      padding: 4px;
+      padding: 3px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.9);
       display: grid;
-      grid-template-columns: repeat(3, 56px);
-      grid-template-rows: repeat(2, 48px);
-      gap: 4px;
+      grid-template-columns: repeat(3, 52px);
+      grid-template-rows: repeat(2, 50px);
+      gap: 3px;
     }
 
     .dq-cmd-btn {
@@ -651,6 +652,14 @@
           <span class="dq-val"><span id="hud-str">8</span>/<span id="hud-maxstr">8</span></span>
         </div>
         <div class="status-cell">
+          <span class="dq-label">攻</span>
+          <span class="dq-val" id="hud-atk">5</span>
+        </div>
+        <div class="status-cell">
+          <span class="dq-label">防</span>
+          <span class="dq-val" id="hud-def">2</span>
+        </div>
+        <div class="status-cell">
           <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
           <span class="dq-val" id="hud-satiety">100%</span>
         </div>
@@ -665,7 +674,7 @@
         <div class="equip-cell">
           <span class="equip-tag">[武]</span>
           <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" />
-          <span class="equip-name" id="hud-weapon">こんぼう</span>
+          <span class="equip-name" id="hud-weapon">こん棒</span>
         </div>
         <div class="equip-cell">
           <span class="equip-tag">[盾]</span>
@@ -685,14 +694,14 @@
       <div id="message-window" class="interactive"></div>
 
       <div id="controls-panel" class="interactive">
-        <!-- 8方向十字パッド（DQウィンドウ風） -->
+        <!-- 8方向十字パッド（拡大＆押し間違い防止） -->
         <div class="dpad-container">
           <div class="dpad-grid">
             <button class="dpad-btn" data-dx="-1" data-dy="-1">↖</button>
             <button class="dpad-btn" data-dx="0" data-dy="-1">↑</button>
             <button class="dpad-btn" data-dx="1" data-dy="-1">↗</button>
             <button class="dpad-btn" data-dx="-1" data-dy="0">←</button>
-            <button class="dpad-btn dpad-center" data-dx="0" data-dy="0">足踏</button>
+            <div class="dpad-pivot"></div>
             <button class="dpad-btn" data-dx="1" data-dy="0">→</button>
             <button class="dpad-btn" data-dx="-1" data-dy="1">↙</button>
             <button class="dpad-btn" data-dx="0" data-dy="1">↓</button>

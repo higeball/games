@@ -285,6 +285,12 @@ class Game {
     soundManager.playAttack();
     this.renderer.addSlashEffect(monster.x, monster.y);
 
+    // 命中判定（SFC解析式: 7/8 = 87.5% で命中、1/8でミス）
+    if (Math.random() >= 7 / 8) {
+      this.log.addMessage(`もじさんの攻撃！ しかし ${monster.name} は攻撃をかわした！`);
+      return;
+    }
+
     const dmg = this.player.calcDamageAgainst(monster);
     monster.hp -= dmg;
     monster.wakeUp();
@@ -464,6 +470,12 @@ class Game {
     const onSanctuary = this.dungeon.items.some(i => i.id === 'sanctuary' && i.x === this.player.x && i.y === this.player.y);
     if (onSanctuary) {
       this.log.addMessage(`聖域の力により、${monster.name} の攻撃を受け付けない！`);
+      return;
+    }
+
+    // 命中判定（SFC解析式: 7/8 = 87.5% で命中、1/8でプレイヤーが回避）
+    if (Math.random() >= 7 / 8) {
+      this.log.addMessage(`${monster.name} の攻撃！ もじさんは 身をかわした！`);
       return;
     }
 
@@ -672,6 +684,13 @@ class Game {
 
     const maxstrEl = document.getElementById('hud-maxstr');
     if (maxstrEl) maxstrEl.textContent = this.player.maxStr;
+
+    // 攻撃力・防御力（常時表示）
+    const atkEl = document.getElementById('hud-atk');
+    if (atkEl) atkEl.textContent = this.player.getAttackPower();
+
+    const defEl = document.getElementById('hud-def');
+    if (defEl) defEl.textContent = this.player.getDefensePower();
 
     // 満腹度・ゴールド・道具所持数
     const satietyEl = document.getElementById('hud-satiety');

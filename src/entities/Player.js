@@ -50,6 +50,7 @@ export class Player {
     // 歩数カウンター（満腹度減少・自然回復用）
     this.hungerStepCount = 0;
     this.healStepCount = 0;
+    this.healCounter = 0; // SFC解析式: 毎ターン最大HP加算し150でHP1回復
 
     // スプライト画像
     this.sprites = {};
@@ -134,19 +135,21 @@ export class Player {
       }
     }
 
-    // 飢餓ダメージまたは自然回復
+    // 飢餓ダメージまたは自然回復（SFC解析式準拠）
     if (this.satiety <= 0) {
       this.hp = Math.max(0, this.hp - 1);
       if (this.hp <= 0) {
         messages.push('もじさんは飢えのために力尽きた...');
       }
     } else {
-      // 満腹度があれば一定歩数で1HP回復
-      this.healStepCount++;
-      if (this.healStepCount >= CONFIG.PLAYER.HEAL_TURNS) {
-        this.healStepCount = 0;
-        if (this.hp < this.maxHp) {
-          this.hp = Math.min(this.maxHp, this.hp + 1);
+      // SFC解析式: 1ターン毎に自然回復カウンタに最大HPを加算し、150到達でHPが1回復（余剰繰越）
+      if (this.hp < this.maxHp) {
+        this.healCounter = (this.healCounter || 0) + this.maxHp;
+        while (this.healCounter >= 150) {
+          this.healCounter -= 150;
+          if (this.hp < this.maxHp) {
+            this.hp++;
+          }
         }
       }
     }
@@ -154,39 +157,55 @@ export class Player {
     return messages;
   }
 
-  // 攻撃力計算
+  // 基本攻撃力取得（Lv毎の内部パラメータ）
+  getBaseAtk() {
+    const lvlData = CONFIG.LEVEL_TABLE.find(l => l.level === this.level) || CONFIG.LEVEL_TABLE[0];
+    return lvlData.baseAtk || 5;
+  }
+
+  // 内部攻撃力計算（SFC解析式: 基本攻撃力 + (剣の強さ + ちから - 8) * 基本攻撃力 / 16）
   getAttackPower() {
+    const baseAtk = this.getBaseAtk();
     const weaponAtk = this.equippedWeapon ? this.equippedWeapon.getEffectiveAtk() : 0;
-    return Math.floor(this.str * 0.75 + weaponAtk * 1.2);
+    const internal = baseAtk + Math.floor((weaponAtk + this.str - 8) * baseAtk / 16);
+    return Math.min(255, Math.max(1, internal));
   }
 
-  // 防御力計算
+  // 防御力計算（SFC解析式: 盾の強さ合計）
   getDefensePower() {
-    const shieldDef = this.equippedShield ? this.equippedShield.getEffectiveDef() : 0;
-    return shieldDef;
+    return this.equippedShield ? this.equippedShield.getEffectiveDef() : 0;
   }
 
-  // ダメージ計算（対モンスター）
+  // ダメージ計算（対モンスター・SFC解析式準拠: 内部攻撃力 * (112 + 乱数0~31)*2/256 * (15/16)**防御力）
   calcDamageAgainst(monster) {
-    const baseAtk = this.getAttackPower();
-    let mult = 1.0;
+    const internalAtk = this.getAttackPower();
+    const rand32 = Math.floor(Math.random() * 32);
+    const rawDmg = Math.floor(internalAtk * (112 + rand32) * 2 / 256);
+    const defFactor = Math.pow(15 / 16, monster.def);
+    let finalDmg = Math.round(rawDmg * defFactor);
 
-    // 特効判定（例：ドラゴンキラー）
+    // ドラゴンキラー特効（ドラゴンに対して2倍）
     if (this.equippedWeapon && this.equippedWeapon.vsDragon && monster.id === 'dragon') {
-      mult = 2.0;
+      finalDmg *= 2;
     }
 
-    const variance = 0.85 + Math.random() * 0.3; // 85%〜115%
-    const rawDmg = (baseAtk * mult - (monster.def * 0.5)) * variance;
-    return Math.max(1, Math.round(rawDmg));
+    // はぐれメタル判定（1以上のダメージは1固定）
+    if (monster.id === 'metal_slime') {
+      if (finalDmg >= 1) finalDmg = 1;
+    }
+
+    return Math.max(1, finalDmg);
   }
 
-  // 被ダメージ処理
-  takeDamage(amount) {
-    const shieldDef = this.getDefensePower();
-    const reduced = Math.max(1, Math.round(amount - shieldDef * 0.6));
-    this.hp = Math.max(0, this.hp - reduced);
-    return reduced;
+  // 被ダメージ処理（SFC解析式準拠: 敵攻撃力 * (112 + 乱数0~31)*2/256 * (15/16)**盾防御力）
+  takeDamage(monsterAtk) {
+    const rand32 = Math.floor(Math.random() * 32);
+    const rawDmg = Math.floor(monsterAtk * (112 + rand32) * 2 / 256);
+    const defPower = this.getDefensePower();
+    const defFactor = Math.pow(15 / 16, defPower);
+    const finalDmg = Math.max(1, Math.round(rawDmg * defFactor));
+    this.hp = Math.max(0, this.hp - finalDmg);
+    return finalDmg;
   }
 
   // 経験値獲得とレベルアップ判定
