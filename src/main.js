@@ -529,6 +529,7 @@ class Game {
 
   // インベントリを開く
   openInventory() {
+    this.controls?.stopRepeat();
     if (this.isGameOver || this.isGameClear || !this.player) return;
 
     // 足元のアイテム判定
@@ -619,6 +620,7 @@ class Game {
 
   // ゲームオーバー
   triggerGameOver(reason) {
+    this.controls?.stopRepeat();
     this.isGameOver = true;
     soundManager.playGameOver();
     this.log.addMessage(`もじさんは 力尽きた...`);
@@ -639,6 +641,7 @@ class Game {
 
   // ゲームクリア
   triggerGameClear() {
+    this.controls?.stopRepeat();
     this.isGameClear = true;
     soundManager.playVictory();
     this.log.addMessage('奇跡の箱を手に入れた！ 冒険クリア！');

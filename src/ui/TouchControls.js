@@ -14,36 +14,81 @@ export class TouchControls {
 
     this.turnOnlyMode = false; // 向き変更のみモード
 
+    this._repeatTimer = null;
+    this._repeatInterval = null;
+    this._activeBtn = null;
+
     this._setupDOM();
     this._setupKeyboard();
   }
 
+  stopRepeat() {
+    if (this._repeatTimer) {
+      clearTimeout(this._repeatTimer);
+      this._repeatTimer = null;
+    }
+    if (this._repeatInterval) {
+      clearInterval(this._repeatInterval);
+      this._repeatInterval = null;
+    }
+    this._activeBtn = null;
+  }
+
   _setupDOM() {
-    // 8方向D-Padボタン
+    // 8方向D-Padボタン（長押し連続移動対応）
     const dpadBtns = document.querySelectorAll('.dpad-btn');
     dpadBtns.forEach(btn => {
       const dx = parseInt(btn.dataset.dx, 10);
       const dy = parseInt(btn.dataset.dy, 10);
 
-      const trigger = (e) => {
+      const handlePress = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        this.stopRepeat();
+        this._activeBtn = btn;
+
         if (dx === 0 && dy === 0) {
-          // 中央ボタンは足踏み
           this.onWait();
-        } else {
-          if (this.turnOnlyMode) {
-            this.onChangeDirection(dx, dy);
-            this.setTurnOnlyMode(false); // 1回向きを変えたら通常モードに戻す
-          } else {
+          return;
+        }
+
+        if (this.turnOnlyMode) {
+          this.onChangeDirection(dx, dy);
+          this.setTurnOnlyMode(false); // 1回向きを変えたら通常モードに戻す
+          return;
+        }
+
+        // 初回移動を即座に実行
+        this.onMove(dx, dy);
+
+        // 長押しで連続移動（220ms後に開始、110ms間隔）
+        this._repeatTimer = setTimeout(() => {
+          this._repeatInterval = setInterval(() => {
             this.onMove(dx, dy);
-          }
+          }, 110);
+        }, 220);
+      };
+
+      btn.addEventListener('touchstart', handlePress, { passive: false });
+      btn.addEventListener('mousedown', handlePress);
+
+      const handleRelease = (e) => {
+        if (this._activeBtn === btn) {
+          this.stopRepeat();
         }
       };
 
-      btn.addEventListener('touchstart', trigger, { passive: false });
-      btn.addEventListener('mousedown', trigger);
+      btn.addEventListener('touchend', handleRelease);
+      btn.addEventListener('touchcancel', handleRelease);
+      btn.addEventListener('mouseup', handleRelease);
+      btn.addEventListener('mouseleave', handleRelease);
     });
+
+    // グローバル解放リスナー（指やマウスがボタン外に外れた時の解除）
+    window.addEventListener('mouseup', () => this.stopRepeat());
+    window.addEventListener('touchend', () => this.stopRepeat());
+    window.addEventListener('touchcancel', () => this.stopRepeat());
+    window.addEventListener('blur', () => this.stopRepeat());
 
     // 右側アクションボタン
     const bindBtn = (id, handler) => {
@@ -61,9 +106,39 @@ export class TouchControls {
 
     bindBtn('btn-attack', () => this.onAttack());
     bindBtn('btn-inventory', () => this.onInventory());
-    bindBtn('btn-wait', () => this.onWait());
     bindBtn('btn-shoot', () => this.onShootArrow());
     bindBtn('btn-map', () => this.onToggleMap());
+
+    // 足踏みボタン（長押し連続足踏み対応）
+    const waitBtn = document.getElementById('btn-wait');
+    if (waitBtn) {
+      const handleWaitPress = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.stopRepeat();
+        this._activeBtn = waitBtn;
+        this.onWait();
+
+        this._repeatTimer = setTimeout(() => {
+          this._repeatInterval = setInterval(() => {
+            this.onWait();
+          }, 120);
+        }, 220);
+      };
+
+      waitBtn.addEventListener('touchstart', handleWaitPress, { passive: false });
+      waitBtn.addEventListener('mousedown', handleWaitPress);
+
+      const handleWaitRelease = () => {
+        if (this._activeBtn === waitBtn) {
+          this.stopRepeat();
+        }
+      };
+      waitBtn.addEventListener('touchend', handleWaitRelease);
+      waitBtn.addEventListener('touchcancel', handleWaitRelease);
+      waitBtn.addEventListener('mouseup', handleWaitRelease);
+      waitBtn.addEventListener('mouseleave', handleWaitRelease);
+    }
 
     const turnBtn = document.getElementById('btn-turn');
     if (turnBtn) {
