@@ -237,8 +237,8 @@ export class SaveManager {
       game.renderer.updateCamera(p);
 
       const floorDisplay = `${51 - game.floorNumber}F`;
-      game.log.addMessage(`【再開】${floorDisplay} から冒険を再開しました！`);
-      game.log.addMessage(`目指す40Fのトイレまで あと ${Math.max(0, 11 - game.floorNumber)} フロア！`);
+      game.log.addMessage(`【再開】${floorDisplay}から　冒険を再開した！`);
+      game.log.addMessage(`目指す40Fのトイレまで　あと ${Math.max(0, 11 - game.floorNumber)}フロア！`);
 
       return true;
     } catch (e) {

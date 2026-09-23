@@ -22,7 +22,12 @@ class Game {
     this.canvas = document.getElementById('game-canvas');
     this.renderer = new DungeonRenderer(this.canvas);
     this.generator = new DungeonGenerator();
-    this.log = new MessageLog('message-window');
+    this.log = new MessageLog('message-window', {
+      updateMode: 'scroll',
+      typewriterSpeed: 16,
+      autoAdvanceDelay: 700,
+      maxVisualWidth: 19
+    });
 
     this.floorNumber = 1;
     this.difficulty = 'normal';
@@ -65,7 +70,7 @@ class Game {
       this.btnStairsNo.addEventListener('click', () => {
         soundManager.playCursor?.();
         this.hideStairsModal();
-        this.log.addMessage('もじさんは その場にとどまった。');
+        this.log.addMessage('もじさんは　その場にとどまった。');
       });
     }
 
@@ -89,12 +94,12 @@ class Game {
           if (isYes || e.key === 'y' || e.key === 'Y') {
             this.descendStairs();
           } else {
-            this.log.addMessage('もじさんは その場にとどまった。');
+            this.log.addMessage('もじさんは　その場にとどまった。');
           }
         } else if (e.key === 'Escape' || e.key === 'n' || e.key === 'N') {
           soundManager.playCursor?.();
           this.hideStairsModal();
-          this.log.addMessage('もじさんは その場にとどまった。');
+          this.log.addMessage('もじさんは　その場にとどまった。');
         }
       }
     });
@@ -113,7 +118,8 @@ class Game {
         if (this.player) {
           this.player.setDirection(dx, dy);
         }
-      }
+      },
+      onAdvanceMessage: () => this.log.advance()
     });
 
     // リスタートボタン（タイトルへ戻る）
@@ -200,9 +206,9 @@ class Game {
     // 50F（floorNumber: 1）の生成
     this.loadFloor(1);
 
-    const diffLabel = this.difficulty === 'hard' ? '【HARDモード】' : '';
-    this.log.addMessage(`【50F】${diffLabel}もじさんは非常階段の重い扉を蹴破った！`);
-    this.log.addMessage('午後の始業（13:00）までに 40F のトイレへ辿り着け！');
+    const diffLabel = this.difficulty === 'hard' ? '【HARD】' : '';
+    this.log.addMessage(`【50F】${diffLabel}もじさんは　扉を蹴破った！`);
+    this.log.addMessage('午後の始業までに　40Fのトイレを　目指せ！');
     SaveManager.saveGame(this);
   }
 
@@ -236,9 +242,10 @@ class Game {
     const floorDisplay = `${51 - floorNum}F`;
     if (floorNum > 1) {
       if (floorNum === CONFIG.DUNGEON.MAX_FLOORS) {
-        this.log.addMessage(`【40F】ついに目的の40Fに到達！ どこかにトイレがあるはずだ！`);
+        this.log.addMessage('【40F】ついに　目的の40Fに到達！');
+        this.log.addMessage('どこかに　トイレがあるはずだ！');
       } else {
-        this.log.addMessage(`非常階段を駆け降り、${floorDisplay} に到達した！`);
+        this.log.addMessage(`非常階段を駆け降り、${floorDisplay}に　到達した！`);
       }
       soundManager.playStairs();
       SaveManager.saveGame(this);
@@ -301,7 +308,7 @@ class Game {
 
     // 睡眠中は行動不可
     if (this.player.sleepTurns > 0) {
-      this.log.addMessage('もじさんは眠っていて動けない！');
+      this.log.addMessage('もじさんは　眠っていて動けない！');
       this.executeTurn(false);
       return;
     }
@@ -365,7 +372,7 @@ class Game {
     if (this.isBusy || this.isGameOver || this.isGameClear || !this.player) return;
 
     if (this.player.sleepTurns > 0) {
-      this.log.addMessage('もじさんは眠っていて動けない！');
+      this.log.addMessage('もじさんは　眠っていて動けない！');
       this.executeTurn(false);
       return;
     }
@@ -397,7 +404,8 @@ class Game {
 
     // 命中判定（SFC解析式: 7/8 = 87.5% で命中、1/8でミス）
     if (Math.random() >= 7 / 8) {
-      this.log.addMessage(`もじさんの攻撃！ しかし ${monster.name} は攻撃をかわした！`);
+      this.log.addMessage('もじさんの　こうげき！');
+      this.log.addMessage(`しかし　${monster.name}は　身をかわした！`);
       return;
     }
 
@@ -408,20 +416,21 @@ class Game {
 
     this.renderer.addFloatingText(`${dmg}`, monster.x, monster.y, '#ffffff');
     soundManager.playHit();
-    this.log.addMessage(`もじさんの攻撃！ ${monster.name} に ${dmg} のダメージ！`);
+    this.log.addMessage('もじさんの　こうげき！');
+    this.log.addMessage(`${monster.name}に　${dmg}の　ダメージ！`);
 
     if (monster.hp <= 0) {
       soundManager.playDefeat();
-      this.log.addMessage(`${monster.name} をたおした！`);
+      this.log.addMessage(`${monster.name}を　たおした！`);
       const expMsgs = this.player.gainExp(monster.exp);
       expMsgs.forEach(m => this.log.addMessage(m));
 
-      // 確率でドロップ（20%でアイテムまたはゴールド）
+      // 確率でドロップ（25%でアイテムまたはゴールド）
       if (Math.random() < 0.25) {
         const dropped = this.generator._generateFloorItem(this.floorNumber, monster.x, monster.y);
         if (dropped) {
           this.dungeon.items.push(dropped);
-          this.log.addMessage(`${monster.name} は ${dropped.name} を落とした！`);
+          this.log.addMessage(`${monster.name}は　${dropped.name}を　落とした！`);
         }
       }
     }
@@ -440,7 +449,7 @@ class Game {
     // 矢の検索
     const arrow = this.player.equippedArrow || this.player.inventory.find(i => i.type === 'arrow');
     if (!arrow) {
-      this.log.addMessage('矢を持っていません！');
+      this.log.addMessage('矢を　持っていません！');
       return;
     }
 
@@ -469,16 +478,17 @@ class Game {
         this.player.gold += item.goldAmount;
         this.dungeon.items.splice(itemIdx, 1);
         soundManager.playPickup();
-        this.log.addMessage(`${item.goldAmount} ゴールド を拾った！`);
+        this.log.addMessage(`${item.goldAmount}ゴールドを　拾った！`);
       } else {
         // インベントリに空きがあれば自動拾い
         const res = this.player.addItem(item);
         if (res.success) {
           this.dungeon.items.splice(itemIdx, 1);
           soundManager.playPickup();
-          this.log.addMessage(`もじさんは ${item.name} を拾った！`);
+          this.log.addMessage(`もじさんは　${item.name}を　拾った！`);
         } else {
-          this.log.addMessage(`足元に ${item.name} がある。（持ち物がいっぱい）`);
+          this.log.addMessage(`足元に　${item.name}が　ある。`);
+          this.log.addMessage('（持ち物が　いっぱいです）');
         }
       }
     }
@@ -497,23 +507,23 @@ class Game {
     const trap = this.dungeon.traps.find(t => t.x === px && t.y === py);
     if (trap) {
       trap.revealed = true;
-      this.log.addMessage(`${trap.name} を踏んでしまった！`);
+      this.log.addMessage(`${trap.name}を　踏んでしまった！`);
       soundManager.playPlayerHurt();
 
       switch (trap.id) {
         case 'arrow':
           this.player.str = Math.max(1, this.player.str - 1);
-          this.log.addMessage(trap.desc);
+          this.log.addMessage('毒の矢が刺さり　ちからが 1 下がった！');
           break;
         case 'mine':
           const bombDmg = Math.max(1, Math.floor(this.player.hp / 2));
           this.player.hp = Math.max(1, this.player.hp - bombDmg);
           this.renderer.addFloatingText(`-${bombDmg}`, px, py, '#ef4444');
-          this.log.addMessage(trap.desc);
+          this.log.addMessage('大爆発！　HPが半分になった！');
           break;
         case 'sleep':
           this.player.sleepTurns = 4;
-          this.log.addMessage(trap.desc);
+          this.log.addMessage('もじさんは　眠ってしまった！');
           break;
         case 'trip':
           if (this.player.inventory.length > 0) {
@@ -523,12 +533,12 @@ class Game {
             dropItem.x = px;
             dropItem.y = py;
             this.dungeon.items.push(dropItem);
-            this.log.addMessage(`転んで ${dropItem.name} を落とした！`);
+            this.log.addMessage(`転んで　${dropItem.name}を　落とした！`);
           }
           break;
         case 'warp':
           ItemManager.teleportEntity(this.player, this.dungeon, this.monsters);
-          this.log.addMessage(trap.desc);
+          this.log.addMessage('別の場所へ　ワープしてしまった！');
           break;
       }
     }
@@ -592,28 +602,31 @@ class Game {
     // 足元が聖域の巻物なら攻撃を受けない
     const onSanctuary = this.dungeon.items.some(i => i.id === 'sanctuary' && i.x === this.player.x && i.y === this.player.y);
     if (onSanctuary) {
-      this.log.addMessage(`聖域の力により、${monster.name} の攻撃を受け付けない！`);
+      this.log.addMessage('せいいきの巻物の力で');
+      this.log.addMessage(`${monster.name}の攻撃を　受け付けない！`);
       return;
     }
 
     // 命中判定（SFC解析式: 7/8 = 87.5% で命中、1/8でプレイヤーが回避）
     if (Math.random() >= 7 / 8) {
-      this.log.addMessage(`${monster.name} の攻撃！ もじさんは 身をかわした！`);
+      this.log.addMessage(`${monster.name}の　こうげき！`);
+      this.log.addMessage('もじさんは　身をかわした！');
       return;
     }
 
     const dmg = this.player.takeDamage(monster.atk);
     soundManager.playPlayerHurt();
     this.renderer.addFloatingText(`-${dmg}`, this.player.x, this.player.y, '#ef4444');
-    this.log.addMessage(`${monster.name} のこうげき！ もじさんは ${dmg} のダメージを受けた！`);
+    this.log.addMessage(`${monster.name}の　こうげき！`);
+    this.log.addMessage(`もじさんは　${dmg}の　ダメージを受けた！`);
 
     // 特殊効果（おばけキノコの毒、くさった死体の腐敗）
     if (monster.id === 'mushroom' && Math.random() < 0.3) {
       if (this.player.equippedShield && this.player.equippedShield.antiPoison) {
-        this.log.addMessage('うろこの盾が毒の胞子を弾いた！');
+        this.log.addMessage('うろこの盾が　毒の胞子を弾いた！');
       } else {
         this.player.str = Math.max(1, this.player.str - 1);
-        this.log.addMessage('毒の胞子を吸い込んでちからが 1 下がった！');
+        this.log.addMessage('毒の胞子を吸い込んで　ちからが 1 下がった！');
       }
     } else if (monster.id === 'zombie' && Math.random() < 0.25) {
       const breads = this.player.inventory.filter(i => i.type === 'bread' && i.id !== 'rotten_bread');
@@ -623,7 +636,7 @@ class Game {
         b.name = 'くさったパン';
         b.icon = '🥖';
         b.desc = 'お腹を30%回復するが、腹痛で睡眠や毒などの異常が起こる。';
-        this.log.addMessage(`大事なパンを腐らされてしまった！`);
+        this.log.addMessage('大事なパンを　腐らされてしまった！');
       }
     }
   }
@@ -637,16 +650,17 @@ class Game {
       let dmg = 15;
       if (this.player.equippedShield && this.player.equippedShield.antiFire) {
         dmg = 7;
-        this.log.addMessage('ドラゴンシールドが炎を軽減した！');
+        this.log.addMessage('ドラゴンシールドが　炎を軽減した！');
       }
       this.player.hp = Math.max(0, this.player.hp - dmg);
       soundManager.playPlayerHurt();
       this.renderer.addFloatingText(`-${dmg}`, this.player.x, this.player.y, '#ff5722');
-      this.log.addMessage(`もじさんは 炎に包まれ ${dmg} のダメージを受けた！`);
+      this.log.addMessage('もじさんは　炎に包まれ');
+      this.log.addMessage(`${dmg}の　ダメージを受けた！`);
     } else if (decision.skillType === 'sleep_spell') {
       soundManager.playCastMagic();
       this.player.sleepTurns = 4;
-      this.log.addMessage('もじさんは 眠ってしまった！');
+      this.log.addMessage('もじさんは　眠ってしまった！');
     }
   }
 
@@ -696,7 +710,7 @@ class Game {
         item.x = this.player.x;
         item.y = this.player.y;
         this.dungeon.items.push(item);
-        this.log.addMessage(`もじさんは ${item.name} を足元に置いた。`);
+        this.log.addMessage(`もじさんは　${item.name}を　足元に置いた。`);
         this.executeTurn(false);
         break;
 
@@ -707,7 +721,7 @@ class Game {
             const idx = this.dungeon.items.indexOf(item);
             if (idx !== -1) this.dungeon.items.splice(idx, 1);
             soundManager.playPickup();
-            this.log.addMessage(`もじさんは ${item.name} を拾った！`);
+            this.log.addMessage(`もじさんは　${item.name}を　拾った！`);
           } else {
             this.log.addMessage(res.reason);
           }
@@ -747,7 +761,7 @@ class Game {
     this.isGameOver = true;
     SaveManager.clearSaveData();
     soundManager.playGameOver();
-    this.log.addMessage(`もじさんは 力尽きた...`);
+    this.log.addMessage('もじさんは　力尽きた……');
 
     const modal = document.getElementById('end-modal');
     const title = document.getElementById('end-title');
@@ -771,8 +785,10 @@ class Game {
     this.isGameClear = true;
     SaveManager.clearSaveData();
     soundManager.playVictory();
-    this.log.addMessage('【12:59】奇跡のトイレ個室に滑り込みセーフ！！');
-    this.log.addMessage('極限の危機を脱し、無事に13:00午後の始業に間に合った！');
+    this.log.addMessage('【12:59】奇跡のトイレ個室に');
+    this.log.addMessage('滑り込みセーフ！！');
+    this.log.addMessage('極限の危機を脱し、無事に');
+    this.log.addMessage('13:00の始業に間に合った！');
 
     const modal = document.getElementById('end-modal');
     const title = document.getElementById('end-title');

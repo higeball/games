@@ -11,6 +11,7 @@ export class TouchControls {
     this.onShootArrow = options.onShootArrow || (() => {});
     this.onToggleMap = options.onToggleMap || (() => {});
     this.onChangeDirection = options.onChangeDirection || (() => {});
+    this.onAdvanceMessage = options.onAdvanceMessage || null;
 
     this.turnOnlyMode = false; // 向き変更のみモード
 
@@ -46,6 +47,11 @@ export class TouchControls {
         e.stopPropagation();
         this.stopRepeat();
         this._activeBtn = btn;
+
+        // メッセージがタイプ中または送り待ち中なら、メッセージ進行を優先
+        if (this.onAdvanceMessage && this.onAdvanceMessage()) {
+          return;
+        }
 
         if (dx === 0 && dy === 0) {
           this.onWait();
@@ -97,6 +103,9 @@ export class TouchControls {
         const cb = (e) => {
           e.preventDefault();
           e.stopPropagation();
+          if (this.onAdvanceMessage && this.onAdvanceMessage()) {
+            return;
+          }
           handler();
         };
         el.addEventListener('touchstart', cb, { passive: false });
@@ -117,6 +126,11 @@ export class TouchControls {
         e.stopPropagation();
         this.stopRepeat();
         this._activeBtn = waitBtn;
+
+        if (this.onAdvanceMessage && this.onAdvanceMessage()) {
+          return;
+        }
+
         this.onWait();
 
         this._repeatTimer = setTimeout(() => {
@@ -168,6 +182,12 @@ export class TouchControls {
       // モーダルが開いている時はESCで閉じる
       if (e.key === 'Escape') {
         this.onInventory('close');
+        return;
+      }
+
+      // メッセージがタイプ中または送り待ち中なら、メッセージ進行を最優先して入力を消費
+      if (this.onAdvanceMessage && this.onAdvanceMessage()) {
+        e.preventDefault();
         return;
       }
 

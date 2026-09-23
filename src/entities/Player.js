@@ -106,14 +106,14 @@ export class Player {
     if (this.sleepTurns > 0) {
       this.sleepTurns--;
       if (this.sleepTurns === 0) {
-        messages.push('もじさんは目を覚ました！');
+        messages.push('もじさんは　目を覚ました！');
       }
       return messages;
     }
     if (this.confusedTurns > 0) {
       this.confusedTurns--;
       if (this.confusedTurns === 0) {
-        messages.push('もじさんの混乱が解けた！');
+        messages.push('もじさんの　混乱が解けた！');
       }
     }
     if (this.eyedropTurns > 0) {
@@ -129,9 +129,10 @@ export class Player {
       if (this.satiety > 0) {
         this.satiety = Math.max(0, this.satiety - 1);
         if (this.satiety === 0) {
-          messages.push('お腹がペコペコだ！早く何か食べないと！');
+          messages.push('おなかが　ペコペコだ！');
+          messages.push('早く　何か食べないと！');
         } else if (this.satiety === 10) {
-          messages.push('お腹が減ってきた...');
+          messages.push('おなかが　減ってきた……');
         }
       }
     }
@@ -140,7 +141,7 @@ export class Player {
     if (this.satiety <= 0) {
       this.hp = Math.max(0, this.hp - 1);
       if (this.hp <= 0) {
-        messages.push('もじさんは飢えのために力尽きた...');
+        messages.push('もじさんは　飢えのために力尽きた……');
       }
     } else {
       // SFC解析式: 1ターン毎に自然回復カウンタに最大HPを加算し、150到達でHPが1回復（余剰繰越）
@@ -226,8 +227,9 @@ export class Player {
         this.maxStr = nextLevelData.str;
         this.str = Math.min(this.maxStr, this.str + strGain);
 
-        messages.push(`レベルが上がった！ もじさんは レベル${this.level} になった！`);
-        messages.push(`最大HPが ${hpGain} 上がった！ ちからが ${strGain} 上がった！`);
+        messages.push('もじさんは　レベルが上がった！');
+        messages.push(`レベル${this.level}に　なった！`);
+        messages.push(`最大HPが ${hpGain}上がった！ ちからが ${strGain}上がった！`);
         soundManager.playLevelUp();
       } else {
         break;
@@ -270,21 +272,21 @@ export class Player {
       }
       this.equippedWeapon = item;
       item.equipped = true;
-      return `${item.name} を装備した！ 攻撃力が上がった！`;
+      return `${item.name}を　装備した！\n攻撃力が　上がった！`;
     } else if (item.type === 'shield') {
       if (this.equippedShield) {
         this.equippedShield.equipped = false;
       }
       this.equippedShield = item;
       item.equipped = true;
-      return `${item.name} を装備した！ 防御力が上がった！`;
+      return `${item.name}を　装備した！\n防御力が　上がった！`;
     } else if (item.type === 'arrow') {
       if (this.equippedArrow) {
         this.equippedArrow.equipped = false;
       }
       this.equippedArrow = item;
       item.equipped = true;
-      return `${item.name} を装備した！`;
+      return `${item.name}を　装備した！`;
     }
     return null;
   }
@@ -294,15 +296,15 @@ export class Player {
     if (item === this.equippedWeapon) {
       this.equippedWeapon = null;
       item.equipped = false;
-      return `${item.name} をはずした。`;
+      return `${item.name}を　はずした。`;
     } else if (item === this.equippedShield) {
       this.equippedShield = null;
       item.equipped = false;
-      return `${item.name} をはずした。`;
+      return `${item.name}を　はずした。`;
     } else if (item === this.equippedArrow) {
       this.equippedArrow = null;
       item.equipped = false;
-      return `${item.name} をはずした。`;
+      return `${item.name}を　はずした。`;
     }
     return null;
   }

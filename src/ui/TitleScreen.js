@@ -32,7 +32,7 @@ export class TitleScreen {
       {
         title: '【緊急事態発生】',
         time: '🕒 12:40 PM',
-        image: './assets/story/story_1.jpg',
+        image: './assets/story/story_1.png',
         lines: [
           '大手IT企業「株式会社もじ」が入居する 地上50階建てのオフィスタワー。',
           '社員食堂で 激辛大盛りカレーを堪能した 会社員・もじさん。',
@@ -44,7 +44,7 @@ export class TitleScreen {
       {
         title: '【絶望のカウントダウン】',
         time: '🕒 12:42 PM',
-        image: './assets/story/story_2.jpg',
+        image: './assets/story/story_2.png',
         lines: [
           'もじさん「う、うぐぐっ……！？ なんだこの激痛は……！？」',
           '「ヤバい……！ 今すぐトイレに行かないと 社会人生命が終わる……！！」',
@@ -56,7 +56,7 @@ export class TitleScreen {
       {
         title: '【閉ざされたエレベーター】',
         time: '🕒 12:45 PM',
-        image: './assets/story/story_3.jpg',
+        image: './assets/story/story_3.png',
         lines: [
           'もじさん「そ、そんなバカな……ッ！？」',
           '急いでエレベーターホールへ走るも、そこにも無情な警告灯！',
@@ -68,7 +68,7 @@ export class TitleScreen {
       {
         title: '【奇跡の案内】',
         time: '🕒 12:47 PM',
-        image: './assets/story/story_4.jpg',
+        image: './assets/story/story_4.png',
         lines: [
           '『ピンポンパンポーン――』',
           '『現在、館内で使用可能な最寄りのトイレは…… 【40階】となります。』',
@@ -79,7 +79,7 @@ export class TitleScreen {
       {
         title: '【非常階段へ突入せよ！】',
         time: '🕒 12:48 PM',
-        image: './assets/story/story_5.jpg',
+        image: './assets/story/story_5.png',
         lines: [
           'もじさん「非常階段を駆け降りるしかない……！」',
           '「頼む、俺の腹……！ 40Fまで持ちこたえてくれ……ッ！！」',
