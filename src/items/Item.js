@@ -110,16 +110,21 @@ export class Item {
     });
   }
 
-  // 奇跡の箱（10Fクリア用秘宝）
-  static createMiracleBox(x, y) {
+  // 奇跡のトイレ個室（40Fクリア用ゴール）
+  static createToilet(x, y) {
     return new Item({
-      id: 'miracle_box',
-      name: '奇跡の箱',
+      id: 'toilet',
+      name: '奇跡のトイレ個室',
       type: 'treasure',
-      sprite: './assets/items/miracle_box.png',
-      desc: 'ダンジョンの最深部に眠る伝説の秘宝。手に入れると冒険クリア！',
+      sprite: './assets/props/toilet.png',
+      desc: '40Fに唯一残された奇跡の洋式トイレ！ここに駆け込めば社会人の尊厳を守ってクリア！',
       x,
       y
     });
+  }
+
+  // 奇跡の箱（互換用）
+  static createMiracleBox(x, y) {
+    return this.createToilet(x, y);
   }
 }

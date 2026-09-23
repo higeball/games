@@ -22,6 +22,44 @@ class SoundManager {
     }
   }
 
+  playCursor() {
+    if (!this.enabled || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, t);
+      osc.frequency.exponentialRampToValueAtTime(880, t + 0.04);
+      gain.gain.setValueAtTime(this.volume * 0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.045);
+    } catch (e) {}
+  }
+
+  playConfirm() {
+    if (!this.enabled || !this.ctx) return;
+    try {
+      const t = this.ctx.currentTime;
+      const notes = [587.33, 880]; // D5 -> A5 レトロ決定音
+      notes.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, t + idx * 0.05);
+        gain.gain.setValueAtTime(this.volume * 0.25, t + idx * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, t + (idx + 1) * 0.05);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t + idx * 0.05);
+        osc.stop(t + (idx + 1) * 0.05);
+      });
+    } catch (e) {}
+  }
+
   playStep() {
     if (!this.enabled || !this.ctx) return;
     try {

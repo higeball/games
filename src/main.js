@@ -14,6 +14,8 @@ import { soundManager } from './audio/SoundManager.js';
 import { MessageLog } from './ui/MessageLog.js';
 import { InventoryModal } from './ui/InventoryModal.js';
 import { TouchControls } from './ui/TouchControls.js';
+import { TitleScreen } from './ui/TitleScreen.js';
+import { SaveManager } from './storage/SaveManager.js';
 
 class Game {
   constructor() {
@@ -34,8 +36,9 @@ class Game {
     window.game = this;
 
     this.initUI();
-    this.startNewGame();
+    this.titleScreen = new TitleScreen(this);
     this.setupGameLoop();
+    this.titleScreen.show();
   }
 
   initUI() {
@@ -61,12 +64,28 @@ class Game {
       }
     });
 
-    // リスタートボタン
+    // リスタートボタン（タイトルへ戻る）
     const restartBtn = document.getElementById('btn-restart');
     if (restartBtn) {
       restartBtn.addEventListener('click', () => {
         document.getElementById('end-modal').classList.add('hidden');
-        this.startNewGame();
+        this.titleScreen.show();
+      });
+    }
+
+    // 中断セーブボタン
+    const saveQuitBtn = document.getElementById('btn-save-quit');
+    if (saveQuitBtn) {
+      saveQuitBtn.addEventListener('click', () => {
+        if (this.isBusy || this.isGameOver || this.isGameClear || !this.player) return;
+        const saved = SaveManager.saveGame(this);
+        if (saved) {
+          soundManager.playConfirm();
+          alert('冒険の記録をセーブしました。タイトル画面に戻ります。');
+          this.titleScreen.show();
+        } else {
+          alert('セーブに失敗しました。');
+        }
       });
     }
 
@@ -84,35 +103,26 @@ class Game {
     this.renderer.resize();
   }
 
-  // 新規ゲーム開始
+  // 新規ゲーム開始（初期装備なし・身一つでスタート）
   startNewGame() {
     this.floorNumber = 1;
     this.isGameOver = false;
     this.isGameClear = false;
     this.log.clear();
 
-    // プレイヤー生成
+    // プレイヤー生成（初期装備なし）
     this.player = new Player(0, 0);
+    this.player.equippedWeapon = null;
+    this.player.equippedShield = null;
+    this.player.equippedArrow = null;
+    this.player.inventory = [];
 
-    // 初期装備・道具の付与
-    const starterSword = Item.fromCatalog(CONFIG.ITEMS.WEAPONS[0]); // こんぼう
-    const starterShield = Item.fromCatalog(CONFIG.ITEMS.SHIELDS[0]); // 皮の盾
-    const starterBread = Item.fromCatalog(CONFIG.ITEMS.BREADS[1]); // 大きいパン
-    const starterHerb = Item.fromCatalog(CONFIG.ITEMS.HERBS[0]); // 薬草
-
-    this.player.addItem(starterSword);
-    this.player.addItem(starterShield);
-    this.player.addItem(starterBread);
-    this.player.addItem(starterHerb);
-
-    this.player.equipItem(starterSword);
-    this.player.equipItem(starterShield);
-
-    // 1階層目の生成
+    // 50F（floorNumber: 1）の生成
     this.loadFloor(1);
 
-    this.log.addMessage('もじさんの不思議のダンジョンへ ようこそ！');
-    this.log.addMessage('最深部10Fにある「奇跡の箱」を目指そう！');
+    this.log.addMessage('【50F】もじさんは非常階段の重い扉を蹴破った！');
+    this.log.addMessage('午後の始業（13:00）までに 40F のトイレへ辿り着け！');
+    SaveManager.saveGame(this);
   }
 
   // フロア読み込み＆生成
@@ -134,9 +144,15 @@ class Game {
     this.updateVisibility();
     this.updateHUD();
 
+    const floorDisplay = `${51 - floorNum}F`;
     if (floorNum > 1) {
-      this.log.addMessage(`地下 ${floorNum} 階 へ降りてきた。`);
+      if (floorNum === CONFIG.DUNGEON.MAX_FLOORS) {
+        this.log.addMessage(`【40F】ついに目的の40Fに到達！ どこかにトイレがあるはずだ！`);
+      } else {
+        this.log.addMessage(`非常階段を駆け降り、${floorDisplay} に到達した！`);
+      }
       soundManager.playStairs();
+      SaveManager.saveGame(this);
     }
   }
 
@@ -346,8 +362,8 @@ class Game {
     const px = this.player.x;
     const py = this.player.y;
 
-    // 奇跡の箱（クリアアイテム）
-    const boxIdx = this.dungeon.items.findIndex(i => i.id === 'miracle_box' && i.x === px && i.y === py);
+    // 奇跡のトイレ個室 / 奇跡の箱（クリアアイテム）
+    const boxIdx = this.dungeon.items.findIndex(i => (i.id === 'miracle_box' || i.id === 'toilet') && i.x === px && i.y === py);
     if (boxIdx !== -1) {
       this.triggerGameClear();
       return;
@@ -626,6 +642,7 @@ class Game {
   triggerGameOver(reason) {
     this.controls?.stopRepeat();
     this.isGameOver = true;
+    SaveManager.clearSaveData();
     soundManager.playGameOver();
     this.log.addMessage(`もじさんは 力尽きた...`);
 
@@ -634,9 +651,10 @@ class Game {
     const desc = document.getElementById('end-desc');
     title.className = 'end-title game-over';
     title.textContent = 'GAME OVER';
-    desc.textContent = reason;
+    desc.textContent = reason || '無情にも13:00の始業ベルが鳴り響いてしまった…！';
 
-    document.getElementById('end-floor').textContent = `B${this.floorNumber}F`;
+    const currentFloorStr = `${51 - this.floorNumber}F`;
+    document.getElementById('end-floor').textContent = currentFloorStr;
     document.getElementById('end-level').textContent = `${this.player.level}`;
     document.getElementById('end-gold').textContent = `${this.player.gold}G`;
 
@@ -647,17 +665,19 @@ class Game {
   triggerGameClear() {
     this.controls?.stopRepeat();
     this.isGameClear = true;
+    SaveManager.clearSaveData();
     soundManager.playVictory();
-    this.log.addMessage('奇跡の箱を手に入れた！ 冒険クリア！');
+    this.log.addMessage('【12:59】奇跡のトイレ個室に滑り込みセーフ！！');
+    this.log.addMessage('極限の危機を脱し、無事に13:00午後の始業に間に合った！');
 
     const modal = document.getElementById('end-modal');
     const title = document.getElementById('end-title');
     const desc = document.getElementById('end-desc');
     title.className = 'end-title game-clear';
-    title.textContent = '★ ダンジョン制覇 ★';
-    desc.textContent = '見事にダンジョンの奥底から「奇跡の箱」を持ち帰った！伝説の商人として語り継がれるだろう！';
+    title.textContent = '★ 危機一髪クリア！ ★';
+    desc.textContent = '12:59 奇跡のトイレ個室へ滑り込みセーフ！ 極限のプレッシャーに打ち勝ち、無事に13:00の始業ベルと同時にデスクへ着席した！ もじさんの午後の戦いが今始まる…！';
 
-    document.getElementById('end-floor').textContent = `B10F クリア！`;
+    document.getElementById('end-floor').textContent = `40F 到達！`;
     document.getElementById('end-level').textContent = `${this.player.level}`;
     document.getElementById('end-gold').textContent = `${this.player.gold}G`;
 
@@ -670,7 +690,7 @@ class Game {
 
     // フロア・LV・HP
     const floorEl = document.getElementById('hud-floor');
-    if (floorEl) floorEl.textContent = `B${this.floorNumber}F`;
+    if (floorEl) floorEl.textContent = `${51 - this.floorNumber}F`;
 
     const levelEl = document.getElementById('hud-level');
     if (levelEl) levelEl.textContent = this.player.level;

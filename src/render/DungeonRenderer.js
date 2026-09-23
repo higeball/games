@@ -57,6 +57,7 @@ export class DungeonRenderer {
       './assets/items/miracle_box.png',
       // プロップ
       './assets/props/stairs.png',
+      './assets/props/toilet.png',
       './assets/props/gold.png',
       './assets/props/trap.png',
       // UI
@@ -246,54 +247,53 @@ export class DungeonRenderer {
     ctx.globalAlpha = 1.0;
   }
 
-  // 床タイル（本家トルネコSFC風・美しい敷石・石畳＋高精細斜角ベベル・アンビエントシャドウ）
+  // 床タイル（オフィスタワー風・500mm角タイルカーペット市松貼り＆OAフロア目地）
   _drawFloorTile(ctx, px, py, dungeon, x, y) {
     const hash = (((x !== undefined ? x : Math.floor(px / 48)) * 37) + ((y !== undefined ? y : Math.floor(py / 48)) * 19)) & 7;
-    const baseColors = ['#5e4d3a', '#5c4b38', '#61503d', '#5a4936', '#5f4e3b', '#5d4c39', '#604f3c', '#5b4a37'];
+    // 上品なチャコール＆スレートブルーのオフィスタイルカーペット色
+    const baseColors = ['#2e3440', '#3b4252', '#333b48', '#2b313d', '#363e4c', '#303744', '#384050', '#2d333f'];
     ctx.fillStyle = baseColors[hash];
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 4つの石畳ブロックの割り付け（トルネコSFC風・高精細斜角ベベル）
     const mid = this.tileSize / 2;
 
-    const drawStoneBlock = (bx, by, w, h, varOffset) => {
-      // ブロック本体
-      ctx.fillStyle = '#6a5743';
+    // 4つのカーペットタイルの市松貼り（タテ織り・ヨコ織りテクスチャ）
+    const drawCarpetSquare = (bx, by, w, h, isVertical) => {
+      // カーペット下地
+      ctx.fillStyle = '#374151';
       ctx.fillRect(bx + 1, by + 1, w - 2, h - 2);
 
-      // 上部＆左部ハイライト（明るい砂岩色）
-      ctx.fillStyle = '#947e65';
-      ctx.fillRect(bx + 1, by + 1, w - 2, 2);
-      ctx.fillRect(bx + 1, by + 1, 2, h - 2);
-
-      // 極上の光沢ピクセル（左上角）
-      ctx.fillStyle = '#ad977d';
-      ctx.fillRect(bx + 1, by + 1, 2, 2);
-
-      // 右部＆下部シャドウ（深い影色）
-      ctx.fillStyle = '#3a2d1e';
-      ctx.fillRect(bx + 1, by + h - 3, w - 2, 2);
-      ctx.fillRect(bx + w - 3, by + 1, 2, h - 2);
-
-      // わずかな表面の石粒・クラックテクスチャ
-      if (((hash + varOffset) & 3) === 0) {
-        ctx.fillStyle = '#4c3a27';
-        ctx.fillRect(bx + 5, by + 6, 2, 2);
-      } else if (((hash + varOffset) & 3) === 2) {
-        ctx.fillStyle = '#806c55';
-        ctx.fillRect(bx + w - 7, by + 5, 2, 2);
+      // 織り目ライン（タテまたはヨコ）
+      ctx.fillStyle = '#4b5563';
+      if (isVertical) {
+        for (let ox = bx + 3; ox < bx + w - 3; ox += 4) {
+          ctx.fillRect(ox, by + 2, 1, h - 4);
+        }
+        // ハイライト繊維
+        ctx.fillStyle = '#6b7280';
+        ctx.fillRect(bx + 7, by + 3, 1, h - 6);
+      } else {
+        for (let oy = by + 3; oy < by + h - 3; oy += 4) {
+          ctx.fillRect(bx + 2, oy, w - 4, 1);
+        }
+        ctx.fillStyle = '#6b7280';
+        ctx.fillRect(bx + 3, by + 7, w - 6, 1);
       }
+
+      // タイル枠の薄いベベル（OAフロア感）
+      ctx.strokeStyle = '#1f2937';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx + 0.5, by + 0.5, w - 1, h - 1);
     };
 
-    drawStoneBlock(px, py, mid, mid, 1);
-    drawStoneBlock(px + mid, py, mid, mid, 2);
-    drawStoneBlock(px, py + mid, mid, mid, 3);
-    drawStoneBlock(px + mid, py + mid, mid, mid, 4);
+    drawCarpetSquare(px, py, mid, mid, false);       // 左上: ヨコ織り
+    drawCarpetSquare(px + mid, py, mid, mid, true);   // 右上: タテ織り
+    drawCarpetSquare(px, py + mid, mid, mid, true);   // 左下: タテ織り
+    drawCarpetSquare(px + mid, py + mid, mid, mid, false); // 右下: ヨコ織り
 
-    // 目地（黒褐色）
-    ctx.strokeStyle = '#221910';
+    // オフィス床の十字目地
+    ctx.strokeStyle = '#111827';
     ctx.lineWidth = 1;
-    ctx.strokeRect(px + 0.5, py + 0.5, this.tileSize - 1, this.tileSize - 1);
     ctx.beginPath();
     ctx.moveTo(px, py + mid);
     ctx.lineTo(px + this.tileSize, py + mid);
@@ -301,167 +301,212 @@ export class DungeonRenderer {
     ctx.lineTo(px + mid, py + this.tileSize);
     ctx.stroke();
 
-    // 上部または左部が壁の場合のリアルな環境光ドロップシャドウ
+    // 壁からのリアルなオフィス照明ドロップシャドウ
     if (dungeon && y !== undefined && x !== undefined) {
       if (y > 0 && dungeon.tiles[y - 1][x] === CONFIG.TILE.WALL) {
-        // 北側壁からの重厚な影
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
         ctx.fillRect(px, py, this.tileSize, 4);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
-        ctx.fillRect(px, py + 4, this.tileSize, 4);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+        ctx.fillRect(px, py + 4, this.tileSize, 3);
       }
       if (x > 0 && dungeon.tiles[y][x - 1] === CONFIG.TILE.WALL) {
-        // 西側壁からの側方影
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.40)';
         ctx.fillRect(px, py, 3, this.tileSize);
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
-        ctx.fillRect(px + 3, py, 3, this.tileSize);
       }
     }
   }
 
-  // 通路タイル（本家トルネコ風・狭い土と砂利の通路）
+  // 通路タイル（オフィスタワー風・清潔な光沢Pタイル＆巾木廊下）
   _drawCorridorTile(ctx, px, py) {
-    // 通路土ベース
-    ctx.fillStyle = '#34271c';
+    // 廊下Pタイルベース（少し明るいアイボリー／ニュートラルグレー）
+    ctx.fillStyle = '#64748b';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 通路両脇の深い岩陰
-    ctx.fillStyle = '#1c140c';
-    ctx.fillRect(px, py, 4, this.tileSize);
-    ctx.fillRect(px + this.tileSize - 4, py, 4, this.tileSize);
-    ctx.fillRect(px, py, this.tileSize, 4);
-    ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
+    // 左右・上下の幅木（ダークグレーのビニル巾木）
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(px, py, 3, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 3, py, 3, this.tileSize);
+    ctx.fillRect(px, py, this.tileSize, 3);
+    ctx.fillRect(px, py + this.tileSize - 3, this.tileSize, 3);
 
-    // 踏み固められた砂利テクスチャ
-    ctx.fillStyle = '#4a3827';
-    ctx.fillRect(px + 8, py + 10, 6, 4);
-    ctx.fillRect(px + 26, py + 20, 5, 4);
-    ctx.fillRect(px + 14, py + 32, 7, 3);
-    ctx.fillStyle = '#22180f';
-    ctx.fillRect(px + 10, py + 16, 4, 3);
-    ctx.fillRect(px + 22, py + 28, 4, 3);
+    // 通路中央のタイル分割線
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
+
+    // 天井LEDダウンライトの床反射（清潔なオフィスビルの艶感）
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.fillRect(px + 8, py + 12, this.tileSize - 16, 6);
+    ctx.fillRect(px + 14, py + 26, this.tileSize - 28, 4);
   }
 
-  // 壁タイル（本家トルネコSFC風・重厚な3段の石積み正面壁 ＆ 天井岩石）
+  // 壁タイル（オフィスタワー風・スチールパーテーション＆巾木・コンセント）
   _drawWallTile(ctx, px, py, dungeon, x, y) {
     const southIsFloor = (y + 1 < dungeon.height && dungeon.tiles[y + 1][x] !== CONFIG.TILE.WALL);
 
     if (southIsFloor) {
-      // 部屋の北側に面する「正面石壁」（トルネコ名物の立体レンガ壁）
-      // 天井ヘリ・石の笠木（上部天板）
-      ctx.fillStyle = '#614f3c';
-      ctx.fillRect(px, py, this.tileSize, 6);
-      ctx.fillStyle = '#8f775e'; // 笠木の上面ハイライト
-      ctx.fillRect(px, py, this.tileSize, 2);
-      ctx.fillStyle = '#1c130a'; // 笠木の下面シャドウ線
-      ctx.fillRect(px, py + 5, this.tileSize, 1);
+      // 部屋に面するオフィスパーテーション壁正面
+      // 1. 天井アルミチャンネル（上部シルバーレール）
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(px, py, this.tileSize, 5);
+      ctx.fillStyle = '#e2e8f0'; // 天井レールのハイライト
+      ctx.fillRect(px, py, this.tileSize, 1);
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(px, py + 4, this.tileSize, 1);
 
-      // 石積みレンガ3段
-      const brickH = 12;
+      // 2. パーテーション化粧パネル（クリーンホワイト／ライトオフィスグレー）
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect(px, py + 5, this.tileSize, this.tileSize - 12);
 
-      // 1段目（最も明るい）
-      ctx.fillStyle = '#4c3d2e';
-      ctx.fillRect(px, py + 6, this.tileSize, brickH);
-      ctx.fillStyle = '#6b5742'; // 上面ハイライト
-      ctx.fillRect(px, py + 6, this.tileSize, 2);
-      ctx.fillStyle = '#1e140b'; // 目地
-      ctx.fillRect(px + 22, py + 6, 2, brickH);
+      // パネル中央の縦目地（24px幅のモジュール分割）
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(px + this.tileSize / 2 - 1, py + 5, 2, this.tileSize - 12);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(px + this.tileSize / 2, py + 5, 1, this.tileSize - 12);
 
-      // 2段目（中間の明るさ・目地を交互に配置）
-      ctx.fillStyle = '#3f3123';
-      ctx.fillRect(px, py + 18, this.tileSize, brickH);
-      ctx.fillStyle = '#594633';
-      ctx.fillRect(px, py + 18, this.tileSize, 2);
-      ctx.fillStyle = '#170f07';
-      ctx.fillRect(px + 10, py + 18, 2, brickH);
-      ctx.fillRect(px + 34, py + 18, 2, brickH);
+      // パネル左右の境界目地
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(px, py + 5, 1, this.tileSize - 12);
+      ctx.fillRect(px + this.tileSize - 1, py + 5, 1, this.tileSize - 12);
 
-      // 3段目（最下段・深淵の陰影）
-      ctx.fillStyle = '#312418';
-      ctx.fillRect(px, py + 30, this.tileSize, brickH + 6);
-      ctx.fillStyle = '#483726';
-      ctx.fillRect(px, py + 30, this.tileSize, 2);
-      ctx.fillStyle = '#120b04';
-      ctx.fillRect(px + 20, py + 30, 2, brickH + 6);
+      // パネル上部の淡い反射
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(px + 1, py + 6, this.tileSize / 2 - 2, 2);
+      ctx.fillRect(px + this.tileSize / 2 + 1, py + 6, this.tileSize / 2 - 2, 2);
 
-      // 床へ落ちる濃密な黒影
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-      ctx.fillRect(px, py + this.tileSize - 5, this.tileSize, 5);
+      // たまに壁面に電源コンセントプレートまたは照明スイッチが付いている（オフィスのリアル感）
+      const hash = ((x * 41) + (y * 23)) & 7;
+      if (hash === 2) {
+        // 電源コンセント（白プレート＋2つの縦穴）
+        const cx = px + 12;
+        const cy = py + 22;
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(cx, cy, 6, 9);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.strokeRect(cx, cy, 6, 9);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(cx + 2, cy + 2, 2, 2);
+        ctx.fillRect(cx + 2, cy + 5, 2, 2);
+      } else if (hash === 5) {
+        // 照明スイッチ（ワイドスイッチプレート）
+        const sx = px + 30;
+        const sy = py + 18;
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(sx, sy, 7, 10);
+        ctx.strokeStyle = '#94a3b8';
+        ctx.strokeRect(sx, sy, 7, 10);
+        ctx.fillStyle = '#10b981'; // ほたるスイッチの緑LED
+        ctx.fillRect(sx + 2, sy + 4, 3, 2);
+      }
+
+      // 3. 黒色ビニル巾木（ベースボード・オフィス定番）
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px, py + this.tileSize - 7, this.tileSize, 7);
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(px, py + this.tileSize - 7, this.tileSize, 1);
+
+      // 4. 床に落ちる影
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.60)';
+      ctx.fillRect(px, py + this.tileSize - 3, this.tileSize, 3);
     } else {
-      // 内部の壁・天井岩盤（均一な黒ではなく、SFCらしい洞窟岩盤テクスチャ）
-      ctx.fillStyle = '#1f1710';
+      // 内部の壁・天井裏（空調ダクト・スプリンクラーの通るダークエリア）
+      ctx.fillStyle = '#111827';
       ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-      // 岩石の裂け目・テクスチャ
-      ctx.strokeStyle = '#2c2117';
+      ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
-      ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
+      ctx.strokeRect(px + 2, py + 2, this.tileSize - 4, this.tileSize - 4);
 
-      ctx.fillStyle = '#150f09';
-      ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
-
-      // 岩肌の微小ハイライト
-      ctx.fillStyle = '#382b1f';
-      ctx.fillRect(px + 8, py + 8, 4, 2);
-      ctx.fillRect(px + 28, py + 22, 5, 2);
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(px + 6, py + 6, this.tileSize - 12, this.tileSize - 12);
     }
   }
 
-  // 扉タイル（本家トルネコ風・石造りのアーチ枠）
+  // 扉タイル（オフィスタワー風・アルミサッシ＆すりガラスドア）
   _drawDoorTile(ctx, px, py) {
     this._drawCorridorTile(ctx, px, py);
 
-    // 左右の石柱
-    ctx.fillStyle = '#544434';
-    ctx.fillRect(px, py, 6, this.tileSize);
-    ctx.fillRect(px + this.tileSize - 6, py, 6, this.tileSize);
+    // アルミサッシ枠（左右）
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(px, py, 5, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 5, py, 5, this.tileSize);
 
-    ctx.fillStyle = '#7a6652';
-    ctx.fillRect(px, py, 6, 2);
-    ctx.fillRect(px + this.tileSize - 6, py, 6, 2);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(px, py, 1, this.tileSize);
+    ctx.fillRect(px + this.tileSize - 5, py, 1, this.tileSize);
 
-    // 中央の木製敷居
-    ctx.fillStyle = '#7d5328';
-    ctx.fillRect(px + 6, py + this.tileSize / 2 - 4, this.tileSize - 12, 8);
-    ctx.fillStyle = '#a8753e';
-    ctx.fillRect(px + 6, py + this.tileSize / 2 - 4, this.tileSize - 12, 2);
+    // すりガラスのドアパネル
+    ctx.fillStyle = 'rgba(186, 230, 253, 0.45)';
+    ctx.fillRect(px + 5, py + 4, this.tileSize - 10, this.tileSize - 8);
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px + 5, py + 4, this.tileSize - 10, this.tileSize - 8);
+
+    // ステンレスのドアハンドルバー（縦棒）
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(px + this.tileSize - 9, py + this.tileSize / 2 - 7, 2, 14);
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(px + this.tileSize - 7, py + this.tileSize / 2 - 7, 1, 14);
+
+    // 上部ルームプレート（黒地に金色ドット）
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(px + this.tileSize / 2 - 8, py + 6, 16, 4);
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(px + this.tileSize / 2 - 6, py + 7, 12, 2);
   }
 
-  // 階段タイル（本家トルネコ風・深淵へ続く石の降り階段）
+  // 階段タイル（オフィスタワー風・非常階段 ＆ 緑の非常口ピクトグラム誘導灯）
   _drawStairsTile(ctx, px, py) {
     this._drawFloorTile(ctx, px, py);
 
-    // 階段の掘り込み枠
-    ctx.fillStyle = '#140e09';
+    // 非常階段室の開口枠（スチール防火枠）
+    ctx.fillStyle = '#0f172a';
     ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
 
-    // 4段の石段（奥へ行くほど深いブルーブラックの闇へ）
+    // 鉄骨非常階段ステップ4段（グレー鉄板＋黄色安全滑り止めノンスリップ）
     const steps = [
-      { y: 6, h: 8, bg: '#3e5672', hi: '#82a9d4', edge: '#293a4f' },
-      { y: 14, h: 8, bg: '#2b3d52', hi: '#5c80a8', edge: '#1b2837' },
-      { y: 22, h: 8, bg: '#1a2736', hi: '#3d5977', edge: '#0e1620' },
-      { y: 30, h: 12, bg: '#0b121b', hi: '#213348', edge: '#05090f' },
+      { y: 6, h: 7, bg: '#475569', tread: '#facc15' },
+      { y: 13, h: 7, bg: '#334155', tread: '#eab308' },
+      { y: 20, h: 8, bg: '#1e293b', tread: '#ca8a04' },
+      { y: 28, h: 14, bg: '#0b1320', tread: '#854d0e' },
     ];
 
     steps.forEach(s => {
       ctx.fillStyle = s.bg;
       ctx.fillRect(px + 6, py + s.y, this.tileSize - 12, s.h);
-      ctx.fillStyle = s.hi; // 階段フチのハイライト
+      // 黄色の安全滑り止めノンスリップ（オフィス階段の特徴）
+      ctx.fillStyle = s.tread;
       ctx.fillRect(px + 6, py + s.y, this.tileSize - 12, 2);
-      ctx.fillStyle = s.edge; // 階段角の影
-      ctx.fillRect(px + 6, py + s.y + s.h - 1, this.tileSize - 12, 1);
     });
 
-    // 階段のフチ取り石枠
-    ctx.strokeStyle = '#947e65';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(px + 5, py + 5, this.tileSize - 10, this.tileSize - 10);
+    // スチール手すりパイプ（左右）
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(px + 6, py + 6, 2, this.tileSize - 14);
+    ctx.fillRect(px + this.tileSize - 8, py + 6, 2, this.tileSize - 14);
 
-    // 神秘的な青白い光のオーラ
-    const pulse = 0.2 + 0.15 * Math.sin(Date.now() / 300);
-    ctx.fillStyle = `rgba(0, 229, 255, ${pulse})`;
-    ctx.fillRect(px + 8, py + 8, this.tileSize - 16, 8);
+    // 緑の非常口サイン（EMERGENCY EXIT 🏃）
+    const pulse = 0.8 + 0.2 * Math.sin(Date.now() / 250);
+    ctx.save();
+    ctx.fillStyle = '#15803d'; // 非常口グリーン
+    ctx.fillRect(px + this.tileSize / 2 - 13, py + 6, 26, 11);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(px + this.tileSize / 2 - 13, py + 6, 26, 11);
+
+    // 白いピクトグラム（走る人アイコン＆下矢印）
+    ctx.fillStyle = '#ffffff';
+    // 頭
+    ctx.fillRect(px + this.tileSize / 2 - 3, py + 8, 2, 2);
+    // 体と足
+    ctx.fillRect(px + this.tileSize / 2 - 4, py + 10, 4, 4);
+    // 階段マーク
+    ctx.fillRect(px + this.tileSize / 2 + 2, py + 12, 3, 2);
+    ctx.fillRect(px + this.tileSize / 2 + 5, py + 10, 3, 2);
+
+    // 誘導灯のグリーンネオングロー
+    ctx.fillStyle = `rgba(34, 197, 94, ${0.25 * pulse})`;
+    ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
+    ctx.restore();
   }
 
   // アイテム描画（オリジナルドット絵スプライト）
@@ -484,7 +529,40 @@ export class DungeonRenderer {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
       ctx.fill();
 
-      // アイテム背面のやわらかな光
+      // 40F 奇跡のトイレ個室（ゴール）専用の神々しい演出
+      if (item.id === 'toilet' || item.id === 'miracle_box') {
+        const pulse = 0.7 + 0.3 * Math.sin(now / 180);
+        ctx.beginPath();
+        ctx.arc(cx, cy + bob, 22, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0, 229, 255, ${0.35 * pulse})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy + bob, 16, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 235, 59, ${0.4 * pulse})`;
+        ctx.fill();
+
+        const tImg = this.getImage('./assets/props/toilet.png') || this.getImage(item.sprite);
+        if (tImg) {
+          const tDim = 38;
+          ctx.drawImage(tImg, cx - tDim / 2, cy - tDim / 2 + bob, tDim, tDim);
+        }
+
+        // 常時光り輝くゴール名プレート
+        ctx.font = 'bold 11px sans-serif';
+        const label = '★ 40F トイレ ★';
+        const textW = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.88)';
+        ctx.fillRect(cx - textW / 2 - 5, py - 20, textW + 10, 16);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx - textW / 2 - 5, py - 20, textW + 10, 16);
+        ctx.fillStyle = '#ffd700';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, cx, py - 8);
+        continue;
+      }
+
+      // 通常アイテム背面のやわらかな光
       ctx.beginPath();
       ctx.arc(cx, cy + bob, 15, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255, 235, 59, 0.18)';

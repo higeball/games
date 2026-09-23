@@ -182,7 +182,7 @@ export class DungeonGenerator {
       y: playerRoom.centerY
     };
 
-    // 階段配置（最終階層10Fの場合は「奇跡の箱」を配置）
+    // 階段配置（最終階層40Fの場合は「奇跡のトイレ個室」を配置）
     let stairs = null;
     let miracleBox = null;
     const isFinalFloor = floorNumber >= CONFIG.DUNGEON.MAX_FLOORS;
@@ -191,8 +191,8 @@ export class DungeonGenerator {
     const stairsY = stairsRoom.y + 1 + Math.floor(Math.random() * (stairsRoom.h - 2));
 
     if (isFinalFloor) {
-      miracleBox = Item.createMiracleBox(stairsX, stairsY);
-      // 最終フロアでも脱出階段として存在させる
+      miracleBox = Item.createToilet(stairsX, stairsY);
+      // 最終フロアでも到達可能床として配置
       tiles[stairsY][stairsX] = CONFIG.TILE.FLOOR;
     } else {
       tiles[stairsY][stairsX] = CONFIG.TILE.STAIRS;

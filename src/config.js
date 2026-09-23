@@ -7,7 +7,10 @@ export const CONFIG = {
   DUNGEON: {
     WIDTH: 48,              // フロア横タイル数
     HEIGHT: 36,             // フロア縦タイル数
-    MAX_FLOORS: 10,         // 初心者向けメインダンジョン深度（10Fで「奇跡の箱」獲得クリア）
+    START_FLOOR: 50,        // 開始階: 50F (オフィスタワー50階)
+    GOAL_FLOOR: 40,         // 目的地: 40F (トイレのある階)
+    TOTAL_FLOORS: 11,       // 50Fから40Fまでの全11フロア
+    MAX_FLOORS: 11,         // 最終フロア（40Fで奇跡のトイレ到達クリア）
     TILE_SIZE: 48,          // レンダリング時のタイル基本サイズ（ピクセル）
   },
 
@@ -21,13 +24,13 @@ export const CONFIG = {
     TRAP: 5,        // ワナ（未発見時は床に見える）
   },
 
-  // ワナ種別
+  // ワナ種別（オフィスタワーのハザード）
   TRAPS: {
-    ARROW: { id: 'arrow', name: '毒矢のワナ', desc: '毒矢が飛んできて力が1下がった！' },
-    MINE: { id: 'mine', name: '地雷', desc: '地雷が爆発した！HPが半分になった！' },
-    SLEEP: { id: 'sleep', name: '睡眠ガスのワナ', desc: '甘いガスを吸い込んで眠ってしまった！' },
-    TRIP: { id: 'trip', name: '転び石', desc: '足を取られて転んでしまった！道具を落とした！' },
-    WARP: { id: 'warp', name: 'ワープのワナ', desc: '別の部屋へと飛ばされてしまった！' }
+    ARROW: { id: 'arrow', name: '滑る床のワナ', desc: '濡れた床でツルッと滑って体勢を崩した！ちからが1下がった！' },
+    MINE: { id: 'mine', name: '漏電コードのワナ', desc: '露出した配線でビリッと感電！HPが半分になった！' },
+    SLEEP: { id: 'sleep', name: '睡魔のワナ', desc: '昼食後の猛烈な睡魔に襲われ、眠ってしまった！' },
+    TRIP: { id: 'trip', name: 'LANケーブルのワナ', desc: '足元のLANケーブルに引っ掛かって転倒！道具を落とした！' },
+    WARP: { id: 'warp', name: '迷走エレベーターの扉', desc: '不気味に開いた扉に吸い込まれ、別の部屋へワープした！' }
   },
 
   // プレイヤー初期ステータス（もじさん）
