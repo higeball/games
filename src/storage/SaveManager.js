@@ -42,6 +42,7 @@ export class SaveManager {
         hp: data.player.hp || 15,
         maxHp: data.player.maxHp || 15,
         gold: data.player.gold || 0,
+        difficulty: data.difficulty || 'normal',
         timestamp: data.timestamp || Date.now()
       };
     } catch (e) {
@@ -67,6 +68,7 @@ export class SaveManager {
       const saveData = {
         version: 1,
         timestamp: Date.now(),
+        difficulty: game.difficulty || 'normal',
         floorNumber: game.floorNumber,
 
         // プレイヤーステータス
@@ -152,6 +154,7 @@ export class SaveManager {
       if (!data || !data.player || !data.dungeon) return false;
 
       game.floorNumber = data.floorNumber;
+      game.difficulty = data.difficulty || 'normal';
       game.isGameOver = false;
       game.isGameClear = false;
       game.log.clear();
@@ -276,6 +279,7 @@ export class SaveManager {
       uses: item.uses,
       count: item.count,
       goldAmount: item.goldAmount,
+      obtainedOrder: item.obtainedOrder,
       x: item.x,
       y: item.y
     };

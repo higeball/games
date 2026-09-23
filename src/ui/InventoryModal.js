@@ -15,6 +15,10 @@ export class InventoryModal {
     this.actionsEl = document.getElementById('inventory-actions');
     this.closeBtn = document.getElementById('inventory-close-btn');
 
+    this.btnSortObtained = document.getElementById('btn-sort-obtained');
+    this.btnSortType = document.getElementById('btn-sort-type');
+    this.sortMode = 'obtained';
+
     this.onAction = options.onAction || (() => {});
     this.isOpen = false;
     this.selectedItem = null;
@@ -22,6 +26,42 @@ export class InventoryModal {
 
     if (this.closeBtn) {
       this.closeBtn.addEventListener('click', () => this.close());
+    }
+
+    if (this.btnSortObtained) {
+      this.btnSortObtained.addEventListener('click', () => this.applySort('obtained'));
+    }
+    if (this.btnSortType) {
+      this.btnSortType.addEventListener('click', () => this.applySort('type'));
+    }
+  }
+
+  applySort(mode) {
+    if (!this.player || !this.player.inventory) return;
+    this.sortMode = mode;
+    soundManager.playCursor?.();
+
+    if (mode === 'obtained') {
+      this.player.inventory.sort((a, b) => (a.obtainedOrder || 0) - (b.obtainedOrder || 0));
+    } else if (mode === 'type') {
+      this.player.inventory.sort((a, b) => {
+        const orderA = a.getTypeSortOrder ? a.getTypeSortOrder() : 99;
+        const orderB = b.getTypeSortOrder ? b.getTypeSortOrder() : 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.name.localeCompare(b.name, 'ja');
+      });
+    }
+
+    this.updateSortTabs();
+    this.render();
+  }
+
+  updateSortTabs() {
+    if (this.btnSortObtained) {
+      this.btnSortObtained.classList.toggle('active', this.sortMode === 'obtained');
+    }
+    if (this.btnSortType) {
+      this.btnSortType.classList.toggle('active', this.sortMode === 'type');
     }
   }
 
@@ -32,6 +72,8 @@ export class InventoryModal {
     this.isStairs = isStairs;
     this.selectedItem = null;
     this.isGroundSelection = false;
+
+    this.updateSortTabs();
 
     if (this.modalEl) {
       this.modalEl.classList.remove('hidden');

@@ -20,15 +20,23 @@ export class TitleScreen {
     this.btnContinue = document.getElementById('btn-title-continue');
     this.saveInfoEl = document.getElementById('save-info-text');
 
+    // 難易度モーダル関連
+    this.diffModal = document.getElementById('difficulty-modal');
+    this.diffChoiceNormal = document.getElementById('diff-choice-normal');
+    this.diffChoiceHard = document.getElementById('diff-choice-hard');
+    this.btnDiffCancel = document.getElementById('btn-diff-cancel');
+    this.selectedDifficulty = 'normal';
+
     this.currentStoryPage = 0;
     this.storyPages = [
       {
         title: '【緊急事態発生】',
         time: '🕒 12:40 PM',
+        image: './assets/story/story_1.jpg',
         lines: [
-          '大手IT企業「株式会社もじ」が入居する地上50階建てのオフィスタワー。',
-          '社員食堂で激辛大盛りカレーを堪能した会社員・もじさん。',
-          '食後の至福のひとときを過ごしていたその時……！',
+          '大手IT企業「株式会社もじ」が入居する 地上50階建てのオフィスタワー。',
+          '社員食堂で 激辛大盛りカレーを堪能した 会社員・もじさん。',
+          '食後の至福のひとときを 過ごしていたその時……！',
           '――ドクンッ！！',
           '突如、下腹部に激しい雷鳴が轟いた！！'
         ]
@@ -36,10 +44,11 @@ export class TitleScreen {
       {
         title: '【絶望のカウントダウン】',
         time: '🕒 12:42 PM',
+        image: './assets/story/story_2.jpg',
         lines: [
           'もじさん「う、うぐぐっ……！？ なんだこの激痛は……！？」',
-          '「ヤバい……！ 今すぐトイレに行かないと社会人生命が終わる……！！」',
-          '脂汗を流しながら 50F レストラン街のトイレへ駆け込むも、',
+          '「ヤバい……！ 今すぐトイレに行かないと 社会人生命が終わる……！！」',
+          '脂汗を流しながら 50F レストラン街のトイレへ 駆け込むも、',
           '扉には無慈悲な張り紙が……！',
           '『【配管破裂のため 全面使用禁止】』'
         ]
@@ -47,33 +56,35 @@ export class TitleScreen {
       {
         title: '【閉ざされたエレベーター】',
         time: '🕒 12:45 PM',
+        image: './assets/story/story_3.jpg',
         lines: [
           'もじさん「そ、そんなバカな……ッ！？」',
           '急いでエレベーターホールへ走るも、そこにも無情な警告灯！',
           '『【法定定期点検中：全機停止（12:00〜13:30）】』',
-          '重厚なステンレスの扉はピクリとも動かない……！',
+          '重厚なステンレスの扉は ピクリとも動かない……！',
           '絶望的な状況の中、フロアに館内アナウンスが響き渡る――'
         ]
       },
       {
         title: '【奇跡の案内】',
         time: '🕒 12:47 PM',
+        image: './assets/story/story_4.jpg',
         lines: [
           '『ピンポンパンポーン――』',
           '『現在、館内で使用可能な最寄りのトイレは…… 【40階】となります。』',
-          'もじさん「よ、40階……！？ ここから非常階段で10フロアも降りるのか……！？」',
-          '午後の始業時間は【13:00】。',
-          '残された時間はあとわずか13分……！！'
+          'もじさん「よ、40階……！？ ここから非常階段で 10フロアも降りるのか……！？」',
+          '午後の始業時間は【13:00】。 残された時間はあとわずか13分……！！'
         ]
       },
       {
         title: '【非常階段へ突入せよ！】',
         time: '🕒 12:48 PM',
+        image: './assets/story/story_5.jpg',
         lines: [
           'もじさん「非常階段を駆け降りるしかない……！」',
           '「頼む、俺の腹……！ 40Fまで持ちこたえてくれ……ッ！！」',
           '装備も荷物もすべて投げ捨て、身一つで非常扉を蹴破ったもじさん。',
-          'オフィスを彷徨う残業モンスターや数々の障害を突破し、',
+          'オフィスを彷徨う残業モンスターや 数々の障害を突破し、',
           '40Fの【奇跡のトイレ個室】へ辿り着け！！'
         ]
       }
@@ -83,10 +94,30 @@ export class TitleScreen {
   }
 
   initEvents() {
-    // はじめから
+    // はじめから（難易度選択モーダルを開く）
     this.btnNew?.addEventListener('click', () => {
       soundManager.playConfirm();
+      this.openDifficultySelect();
+    });
+
+    // 難易度カード選択
+    this.diffChoiceNormal?.addEventListener('click', () => {
+      soundManager.playConfirm();
+      this.selectedDifficulty = 'normal';
+      this.closeDifficultySelect();
       this.startOpeningStory();
+    });
+
+    this.diffChoiceHard?.addEventListener('click', () => {
+      soundManager.playConfirm();
+      this.selectedDifficulty = 'hard';
+      this.closeDifficultySelect();
+      this.startOpeningStory();
+    });
+
+    this.btnDiffCancel?.addEventListener('click', () => {
+      soundManager.playCursor?.();
+      this.closeDifficultySelect();
     });
 
     // つづきから
@@ -110,6 +141,31 @@ export class TitleScreen {
 
     // キーボード操作対応
     window.addEventListener('keydown', (e) => {
+      // 難易度選択中のキーボード操作
+      if (this.diffModal && !this.diffModal.classList.contains('hidden')) {
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          soundManager.playCursor?.();
+          const isNormal = this.diffChoiceNormal?.classList.contains('selected');
+          if (isNormal) {
+            this.diffChoiceNormal?.classList.remove('selected');
+            this.diffChoiceHard?.classList.add('selected');
+          } else {
+            this.diffChoiceHard?.classList.remove('selected');
+            this.diffChoiceNormal?.classList.add('selected');
+          }
+        } else if (e.key === 'Enter') {
+          soundManager.playConfirm();
+          const isHard = this.diffChoiceHard?.classList.contains('selected');
+          this.selectedDifficulty = isHard ? 'hard' : 'normal';
+          this.closeDifficultySelect();
+          this.startOpeningStory();
+        } else if (e.key === 'Escape') {
+          soundManager.playCursor?.();
+          this.closeDifficultySelect();
+        }
+        return;
+      }
+
       if (!this.titleEl || this.titleEl.classList.contains('hidden')) {
         if (this.storyModal && !this.storyModal.classList.contains('hidden')) {
           if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowRight') {
@@ -131,10 +187,20 @@ export class TitleScreen {
           this.continueGame();
         } else {
           soundManager.playConfirm();
-          this.startOpeningStory();
+          this.openDifficultySelect();
         }
       }
     });
+  }
+
+  openDifficultySelect() {
+    this.diffModal?.classList.remove('hidden');
+    this.diffChoiceNormal?.classList.add('selected');
+    this.diffChoiceHard?.classList.remove('selected');
+  }
+
+  closeDifficultySelect() {
+    this.diffModal?.classList.add('hidden');
   }
 
   /**
@@ -149,7 +215,8 @@ export class TitleScreen {
       this.btnContinue?.classList.remove('disabled');
       const summary = SaveManager.getSaveSummary();
       if (summary && this.saveInfoEl) {
-        this.saveInfoEl.textContent = `[${summary.floorDisplay} Lv${summary.level}]`;
+        const diffTag = summary.difficulty === 'hard' ? ' (Hard)' : '';
+        this.saveInfoEl.textContent = `[${summary.floorDisplay} Lv${summary.level}${diffTag}]`;
       }
     } else {
       this.btnContinue?.classList.add('disabled');
@@ -164,11 +231,13 @@ export class TitleScreen {
 
   hide() {
     this.titleEl?.classList.add('hidden');
+    this.diffModal?.classList.add('hidden');
     this.storyModal?.classList.add('hidden');
   }
 
   startOpeningStory() {
     this.titleEl?.classList.add('hidden');
+    this.diffModal?.classList.add('hidden');
     this.storyModal?.classList.remove('hidden');
     this.currentStoryPage = 0;
     this.renderStoryPage();
@@ -189,8 +258,12 @@ export class TitleScreen {
 
     const titleEl = document.getElementById('story-header-title');
     const timeEl = document.getElementById('story-header-time');
+    const imgEl = document.getElementById('story-image');
     if (titleEl) titleEl.textContent = page.title;
     if (timeEl) timeEl.textContent = page.time;
+    if (imgEl && page.image) {
+      imgEl.src = page.image;
+    }
 
     if (this.storyPageEl) {
       this.storyPageEl.textContent = `${this.currentStoryPage + 1} / ${this.storyPages.length}`;
@@ -211,7 +284,7 @@ export class TitleScreen {
 
   finishStoryAndStart() {
     this.hide();
-    this.game.startNewGame();
+    this.game.startNewGame(this.selectedDifficulty);
   }
 
   continueGame() {

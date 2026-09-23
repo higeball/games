@@ -9,6 +9,7 @@ let nextItemId = 1;
 export class Item {
   constructor(data = {}) {
     this.instanceId = nextItemId++;
+    this.obtainedOrder = data.obtainedOrder !== undefined ? data.obtainedOrder : this.instanceId;
     this.id = data.id || 'item';
     this.name = data.name || 'なぞの道具';
     this.type = data.type || 'herb';
@@ -100,6 +101,20 @@ export class Item {
   getEffectiveDef() {
     if (this.type !== 'shield') return 0;
     return Math.max(0, this.def + this.refine);
+  }
+
+  // 種類順ソート優先度（武器→盾→矢→パン→草→巻物→杖→その他）
+  getTypeSortOrder() {
+    switch (this.type) {
+      case 'weapon': return 1;
+      case 'shield': return 2;
+      case 'arrow': return 3;
+      case 'bread': return 4;
+      case 'herb': return 5;
+      case 'scroll': return 6;
+      case 'staff': return 7;
+      default: return 8;
+    }
   }
 
   // ファクトリメソッド：定義から生成

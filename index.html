@@ -81,22 +81,30 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 3px 6px;
-      font-size: 13px;
+      flex-wrap: nowrap;
+      gap: 2px 5px;
+      font-size: clamp(10px, 2.7vw, 13px);
       line-height: 16px;
+      white-space: nowrap;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .status-primary-row::-webkit-scrollbar {
+      display: none;
     }
 
     .status-cell {
       display: flex;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .dq-label {
       color: #ffd54f;
-      font-size: 11px;
+      font-size: clamp(9px, 2.3vw, 11px);
     }
 
     .dq-val {
@@ -104,21 +112,22 @@
       font-weight: bold;
     }
 
-    .hp-gauge-mini {
-      width: 38px;
-      height: 7px;
-      background: #1e293b;
-      border: 1px solid #475569;
+    .diff-badge {
+      font-size: 10px;
+      padding: 1px 4px;
       border-radius: 2px;
-      overflow: hidden;
+      font-weight: bold;
       margin-left: 2px;
+      text-transform: uppercase;
     }
-
-    .hp-bar-fill {
-      width: 100%;
-      height: 100%;
-      background: #00e676;
-      transition: width 0.15s ease;
+    .diff-badge.normal {
+      background: #1e3a8a;
+      color: #93c5fd;
+    }
+    .diff-badge.hard {
+      background: #7f1d1d;
+      color: #fca5a5;
+      border: 1px solid #ef4444;
     }
 
     /* 装備常時表示サブストリップ */
@@ -224,8 +233,8 @@
 
     .dpad-grid {
       display: grid;
-      grid-template-columns: repeat(3, 52px);
-      grid-template-rows: repeat(3, 52px);
+      grid-template-columns: repeat(3, clamp(56px, 14.5vw, 68px));
+      grid-template-rows: repeat(3, clamp(56px, 14.5vw, 68px));
       gap: 3px;
     }
 
@@ -233,13 +242,14 @@
       background: #081122;
       border: 1px solid #334155;
       color: #ffffff;
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 900;
       border-radius: 4px;
       display: flex;
       justify-content: center;
       align-items: center;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .dpad-btn:active {
@@ -771,24 +781,27 @@
       width: 100%;
       height: 100%;
       z-index: 210;
-      background: rgba(0, 0, 0, 0.92);
+      background: rgba(0, 0, 0, 0.94);
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 16px;
+      padding: 12px;
     }
 
     .story-dialog {
       width: 100%;
-      max-width: 400px;
+      max-width: 440px;
+      max-height: 94vh;
+      overflow-y: auto;
       background: rgba(4, 10, 24, 0.98);
       border: 2px solid #ffffff;
       border-radius: 6px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
-      padding: 16px;
+      padding: 12px 16px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      scrollbar-width: thin;
     }
 
     .story-header {
@@ -796,7 +809,7 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
-      padding-bottom: 6px;
+      padding-bottom: 5px;
     }
 
     .story-header-title {
@@ -810,17 +823,41 @@
       color: #facc15;
     }
 
+    .story-image-wrap {
+      width: 100%;
+      height: clamp(140px, 28vh, 190px);
+      border: 1px solid #475569;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #020612;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .story-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
     .story-body {
-      min-height: 140px;
+      min-height: 95px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       font-size: 13px;
       line-height: 20px;
       color: #ffffff;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      line-break: strict;
     }
 
     .story-line {
+      display: inline-block;
+      width: 100%;
       animation: fadeIn 0.2s ease-in;
     }
 
@@ -829,7 +866,7 @@
       justify-content: space-between;
       align-items: center;
       border-top: 1px dashed rgba(255, 255, 255, 0.3);
-      padding-top: 10px;
+      padding-top: 8px;
     }
 
     .story-page-indicator {
@@ -860,6 +897,190 @@
       background: #1e3a8a;
       border: 1px solid #60a5fa;
       color: #ffffff;
+    }
+
+    /* 階段確認モーダル（インゲーム・ドラクエ調） */
+    #stairs-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 180;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .stairs-dialog {
+      background: rgba(2, 6, 23, 0.98);
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    .stairs-dialog-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .stairs-dialog-msg {
+      font-size: 13px;
+      line-height: 20px;
+      color: #ffffff;
+    }
+
+    .stairs-dialog-options {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .stairs-btn {
+      flex: 1;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      border: 2px solid #475569;
+      background: #0b1329;
+      color: #ffffff;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .stairs-btn.selected, .stairs-btn:hover {
+      background: #1e3a8a;
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+
+    /* 難易度選択モーダル */
+    #difficulty-modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 205;
+      background: rgba(0, 0, 0, 0.88);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .diff-dialog {
+      background: rgba(4, 10, 24, 0.98);
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .diff-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: #ffd700;
+      text-align: center;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+      padding-bottom: 6px;
+    }
+
+    .diff-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .diff-card {
+      background: #081122;
+      border: 2px solid #334155;
+      border-radius: 4px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .diff-card:hover, .diff-card.selected {
+      background: #1e293b;
+      border-color: #ffd700;
+    }
+
+    .diff-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 15px;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .diff-card.selected .diff-card-header {
+      color: #ffd700;
+    }
+
+    .diff-card-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 16px;
+    }
+
+    .diff-cancel-btn {
+      background: transparent;
+      border: 1px solid #475569;
+      color: #94a3b8;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    /* インベントリソート用タブ */
+    .inv-sort-tabs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .inv-sort-btn {
+      background: #0f172a;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .inv-sort-btn:hover, .inv-sort-btn.active {
+      background: #1e3a8a;
+      border-color: #ffd700;
+      color: #ffd700;
     }
 
     .btn-next:active {
@@ -896,12 +1117,45 @@
     </div>
   </div>
 
+  <!-- 難易度選択モーダル -->
+  <div id="difficulty-modal" class="hidden interactive">
+    <div class="diff-dialog">
+      <div class="diff-title">★ 難易度を選択してください ★</div>
+      <div class="diff-options">
+        <div class="diff-card selected" id="diff-choice-normal">
+          <div class="diff-card-header">
+            <span>ノーマル (Normal)</span>
+            <span class="diff-badge normal">標準</span>
+          </div>
+          <div class="diff-card-desc">
+            オフィスタワーの通常冒険。<br>
+            昼休みのプレッシャーに立ち向かう標準バランス。
+          </div>
+        </div>
+        <div class="diff-card" id="diff-choice-hard">
+          <div class="diff-card-header">
+            <span>ハード (Hard)</span>
+            <span class="diff-badge hard">高難度</span>
+          </div>
+          <div class="diff-card-desc">
+            極限の焦燥感！<br>
+            敵の攻撃力・HPが強化され、空腹の進行が1.5倍に加速！
+          </div>
+        </div>
+      </div>
+      <button class="diff-cancel-btn" id="btn-diff-cancel">タイトルへもどる</button>
+    </div>
+  </div>
+
   <!-- オープニングストーリーモーダル -->
   <div id="story-modal" class="hidden interactive">
     <div class="story-dialog">
       <div class="story-header">
         <span class="story-header-title" id="story-header-title">【緊急事態発生】</span>
         <span class="story-header-time" id="story-header-time">🕒 12:40 PM</span>
+      </div>
+      <div class="story-image-wrap">
+        <img id="story-image" src="./assets/story/story_1.jpg" alt="ストーリー挿絵" />
       </div>
       <div class="story-body" id="story-body-text"></div>
       <div class="story-footer">
@@ -910,6 +1164,22 @@
           <button class="story-btn btn-skip" id="btn-story-skip">スキップ</button>
           <button class="story-btn btn-next" id="btn-story-next">次へ ▶</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 階段確認ダイアログ（インゲームウィンドウ） -->
+  <div id="stairs-modal" class="hidden interactive">
+    <div class="stairs-dialog">
+      <div class="stairs-dialog-title">
+        <span>🏃 非常階段</span>
+      </div>
+      <div class="stairs-dialog-msg" id="stairs-dialog-msg">
+        非常階段を駆け降りて、下の階へ降りますか？
+      </div>
+      <div class="stairs-dialog-options">
+        <button class="stairs-btn selected" id="btn-stairs-yes">▶ はい</button>
+        <button class="stairs-btn" id="btn-stairs-no">いいえ</button>
       </div>
     </div>
   </div>
@@ -926,6 +1196,7 @@
         <div class="status-cell">
           <span class="dq-label">階</span>
           <span class="dq-val" id="hud-floor">50F</span>
+          <span class="diff-badge normal" id="hud-diff">Normal</span>
         </div>
         <div class="status-cell">
           <span class="dq-label">LV</span>
@@ -934,9 +1205,6 @@
         <div class="status-cell">
           <span class="dq-label">HP</span>
           <span class="dq-val"><span id="hud-hp">15</span>/<span id="hud-maxhp">15</span></span>
-          <div class="hp-gauge-mini">
-            <div class="hp-bar-fill" id="hud-hp-bar"></div>
-          </div>
         </div>
         <div class="status-cell">
           <span class="dq-label">ちから</span>
@@ -1039,7 +1307,11 @@
   <div id="inventory-modal" class="hidden interactive">
     <div class="dq-inv-dialog">
       <div class="dialog-header">
-        <span>▶ どうぐ一覧 (<span id="inv-count">0</span>/16)</span>
+        <span>▶ どうぐ (<span id="inv-count">0</span>/16)</span>
+        <div class="inv-sort-tabs">
+          <button class="inv-sort-btn active" id="btn-sort-obtained" title="拾った順序で整理">入手順</button>
+          <button class="inv-sort-btn" id="btn-sort-type" title="種類別（武器・盾・矢・草など）に整理">種類順</button>
+        </div>
         <button class="close-btn" id="inventory-close-btn">×</button>
       </div>
 

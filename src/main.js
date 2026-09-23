@@ -25,6 +25,7 @@ class Game {
     this.log = new MessageLog('message-window');
 
     this.floorNumber = 1;
+    this.difficulty = 'normal';
     this.player = null;
     this.dungeon = null;
     this.monsters = [];
@@ -45,6 +46,57 @@ class Game {
     // インベントリモーダル初期化
     this.inventoryModal = new InventoryModal({
       onAction: (action, item) => this.handleInventoryAction(action, item)
+    });
+
+    // 階段確認モーダル初期化
+    this.stairsModal = document.getElementById('stairs-modal');
+    this.btnStairsYes = document.getElementById('btn-stairs-yes');
+    this.btnStairsNo = document.getElementById('btn-stairs-no');
+
+    if (this.btnStairsYes) {
+      this.btnStairsYes.addEventListener('click', () => {
+        soundManager.playConfirm();
+        this.hideStairsModal();
+        this.descendStairs();
+      });
+    }
+
+    if (this.btnStairsNo) {
+      this.btnStairsNo.addEventListener('click', () => {
+        soundManager.playCursor?.();
+        this.hideStairsModal();
+        this.log.addMessage('もじさんは その場にとどまった。');
+      });
+    }
+
+    // 階段モーダルが開いている時のキーボード対応
+    window.addEventListener('keydown', (e) => {
+      if (this.stairsModal && !this.stairsModal.classList.contains('hidden')) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          soundManager.playCursor?.();
+          const isYes = this.btnStairsYes?.classList.contains('selected');
+          if (isYes) {
+            this.btnStairsYes?.classList.remove('selected');
+            this.btnStairsNo?.classList.add('selected');
+          } else {
+            this.btnStairsNo?.classList.remove('selected');
+            this.btnStairsYes?.classList.add('selected');
+          }
+        } else if (e.key === 'Enter' || e.key === 'y' || e.key === 'Y') {
+          soundManager.playConfirm();
+          const isYes = this.btnStairsYes?.classList.contains('selected');
+          this.hideStairsModal();
+          if (isYes || e.key === 'y' || e.key === 'Y') {
+            this.descendStairs();
+          } else {
+            this.log.addMessage('もじさんは その場にとどまった。');
+          }
+        } else if (e.key === 'Escape' || e.key === 'n' || e.key === 'N') {
+          soundManager.playCursor?.();
+          this.hideStairsModal();
+          this.log.addMessage('もじさんは その場にとどまった。');
+        }
+      }
     });
 
     // タッチ＆キーボード操作初期化
@@ -103,8 +155,36 @@ class Game {
     this.renderer.resize();
   }
 
+  // 階段確認モーダル表示
+  showStairsModal() {
+    if (!this.stairsModal) return;
+    this.stairsModal.classList.remove('hidden');
+
+    const nextFloorNum = this.floorNumber + 1;
+    const nextFloorStr = `${51 - nextFloorNum}F`;
+
+    const msgEl = document.getElementById('stairs-dialog-msg');
+    if (msgEl) {
+      if (nextFloorNum === CONFIG.DUNGEON.MAX_FLOORS) {
+        msgEl.innerHTML = `非常階段がある。<br>いよいよ目的の【<span style="color:#ffd700;font-weight:bold">40F</span>】へ降りますか？<br>トイレはもう目の前だ！`;
+      } else {
+        msgEl.innerHTML = `非常階段がある。<br>下の階（<span style="color:#ffd700;font-weight:bold">${nextFloorStr}</span>）へ降りますか？`;
+      }
+    }
+
+    if (this.btnStairsYes) this.btnStairsYes.classList.add('selected');
+    if (this.btnStairsNo) this.btnStairsNo.classList.remove('selected');
+  }
+
+  hideStairsModal() {
+    if (this.stairsModal) {
+      this.stairsModal.classList.add('hidden');
+    }
+  }
+
   // 新規ゲーム開始（初期装備なし・身一つでスタート）
-  startNewGame() {
+  startNewGame(difficulty = 'normal') {
+    this.difficulty = difficulty;
     this.floorNumber = 1;
     this.isGameOver = false;
     this.isGameClear = false;
@@ -120,7 +200,8 @@ class Game {
     // 50F（floorNumber: 1）の生成
     this.loadFloor(1);
 
-    this.log.addMessage('【50F】もじさんは非常階段の重い扉を蹴破った！');
+    const diffLabel = this.difficulty === 'hard' ? '【HARDモード】' : '';
+    this.log.addMessage(`【50F】${diffLabel}もじさんは非常階段の重い扉を蹴破った！`);
     this.log.addMessage('午後の始業（13:00）までに 40F のトイレへ辿り着け！');
     SaveManager.saveGame(this);
   }
@@ -137,8 +218,16 @@ class Game {
     this.player.prevY = this.player.y;
     this.player.animProgress = 1.0;
 
-    // モンスターインスタンス化
-    this.monsters = this.dungeon.monsterSpawns.map(sp => new Monster(sp.type.id, sp.x, sp.y));
+    // モンスターインスタンス化（難易度補正反映）
+    this.monsters = this.dungeon.monsterSpawns.map(sp => {
+      const m = new Monster(sp.type.id, sp.x, sp.y);
+      if (this.difficulty === 'hard') {
+        m.maxHp = Math.round(m.maxHp * 1.3);
+        m.hp = m.maxHp;
+        m.atk = Math.round(m.atk * 1.3);
+      }
+      return m;
+    });
 
     // 視界計算
     this.updateVisibility();
@@ -300,6 +389,8 @@ class Game {
   // モンスター攻撃処理
   attackMonster(monster) {
     this.player.isAttacking = 8;
+    this.player.inCombatTimer = 4;
+    monster.inCombatTimer = 4;
     monster.setDirection(this.player.x - monster.x, this.player.y - monster.y);
     soundManager.playAttack();
     this.renderer.addSlashEffect(monster.x, monster.y, this.player.equippedWeapon);
@@ -392,9 +483,9 @@ class Game {
       }
     }
 
-    // 階段
+    // 階段（インゲーム確認ダイアログを表示）
     if (this.dungeon.stairs && this.dungeon.stairs.x === px && this.dungeon.stairs.y === py) {
-      this.log.addMessage('降り階段がある。[道具]メニューから降りることができます。');
+      this.showStairsModal();
     }
   }
 
@@ -474,7 +565,16 @@ class Game {
       }
     });
 
-    // 3. 視界・HUD更新
+    // 3. ターン経過による戦闘タイマー減少 ＆ ハードモード空腹加速
+    if (this.player.inCombatTimer > 0) this.player.inCombatTimer--;
+    this.monsters.forEach(m => {
+      if (m.inCombatTimer > 0) m.inCombatTimer--;
+    });
+    if (isMove && this.difficulty === 'hard') {
+      this.player.satiety = Math.max(0, this.player.satiety - 0.05); // ハード時は空腹進行1.5倍
+    }
+
+    // 4. 視界・HUD更新
     this.updateVisibility();
     this.updateHUD();
 
@@ -486,6 +586,9 @@ class Game {
 
   // モンスターの通常攻撃
   processMonsterAttack(monster) {
+    this.player.inCombatTimer = 4;
+    monster.inCombatTimer = 4;
+
     // 足元が聖域の巻物なら攻撃を受けない
     const onSanctuary = this.dungeon.items.some(i => i.id === 'sanctuary' && i.x === this.player.x && i.y === this.player.y);
     if (onSanctuary) {
@@ -654,7 +757,8 @@ class Game {
     desc.textContent = reason || '無情にも13:00の始業ベルが鳴り響いてしまった…！';
 
     const currentFloorStr = `${51 - this.floorNumber}F`;
-    document.getElementById('end-floor').textContent = currentFloorStr;
+    const diffTag = this.difficulty === 'hard' ? ' [HARD]' : '';
+    document.getElementById('end-floor').textContent = `${currentFloorStr}${diffTag}`;
     document.getElementById('end-level').textContent = `${this.player.level}`;
     document.getElementById('end-gold').textContent = `${this.player.gold}G`;
 
@@ -677,7 +781,8 @@ class Game {
     title.textContent = '★ 危機一髪クリア！ ★';
     desc.textContent = '12:59 奇跡のトイレ個室へ滑り込みセーフ！ 極限のプレッシャーに打ち勝ち、無事に13:00の始業ベルと同時にデスクへ着席した！ もじさんの午後の戦いが今始まる…！';
 
-    document.getElementById('end-floor').textContent = `40F 到達！`;
+    const diffTag = this.difficulty === 'hard' ? ' [HARDクリア！]' : ' クリア！';
+    document.getElementById('end-floor').textContent = `40F 到達！${diffTag}`;
     document.getElementById('end-level').textContent = `${this.player.level}`;
     document.getElementById('end-gold').textContent = `${this.player.gold}G`;
 
@@ -688,9 +793,16 @@ class Game {
   updateHUD() {
     if (!this.player) return;
 
-    // フロア・LV・HP
+    // フロア・難易度・LV・HP
     const floorEl = document.getElementById('hud-floor');
     if (floorEl) floorEl.textContent = `${51 - this.floorNumber}F`;
+
+    const diffEl = document.getElementById('hud-diff');
+    if (diffEl) {
+      const isHard = this.difficulty === 'hard';
+      diffEl.textContent = isHard ? 'Hard' : 'Normal';
+      diffEl.className = 'diff-badge ' + (isHard ? 'hard' : 'normal');
+    }
 
     const levelEl = document.getElementById('hud-level');
     if (levelEl) levelEl.textContent = this.player.level;
@@ -700,10 +812,6 @@ class Game {
 
     const maxhpEl = document.getElementById('hud-maxhp');
     if (maxhpEl) maxhpEl.textContent = this.player.maxHp;
-
-    const hpPercent = Math.max(0, Math.min(100, (this.player.hp / this.player.maxHp) * 100));
-    const hpBar = document.getElementById('hud-hp-bar');
-    if (hpBar) hpBar.style.width = `${hpPercent}%`;
 
     // ちから（Strength常時表示）
     const strEl = document.getElementById('hud-str');

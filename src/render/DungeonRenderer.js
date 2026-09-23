@@ -639,14 +639,14 @@ export class DungeonRenderer {
       }
       ctx.restore();
 
-      // HPゲージ（ダメージ時）
-      if (m.hp < m.maxHp) {
-        const barW = this.tileSize - 12;
-        const barH = 5;
-        const barX = px + 6;
-        const barY = py + this.tileSize - 3;
+      // HPゲージ（ダメージ時または戦闘中：頭上に描画）
+      if (m.hp < m.maxHp || m.inCombatTimer > 0) {
+        const barW = this.tileSize - 14;
+        const barH = 4;
+        const barX = px + 7;
+        const barY = py - 4;
 
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillStyle = 'rgba(0,0,0,0.9)';
         ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
 
         const hpRatio = Math.max(0, m.hp / m.maxHp);
@@ -794,6 +794,21 @@ export class DungeonRenderer {
     // プレイヤー睡眠時の "Zzz"
     if (player.sleepTurns > 0) {
       this._drawSleepBalloon(ctx, cx + 14, cy - 20);
+    }
+
+    // プレイヤーの戦闘中・ダメージ時 HPゲージ（頭上に描画）
+    if (player.hp < player.maxHp || (player.inCombatTimer || 0) > 0) {
+      const barW = this.tileSize - 12;
+      const barH = 5;
+      const barX = px + 6;
+      const barY = py - 6 + walkBounce;
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+      ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+
+      const hpRatio = Math.max(0, player.hp / player.maxHp);
+      ctx.fillStyle = hpRatio > 0.5 ? '#00e676' : (hpRatio > 0.25 ? '#ffeb3b' : '#ff1744');
+      ctx.fillRect(barX, barY, Math.round(barW * hpRatio), barH);
     }
   }
 
