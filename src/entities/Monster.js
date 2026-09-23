@@ -28,6 +28,11 @@ export class Monster {
     this.prevY = y;
     this.animProgress = 1.0;
 
+    // 向き (dx, dy) と4方向スプライト管理
+    this.dir = { dx: 0, dy: 1 };
+    this.facingName = 'down'; // 'down', 'up', 'left', 'right'
+    this.hurtTimer = 0;       // 被ダメージ時の白光フラッシュ
+
     // AI状態: 'sleep', 'wander', 'chase'
     // スライムやまどうしなどは初期状態70%で寝ている
     this.state = Math.random() < 0.65 ? 'sleep' : 'wander';
@@ -39,10 +44,23 @@ export class Monster {
     this.statusSealed = false; // 特殊能力封印
   }
 
+  // 向きの設定
+  setDirection(dx, dy) {
+    if (dx === 0 && dy === 0) return;
+    this.dir = { dx: Math.sign(dx), dy: Math.sign(dy) };
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      this.facingName = dx > 0 ? 'right' : 'left';
+    } else {
+      this.facingName = dy > 0 ? 'down' : 'up';
+    }
+  }
+
   // アニメーション用移動開始
   startMove(newX, newY) {
     this.prevX = this.x;
     this.prevY = this.y;
+    this.setDirection(newX - this.x, newY - this.y);
     this.x = newX;
     this.y = newY;
     this.animProgress = 0.0;
@@ -96,6 +114,7 @@ export class Monster {
     if (!this.statusSealed && this.id === 'dragon' && sameRoom && distToPlayer <= 5 && !isAdjacent) {
       if (this.x === player.x || this.y === player.y) {
         if (Math.random() < 0.4) {
+          this.setDirection(player.x - this.x, player.y - this.y);
           return {
             action: 'skill',
             skillType: 'dragon_breath',
@@ -110,6 +129,7 @@ export class Monster {
     // まどうしの遠距離睡眠呪文（ラリホー）判定
     if (!this.statusSealed && this.id === 'mage' && sameRoom && distToPlayer <= 3 && !isAdjacent) {
       if (Math.random() < 0.35) {
+        this.setDirection(player.x - this.x, player.y - this.y);
         return {
           action: 'skill',
           skillType: 'sleep_spell',
@@ -122,6 +142,7 @@ export class Monster {
 
     // 隣接している場合は攻撃
     if (isAdjacent) {
+      this.setDirection(player.x - this.x, player.y - this.y);
       // 混乱時はランダム攻撃
       if (this.statusConfused > 0) {
         this.statusConfused--;

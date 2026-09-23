@@ -265,6 +265,7 @@ class Game {
       return;
     }
 
+    this.player.isAttacking = 8;
     const tx = this.player.x + this.player.dir.dx;
     const ty = this.player.y + this.player.dir.dy;
 
@@ -274,7 +275,7 @@ class Game {
     } else {
       // 素振り（空振り）
       soundManager.playAttack();
-      this.renderer.addSlashEffect(tx, ty);
+      this.renderer.addSlashEffect(tx, ty, this.player.equippedWeapon);
     }
 
     this.executeTurn(false);
@@ -282,8 +283,10 @@ class Game {
 
   // モンスター攻撃処理
   attackMonster(monster) {
+    this.player.isAttacking = 8;
+    monster.setDirection(this.player.x - monster.x, this.player.y - monster.y);
     soundManager.playAttack();
-    this.renderer.addSlashEffect(monster.x, monster.y);
+    this.renderer.addSlashEffect(monster.x, monster.y, this.player.equippedWeapon);
 
     // 命中判定（SFC解析式: 7/8 = 87.5% で命中、1/8でミス）
     if (Math.random() >= 7 / 8) {
@@ -293,6 +296,7 @@ class Game {
 
     const dmg = this.player.calcDamageAgainst(monster);
     monster.hp -= dmg;
+    monster.hurtTimer = 6;
     monster.wakeUp();
 
     this.renderer.addFloatingText(`${dmg}`, monster.x, monster.y, '#ffffff');
@@ -763,13 +767,21 @@ class Game {
   // メインループ（60fps レンダリング＆補間）
   setupGameLoop() {
     const loop = () => {
-      // プレイヤーのスムーズ補間
-      if (this.player && this.player.animProgress < 1.0) {
-        this.player.animProgress = Math.min(1.0, this.player.animProgress + 0.18);
+      // プレイヤーのスムーズ補間＆攻撃モーション
+      if (this.player) {
+        if (this.player.animProgress < 1.0) {
+          this.player.animProgress = Math.min(1.0, this.player.animProgress + 0.18);
+        }
+        if (this.player.isAttacking > 0) {
+          this.player.isAttacking--;
+        }
       }
 
-      // モンスターのスムーズ補間
+      // モンスターのスムーズ補間＆被ダメージフラッシュ
       this.monsters.forEach(m => {
+        if (m.hurtTimer > 0) {
+          m.hurtTimer--;
+        }
         if (m.animProgress < 1.0) {
           m.animProgress = Math.min(1.0, m.animProgress + 0.18);
         }

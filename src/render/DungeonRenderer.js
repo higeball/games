@@ -24,25 +24,28 @@ export class DungeonRenderer {
   }
 
   _preloadAssets() {
+    const monsters = ['slime', 'dracky', 'ghost', 'mushroom', 'mage', 'zombie', 'metal_slime', 'golem', 'dragon'];
+    const dirs = ['down', 'up', 'left', 'right'];
+    const monsterAssets = monsters.flatMap(m => [
+      ...dirs.map(d => `./assets/monsters/${m}_${d}.png`),
+      `./assets/monsters/${m}.png`
+    ]);
+
     const assets = [
-      // モンスター
-      './assets/monsters/slime.png',
-      './assets/monsters/dracky.png',
-      './assets/monsters/ghost.png',
-      './assets/monsters/mushroom.png',
-      './assets/monsters/mage.png',
-      './assets/monsters/zombie.png',
-      './assets/monsters/metal_slime.png',
-      './assets/monsters/golem.png',
-      './assets/monsters/dragon.png',
+      ...monsterAssets,
       // アイテム
       './assets/items/club.png',
       './assets/items/bronze_sword.png',
       './assets/items/iron_axe.png',
       './assets/items/dragon_killer.png',
+      './assets/items/metal_king_sword.png',
+      './assets/items/soroban.png',
       './assets/items/leather_shield.png',
       './assets/items/bronze_shield.png',
+      './assets/items/scale_shield.png',
+      './assets/items/steel_shield.png',
       './assets/items/dragon_shield.png',
+      './assets/items/metal_king_shield.png',
       './assets/items/bread.png',
       './assets/items/big_bread.png',
       './assets/items/rotten_bread.png',
@@ -56,9 +59,19 @@ export class DungeonRenderer {
       './assets/props/stairs.png',
       './assets/props/gold.png',
       './assets/props/trap.png',
+      // UI
+      './assets/ui/turn.png',
+      './assets/ui/map.png',
+      './assets/ui/wait.png',
     ];
 
     assets.forEach(src => this.getImage(src));
+  }
+
+  getMonsterSprite(m) {
+    const dir = m.facingName || 'down';
+    const directionalSrc = `./assets/monsters/${m.id}_${dir}.png`;
+    return this.getImage(directionalSrc) || this.getImage(m.sprite) || this.getImage(`./assets/monsters/${m.id}.png`);
   }
 
   getImage(src) {
@@ -103,14 +116,15 @@ export class DungeonRenderer {
     });
   }
 
-  // 斬撃エフェクト追加
-  addSlashEffect(tileX, tileY) {
+  // 斬撃エフェクト追加（装備武器に応じたエフェクト）
+  addSlashEffect(tileX, tileY, weapon = null) {
     this.effects.push({
       type: 'slash',
+      weaponId: weapon ? weapon.id : null,
       x: tileX * this.tileSize + this.tileSize / 2,
       y: tileY * this.tileSize + this.tileSize / 2,
-      life: 12,
-      maxLife: 12
+      life: 14,
+      maxLife: 14
     });
   }
 
@@ -194,9 +208,24 @@ export class DungeonRenderer {
             break;
         }
 
+        // 通路内の松明の減衰（本家トルネコ風の円形トーチライト演出）
+        if (isVisible && dungeon.roomMap[y][x] === -1 && tile === CONFIG.TILE.CORRIDOR) {
+          const tileCx = px + this.tileSize / 2;
+          const tileCy = py + this.tileSize / 2;
+          const pcx = (player.prevX + (player.x - player.prevX) * player.animProgress) * this.tileSize + this.tileSize / 2;
+          const pcy = (player.prevY + (player.y - player.prevY) * player.animProgress) * this.tileSize + this.tileSize / 2;
+          const dist = Math.hypot(tileCx - pcx, tileCy - pcy);
+          const torchRadius = this.tileSize * 2.0;
+          if (dist > torchRadius) {
+            const dark = Math.min(0.55, (dist - torchRadius) / (this.tileSize * 0.9));
+            ctx.fillStyle = `rgba(4, 7, 16, ${dark})`;
+            ctx.fillRect(px, py, this.tileSize, this.tileSize);
+          }
+        }
+
         // 探索済みだが視界外のタイルには霧がかった青暗いシャドウをオーバーレイ
         if (!isVisible) {
-          ctx.fillStyle = 'rgba(6, 12, 26, 0.45)';
+          ctx.fillStyle = 'rgba(6, 12, 26, 0.52)';
           ctx.fillRect(px, py, this.tileSize, this.tileSize);
         }
 
@@ -217,59 +246,52 @@ export class DungeonRenderer {
     ctx.globalAlpha = 1.0;
   }
 
-  // 床タイル（本家トルネコ風・温かみのある敷石・石畳＋自然な陰影）
+  // 床タイル（本家トルネコSFC風・美しい敷石・石畳＋高精細斜角ベベル・アンビエントシャドウ）
   _drawFloorTile(ctx, px, py, dungeon, x, y) {
-    // 敷石ベースカラー（タイル座標に応じたわずかな色変化）
     const hash = (((x !== undefined ? x : Math.floor(px / 48)) * 37) + ((y !== undefined ? y : Math.floor(py / 48)) * 19)) & 7;
-    const baseColors = ['#635342', '#615140', '#665645', '#5f4f3e', '#645443', '#625241', '#655544', '#60503f'];
+    const baseColors = ['#5e4d3a', '#5c4b38', '#61503d', '#5a4936', '#5f4e3b', '#5d4c39', '#604f3c', '#5b4a37'];
     ctx.fillStyle = baseColors[hash];
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-    // 4つの石畳ブロックの割り付け（トルネコSFC風）
+    // 4つの石畳ブロックの割り付け（トルネコSFC風・高精細斜角ベベル）
     const mid = this.tileSize / 2;
 
-    // 石ブロック1 (左上)
-    ctx.fillStyle = '#6d5c4a';
-    ctx.fillRect(px + 1, py + 1, mid - 2, mid - 2);
-    ctx.fillStyle = '#84715d'; // 上左ハイライト
-    ctx.fillRect(px + 1, py + 1, mid - 2, 2);
-    ctx.fillRect(px + 1, py + 1, 2, mid - 2);
-    ctx.fillStyle = '#4c3e30'; // 右下シャドウ
-    ctx.fillRect(px + 1, py + mid - 3, mid - 2, 2);
-    ctx.fillRect(px + mid - 3, py + 1, 2, mid - 2);
+    const drawStoneBlock = (bx, by, w, h, varOffset) => {
+      // ブロック本体
+      ctx.fillStyle = '#6a5743';
+      ctx.fillRect(bx + 1, by + 1, w - 2, h - 2);
 
-    // 石ブロック2 (右上)
-    ctx.fillStyle = '#5e4e3d';
-    ctx.fillRect(px + mid + 1, py + 1, mid - 2, mid - 2);
-    ctx.fillStyle = '#756350';
-    ctx.fillRect(px + mid + 1, py + 1, mid - 2, 2);
-    ctx.fillRect(px + mid + 1, py + 1, 2, mid - 2);
-    ctx.fillStyle = '#443628';
-    ctx.fillRect(px + mid + 1, py + mid - 3, mid - 2, 2);
-    ctx.fillRect(px + this.tileSize - 2, py + 1, 2, mid - 2);
+      // 上部＆左部ハイライト（明るい砂岩色）
+      ctx.fillStyle = '#947e65';
+      ctx.fillRect(bx + 1, by + 1, w - 2, 2);
+      ctx.fillRect(bx + 1, by + 1, 2, h - 2);
 
-    // 石ブロック3 (左下)
-    ctx.fillStyle = '#594a3a';
-    ctx.fillRect(px + 1, py + mid + 1, mid - 2, mid - 2);
-    ctx.fillStyle = '#705e4c';
-    ctx.fillRect(px + 1, py + mid + 1, mid - 2, 2);
-    ctx.fillRect(px + 1, py + mid + 1, 2, mid - 2);
-    ctx.fillStyle = '#3e3124';
-    ctx.fillRect(px + 1, py + this.tileSize - 2, mid - 2, 2);
-    ctx.fillRect(px + mid - 3, py + mid + 1, 2, mid - 2);
+      // 極上の光沢ピクセル（左上角）
+      ctx.fillStyle = '#ad977d';
+      ctx.fillRect(bx + 1, by + 1, 2, 2);
 
-    // 石ブロック4 (右下)
-    ctx.fillStyle = '#685746';
-    ctx.fillRect(px + mid + 1, py + mid + 1, mid - 2, mid - 2);
-    ctx.fillStyle = '#7e6b57';
-    ctx.fillRect(px + mid + 1, py + mid + 1, mid - 2, 2);
-    ctx.fillRect(px + mid + 1, py + mid + 1, 2, mid - 2);
-    ctx.fillStyle = '#483a2d';
-    ctx.fillRect(px + mid + 1, py + this.tileSize - 2, mid - 2, 2);
-    ctx.fillRect(px + this.tileSize - 2, py + mid + 1, 2, mid - 2);
+      // 右部＆下部シャドウ（深い影色）
+      ctx.fillStyle = '#3a2d1e';
+      ctx.fillRect(bx + 1, by + h - 3, w - 2, 2);
+      ctx.fillRect(bx + w - 3, by + 1, 2, h - 2);
+
+      // わずかな表面の石粒・クラックテクスチャ
+      if (((hash + varOffset) & 3) === 0) {
+        ctx.fillStyle = '#4c3a27';
+        ctx.fillRect(bx + 5, by + 6, 2, 2);
+      } else if (((hash + varOffset) & 3) === 2) {
+        ctx.fillStyle = '#806c55';
+        ctx.fillRect(bx + w - 7, by + 5, 2, 2);
+      }
+    };
+
+    drawStoneBlock(px, py, mid, mid, 1);
+    drawStoneBlock(px + mid, py, mid, mid, 2);
+    drawStoneBlock(px, py + mid, mid, mid, 3);
+    drawStoneBlock(px + mid, py + mid, mid, mid, 4);
 
     // 目地（黒褐色）
-    ctx.strokeStyle = '#2b2118';
+    ctx.strokeStyle = '#221910';
     ctx.lineWidth = 1;
     ctx.strokeRect(px + 0.5, py + 0.5, this.tileSize - 1, this.tileSize - 1);
     ctx.beginPath();
@@ -282,12 +304,18 @@ export class DungeonRenderer {
     // 上部または左部が壁の場合のリアルな環境光ドロップシャドウ
     if (dungeon && y !== undefined && x !== undefined) {
       if (y > 0 && dungeon.tiles[y - 1][x] === CONFIG.TILE.WALL) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        ctx.fillRect(px, py, this.tileSize, 5);
+        // 北側壁からの重厚な影
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';
+        ctx.fillRect(px, py, this.tileSize, 4);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.30)';
+        ctx.fillRect(px, py + 4, this.tileSize, 4);
       }
       if (x > 0 && dungeon.tiles[y][x - 1] === CONFIG.TILE.WALL) {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
-        ctx.fillRect(px, py, 4, this.tileSize);
+        // 西側壁からの側方影
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
+        ctx.fillRect(px, py, 3, this.tileSize);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        ctx.fillRect(px + 3, py, 3, this.tileSize);
       }
     }
   }
@@ -295,80 +323,88 @@ export class DungeonRenderer {
   // 通路タイル（本家トルネコ風・狭い土と砂利の通路）
   _drawCorridorTile(ctx, px, py) {
     // 通路土ベース
-    ctx.fillStyle = '#3a2e22';
+    ctx.fillStyle = '#34271c';
     ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
     // 通路両脇の深い岩陰
-    ctx.fillStyle = '#221911';
+    ctx.fillStyle = '#1c140c';
     ctx.fillRect(px, py, 4, this.tileSize);
     ctx.fillRect(px + this.tileSize - 4, py, 4, this.tileSize);
     ctx.fillRect(px, py, this.tileSize, 4);
     ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
 
     // 踏み固められた砂利テクスチャ
-    ctx.fillStyle = '#4e3e30';
-    ctx.fillRect(px + 10, py + 12, 6, 4);
-    ctx.fillRect(px + 28, py + 22, 5, 4);
-    ctx.fillRect(px + 16, py + 34, 7, 3);
-    ctx.fillStyle = '#2a2016';
-    ctx.fillRect(px + 12, py + 18, 4, 3);
-    ctx.fillRect(px + 24, py + 30, 4, 3);
+    ctx.fillStyle = '#4a3827';
+    ctx.fillRect(px + 8, py + 10, 6, 4);
+    ctx.fillRect(px + 26, py + 20, 5, 4);
+    ctx.fillRect(px + 14, py + 32, 7, 3);
+    ctx.fillStyle = '#22180f';
+    ctx.fillRect(px + 10, py + 16, 4, 3);
+    ctx.fillRect(px + 22, py + 28, 4, 3);
   }
 
-  // 壁タイル（本家トルネコ風・3段の石積み正面壁 ＆ 天井岩石）
+  // 壁タイル（本家トルネコSFC風・重厚な3段の石積み正面壁 ＆ 天井岩石）
   _drawWallTile(ctx, px, py, dungeon, x, y) {
     const southIsFloor = (y + 1 < dungeon.height && dungeon.tiles[y + 1][x] !== CONFIG.TILE.WALL);
 
     if (southIsFloor) {
       // 部屋の北側に面する「正面石壁」（トルネコ名物の立体レンガ壁）
-      // 天井ヘリ（上部天板）
-      ctx.fillStyle = '#524333';
+      // 天井ヘリ・石の笠木（上部天板）
+      ctx.fillStyle = '#614f3c';
       ctx.fillRect(px, py, this.tileSize, 6);
-      ctx.fillStyle = '#7a6652'; // ヘリの上面ハイライト
+      ctx.fillStyle = '#8f775e'; // 笠木の上面ハイライト
       ctx.fillRect(px, py, this.tileSize, 2);
+      ctx.fillStyle = '#1c130a'; // 笠木の下面シャドウ線
+      ctx.fillRect(px, py + 5, this.tileSize, 1);
 
       // 石積みレンガ3段
       const brickH = 12;
-      // 1段目
-      ctx.fillStyle = '#453729';
+
+      // 1段目（最も明るい）
+      ctx.fillStyle = '#4c3d2e';
       ctx.fillRect(px, py + 6, this.tileSize, brickH);
-      ctx.fillStyle = '#614f3c';
+      ctx.fillStyle = '#6b5742'; // 上面ハイライト
       ctx.fillRect(px, py + 6, this.tileSize, 2);
-      ctx.fillStyle = '#281e15';
+      ctx.fillStyle = '#1e140b'; // 目地
       ctx.fillRect(px + 22, py + 6, 2, brickH);
 
-      // 2段目
-      ctx.fillStyle = '#3a2d20';
+      // 2段目（中間の明るさ・目地を交互に配置）
+      ctx.fillStyle = '#3f3123';
       ctx.fillRect(px, py + 18, this.tileSize, brickH);
-      ctx.fillStyle = '#544332';
+      ctx.fillStyle = '#594633';
       ctx.fillRect(px, py + 18, this.tileSize, 2);
-      ctx.fillStyle = '#221911';
+      ctx.fillStyle = '#170f07';
       ctx.fillRect(px + 10, py + 18, 2, brickH);
       ctx.fillRect(px + 34, py + 18, 2, brickH);
 
-      // 3段目
-      ctx.fillStyle = '#2e2217';
+      // 3段目（最下段・深淵の陰影）
+      ctx.fillStyle = '#312418';
       ctx.fillRect(px, py + 30, this.tileSize, brickH + 6);
-      ctx.fillStyle = '#463626';
+      ctx.fillStyle = '#483726';
       ctx.fillRect(px, py + 30, this.tileSize, 2);
-      ctx.fillStyle = '#1a120c';
+      ctx.fillStyle = '#120b04';
       ctx.fillRect(px + 20, py + 30, 2, brickH + 6);
 
-      // 床へ落ちる深い黒影
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-      ctx.fillRect(px, py + this.tileSize - 4, this.tileSize, 4);
+      // 床へ落ちる濃密な黒影
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      ctx.fillRect(px, py + this.tileSize - 5, this.tileSize, 5);
     } else {
-      // 内部の壁・天井岩盤
-      ctx.fillStyle = '#211912';
+      // 内部の壁・天井岩盤（均一な黒ではなく、SFCらしい洞窟岩盤テクスチャ）
+      ctx.fillStyle = '#1f1710';
       ctx.fillRect(px, py, this.tileSize, this.tileSize);
 
-      // 暗い石の目地
-      ctx.strokeStyle = '#2d2218';
+      // 岩石の裂け目・テクスチャ
+      ctx.strokeStyle = '#2c2117';
       ctx.lineWidth = 1;
       ctx.strokeRect(px + 1, py + 1, this.tileSize - 2, this.tileSize - 2);
 
-      ctx.fillStyle = '#17110c';
+      ctx.fillStyle = '#150f09';
       ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
+
+      // 岩肌の微小ハイライト
+      ctx.fillStyle = '#382b1f';
+      ctx.fillRect(px + 8, py + 8, 4, 2);
+      ctx.fillRect(px + 28, py + 22, 5, 2);
     }
   }
 
@@ -397,15 +433,15 @@ export class DungeonRenderer {
     this._drawFloorTile(ctx, px, py);
 
     // 階段の掘り込み枠
-    ctx.fillStyle = '#2b2118';
+    ctx.fillStyle = '#140e09';
     ctx.fillRect(px + 4, py + 4, this.tileSize - 8, this.tileSize - 8);
 
-    // 4段の石段（奥へ行くほど暗いブルーブラックの闇へ）
+    // 4段の石段（奥へ行くほど深いブルーブラックの闇へ）
     const steps = [
-      { y: 6, h: 8, bg: '#3a5068', hi: '#6e91b5' },
-      { y: 14, h: 8, bg: '#28394d', hi: '#4b698a' },
-      { y: 22, h: 8, bg: '#182433', hi: '#304761' },
-      { y: 30, h: 12, bg: '#0b131e', hi: '#1a293b' },
+      { y: 6, h: 8, bg: '#3e5672', hi: '#82a9d4', edge: '#293a4f' },
+      { y: 14, h: 8, bg: '#2b3d52', hi: '#5c80a8', edge: '#1b2837' },
+      { y: 22, h: 8, bg: '#1a2736', hi: '#3d5977', edge: '#0e1620' },
+      { y: 30, h: 12, bg: '#0b121b', hi: '#213348', edge: '#05090f' },
     ];
 
     steps.forEach(s => {
@@ -413,12 +449,19 @@ export class DungeonRenderer {
       ctx.fillRect(px + 6, py + s.y, this.tileSize - 12, s.h);
       ctx.fillStyle = s.hi; // 階段フチのハイライト
       ctx.fillRect(px + 6, py + s.y, this.tileSize - 12, 2);
+      ctx.fillStyle = s.edge; // 階段角の影
+      ctx.fillRect(px + 6, py + s.y + s.h - 1, this.tileSize - 12, 1);
     });
 
     // 階段のフチ取り石枠
-    ctx.strokeStyle = '#7c6854';
+    ctx.strokeStyle = '#947e65';
     ctx.lineWidth = 2;
     ctx.strokeRect(px + 5, py + 5, this.tileSize - 10, this.tileSize - 10);
+
+    // 神秘的な青白い光のオーラ
+    const pulse = 0.2 + 0.15 * Math.sin(Date.now() / 300);
+    ctx.fillStyle = `rgba(0, 229, 255, ${pulse})`;
+    ctx.fillRect(px + 8, py + 8, this.tileSize - 16, 8);
   }
 
   // アイテム描画（オリジナルドット絵スプライト）
@@ -498,10 +541,14 @@ export class DungeonRenderer {
       ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
       ctx.fill();
 
-      // モンスターのオリジナルスプライト描画（もじさんと同スケールで中央配置）
-      const img = this.getImage(m.sprite);
+      // モンスターの4方向オリジナルスプライト描画
+      const img = this.getMonsterSprite(m);
+      ctx.save();
+      if (m.hurtTimer > 0) {
+        ctx.filter = 'brightness(2.5)';
+      }
       if (img) {
-        // ドラゴンとゴーレムは少し大きめ(42px)、他は36px前後でもじさん(40px)と統一
+        // ドラゴンとゴーレムは少し大きめ(44px)、他は38px前後でもじさんと統一
         const maxDim = (m.id === 'dragon' || m.id === 'golem') ? 44 : 38;
         const scale = Math.min(maxDim / img.width, maxDim / img.height);
         const sw = img.width * scale;
@@ -512,6 +559,7 @@ export class DungeonRenderer {
         ctx.fillStyle = m.color;
         ctx.fillRect(px + 10, py + 10, this.tileSize - 20, this.tileSize - 20);
       }
+      ctx.restore();
 
       // HPゲージ（ダメージ時）
       if (m.hp < m.maxHp) {
@@ -636,6 +684,9 @@ export class DungeonRenderer {
     // 歩行時の軽快な上下バウンス（1px）
     const walkBounce = (player.animProgress < 1.0 && player.walkFrame % 2 === 0) ? -1.5 : 0;
 
+    // 装備の背面レイヤー描画（上向き時の盾・武器、横向き時の盾など）
+    this._renderPlayerEquipment(ctx, player, cx, cy, walkBounce, 'back');
+
     // スプライト描画
     const frames = player.sprites[player.facingName];
     const frameIdx = (player.walkFrame - 1) % 3;
@@ -659,13 +710,138 @@ export class DungeonRenderer {
       ctx.fillText('も', cx, cy + walkBounce);
     }
 
+    // 装備の前面レイヤー描画（下向き時の盾・武器、横向き時の武器など）
+    this._renderPlayerEquipment(ctx, player, cx, cy, walkBounce, 'front');
+
     // プレイヤー睡眠時の "Zzz"
     if (player.sleepTurns > 0) {
       this._drawSleepBalloon(ctx, cx + 14, cy - 20);
     }
   }
 
-  // エフェクト描画
+  // プレイヤー装備品（武器・盾）の4方向描画
+  _renderPlayerEquipment(ctx, player, cx, cy, walkBounce, layer) {
+    const facing = player.facingName || 'down';
+    const isAttacking = (player.isAttacking || 0) > 0;
+    const attRatio = isAttacking ? (player.isAttacking / 8) : 0;
+
+    const weaponImg = player.equippedWeapon ? this.getImage(player.equippedWeapon.sprite) : null;
+    const shieldImg = player.equippedShield ? this.getImage(player.equippedShield.sprite) : null;
+
+    if (!weaponImg && !shieldImg) return;
+
+    const baseCy = cy - 4 + walkBounce;
+
+    if (facing === 'down') {
+      if (layer !== 'front') return;
+
+      // 1. 武器（もじさんの右手 = 画面向かって左）
+      if (weaponImg) {
+        ctx.save();
+        const wx = cx - 15;
+        const wy = baseCy + 1 + (isAttacking ? 4 * attRatio : 0);
+        ctx.translate(wx, wy);
+
+        // 攻撃モーション時は前方に振り下ろす
+        const swingAngle = isAttacking ? (-0.2 + 0.65 * attRatio) * Math.PI : -0.22 * Math.PI;
+        ctx.rotate(swingAngle);
+
+        const wSize = 24;
+        ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+        ctx.restore();
+      }
+
+      // 2. 盾（もじさんの左腕 = 画面向かって右）
+      if (shieldImg) {
+        ctx.save();
+        const sx = cx + 15;
+        const sy = baseCy + 3;
+        ctx.translate(sx, sy);
+        const sSize = 22;
+        ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+        ctx.restore();
+      }
+    } else if (facing === 'up') {
+      if (layer !== 'back') return;
+
+      // 1. 武器（もじさんの右手 = 画面向かって右）
+      if (weaponImg) {
+        ctx.save();
+        const wx = cx + 15;
+        const wy = baseCy - 6 - (isAttacking ? 7 * attRatio : 0);
+        ctx.translate(wx, wy);
+        ctx.rotate(-0.35 * Math.PI);
+        const wSize = 22;
+        ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+        ctx.restore();
+      }
+
+      // 2. 盾（もじさんの左腕 = 画面向かって左）
+      if (shieldImg) {
+        ctx.save();
+        const sx = cx - 14;
+        const sy = baseCy + 1;
+        ctx.translate(sx, sy);
+        ctx.filter = 'brightness(0.72)'; // 盾の裏面トーン
+        const sSize = 21;
+        ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+        ctx.restore();
+      }
+    } else if (facing === 'left') {
+      if (layer === 'back') {
+        if (shieldImg) {
+          ctx.save();
+          const sx = cx + 12;
+          const sy = baseCy + 3;
+          ctx.translate(sx, sy);
+          ctx.scale(0.65, 0.95); // 側面のパースペクティブ
+          const sSize = 22;
+          ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+          ctx.restore();
+        }
+      } else if (layer === 'front') {
+        if (weaponImg) {
+          ctx.save();
+          const wx = cx - 16 - (isAttacking ? 8 * attRatio : 0);
+          const wy = baseCy + 2;
+          ctx.translate(wx, wy);
+          const swingAngle = isAttacking ? (0.25 - 0.3 * attRatio) * Math.PI : 0.25 * Math.PI;
+          ctx.rotate(swingAngle);
+          const wSize = 22;
+          ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+          ctx.restore();
+        }
+      }
+    } else if (facing === 'right') {
+      if (layer === 'back') {
+        if (shieldImg) {
+          ctx.save();
+          const sx = cx - 12;
+          const sy = baseCy + 3;
+          ctx.translate(sx, sy);
+          ctx.scale(0.65, 0.95);
+          const sSize = 22;
+          ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+          ctx.restore();
+        }
+      } else if (layer === 'front') {
+        if (weaponImg) {
+          ctx.save();
+          const wx = cx + 16 + (isAttacking ? 8 * attRatio : 0);
+          const wy = baseCy + 2;
+          ctx.translate(wx, wy);
+          ctx.scale(-1, 1);
+          const swingAngle = isAttacking ? (0.25 - 0.3 * attRatio) * Math.PI : 0.25 * Math.PI;
+          ctx.rotate(swingAngle);
+          const wSize = 22;
+          ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+          ctx.restore();
+        }
+      }
+    }
+  }
+
+  // エフェクト描画（武器種別に応じた斬撃エフェクト＆火花）
   _renderEffects() {
     const ctx = this.ctx;
     for (let i = this.effects.length - 1; i >= 0; i--) {
@@ -680,11 +856,56 @@ export class DungeonRenderer {
       if (fx.type === 'slash') {
         ctx.save();
         ctx.translate(fx.x, fx.y);
+
+        const radius = 24 * (0.8 + progress * 0.4);
+        const alpha = Math.max(0, 1 - progress);
+
+        let mainColor = `rgba(255, 255, 255, ${alpha})`;
+        let glowColor = `rgba(255, 235, 59, ${alpha * 0.6})`;
+        let arcWidth = 4;
+
+        if (fx.weaponId === 'dragon_killer') {
+          mainColor = `rgba(255, 60, 0, ${alpha})`;
+          glowColor = `rgba(255, 200, 0, ${alpha * 0.8})`;
+          arcWidth = 5;
+        } else if (fx.weaponId === 'metal_king_sword') {
+          mainColor = `rgba(180, 245, 255, ${alpha})`;
+          glowColor = `rgba(0, 229, 255, ${alpha * 0.9})`;
+          arcWidth = 5;
+        } else if (fx.weaponId === 'iron_axe') {
+          mainColor = `rgba(220, 230, 242, ${alpha})`;
+          glowColor = `rgba(140, 160, 190, ${alpha * 0.7})`;
+          arcWidth = 6;
+        } else if (fx.weaponId === 'soroban') {
+          mainColor = `rgba(255, 215, 0, ${alpha})`;
+          glowColor = `rgba(255, 160, 0, ${alpha * 0.8})`;
+          arcWidth = 4;
+        }
+
+        // 光彩グロー
         ctx.beginPath();
-        ctx.arc(0, 0, 24 * (0.8 + progress * 0.4), -Math.PI * 0.75, Math.PI * 0.25);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - progress})`;
-        ctx.lineWidth = 4;
+        ctx.arc(0, 0, radius, -Math.PI * 0.75, Math.PI * 0.25);
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = arcWidth + 3;
         ctx.stroke();
+
+        // 鋭い刃筋
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, -Math.PI * 0.75, Math.PI * 0.25);
+        ctx.strokeStyle = mainColor;
+        ctx.lineWidth = arcWidth;
+        ctx.stroke();
+
+        // ヒット火花パーティクル
+        for (let p = 0; p < 4; p++) {
+          const sparkAngle = -Math.PI * 0.75 + (p / 3) * Math.PI;
+          const sparkDist = radius + progress * 10;
+          const sx = Math.cos(sparkAngle) * sparkDist;
+          const sy = Math.sin(sparkAngle) * sparkDist;
+          ctx.fillStyle = glowColor;
+          ctx.fillRect(sx - 1.5, sy - 1.5, 3, 3);
+        }
+
         ctx.restore();
       }
     }

@@ -72,18 +72,18 @@ export const CONFIG = {
       { id: 'bronze_sword', name: '銅の剣', type: 'weapon', atk: 3, price: 75, sprite: './assets/items/bronze_sword.png' },
       { id: 'iron_axe', name: '鉄の斧', type: 'weapon', atk: 4, price: 100, sprite: './assets/items/iron_axe.png' },
       { id: 'dragon_killer', name: 'ドラゴンキラー', type: 'weapon', atk: 5, price: 300, sprite: './assets/items/dragon_killer.png', vsDragon: true },
-      { id: 'metal_king_sword', name: 'はぐれメタルの剣', type: 'weapon', atk: 7, price: 750, sprite: './assets/items/dragon_killer.png' },
-      { id: 'soroban', name: '正義のソロバン', type: 'weapon', atk: 10, price: 5000, sprite: './assets/items/dragon_killer.png' }
+      { id: 'metal_king_sword', name: 'はぐれメタルの剣', type: 'weapon', atk: 7, price: 750, sprite: './assets/items/metal_king_sword.png' },
+      { id: 'soroban', name: '正義のソロバン', type: 'weapon', atk: 10, price: 5000, sprite: './assets/items/soroban.png' }
     ],
 
     // 盾（盾の強さ）
     SHIELDS: [
       { id: 'leather_shield', name: '皮の盾', type: 'shield', def: 2, price: 40, sprite: './assets/items/leather_shield.png', slowHunger: true },
       { id: 'bronze_shield', name: '青銅の盾', type: 'shield', def: 3, price: 80, sprite: './assets/items/bronze_shield.png' },
-      { id: 'scale_shield', name: 'うろこの盾', type: 'shield', def: 4, price: 150, sprite: './assets/items/bronze_shield.png', antiPoison: true },
-      { id: 'steel_shield', name: '鋼鉄の盾', type: 'shield', def: 6, price: 200, sprite: './assets/items/dragon_shield.png' },
+      { id: 'scale_shield', name: 'うろこの盾', type: 'shield', def: 4, price: 150, sprite: './assets/items/scale_shield.png', antiPoison: true },
+      { id: 'steel_shield', name: '鋼鉄の盾', type: 'shield', def: 6, price: 200, sprite: './assets/items/steel_shield.png' },
       { id: 'dragon_shield', name: 'ドラゴンシールド', type: 'shield', def: 7, price: 500, sprite: './assets/items/dragon_shield.png', antiFire: true },
-      { id: 'metal_king_shield', name: 'はぐれメタルの盾', type: 'shield', def: 10, price: 1500, sprite: './assets/items/dragon_shield.png' }
+      { id: 'metal_king_shield', name: 'はぐれメタルの盾', type: 'shield', def: 10, price: 1500, sprite: './assets/items/metal_king_shield.png' }
     ],
 
     // 食料（パン）

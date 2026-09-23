@@ -21,6 +21,7 @@ export class Player {
     this.animProgress = 1.0;
     this.walkFrame = 1; // 1, 2, 3
     this.stepCounter = 0;
+    this.isAttacking = 0; // 攻撃モーションタイマー（武器を振るアニメーション）
 
     // ステータス
     this.name = 'もじさん';
