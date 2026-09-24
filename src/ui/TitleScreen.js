@@ -32,7 +32,7 @@ export class TitleScreen {
       {
         title: '【緊急事態発生】',
         time: '🕒 12:40 PM',
-        image: './character/opening/01-stomach-emergency.png',
+        image: './character/opening/01-stomach-emergency.webp',
         lines: [
           '大手IT企業「株式会社もじ」が入居する 地上50階建てのオフィスタワー。',
           '社員食堂で 激辛大盛りカレーを堪能した 会社員・もじさん。',
@@ -44,7 +44,7 @@ export class TitleScreen {
       {
         title: '【絶望のカウントダウン】',
         time: '🕒 12:42 PM',
-        image: './character/opening/02-restroom-closed.png',
+        image: './character/opening/02-restroom-closed.webp',
         lines: [
           'もじさん「う、うぐぐっ……！？ なんだこの激痛は……！？」',
           '「ヤバい……！ 今すぐトイレに行かないと',
@@ -57,7 +57,7 @@ export class TitleScreen {
       {
         title: '【閉ざされたエレベーター】',
         time: '🕒 12:45 PM',
-        image: './character/opening/03-elevators-stopped.png',
+        image: './character/opening/03-elevators-stopped.webp',
         lines: [
           'もじさん「そ、そんなバカな……ッ！？」',
           '急いでエレベーターホールへ走るも、そこにも無情な警告灯！',
@@ -69,7 +69,7 @@ export class TitleScreen {
       {
         title: '【奇跡の案内】',
         time: '🕒 12:47 PM',
-        image: './character/opening/04-fortieth-floor-announcement.png',
+        image: './character/opening/04-fortieth-floor-announcement.webp',
         lines: [
           '『ピンポンパンポーン――』',
           '『現在、館内で使用可能な最寄りのトイレは……',
@@ -81,7 +81,7 @@ export class TitleScreen {
       {
         title: '【非常階段へ突入せよ！】',
         time: '🕒 12:48 PM',
-        image: './character/opening/05-emergency-stairs.png',
+        image: './character/opening/05-emergency-stairs.webp',
         lines: [
           'もじさん「非常階段を駆け降りるしかない……！」',
           '「頼む、俺の腹……！ 40Fまで持ちこたえてくれ……ッ！！」',
@@ -285,11 +285,24 @@ export class TitleScreen {
 
     const titleEl = document.getElementById('story-header-title');
     const timeEl = document.getElementById('story-header-time');
-    const imgEl = document.getElementById('story-image');
     if (titleEl) titleEl.textContent = page.title;
     if (timeEl) timeEl.textContent = page.time;
-    if (imgEl && page.image) {
-      imgEl.src = page.image;
+
+    // スライド画像の切り替え（全画像DOMにプリロード済みのため 0ms 即時切替）
+    const slides = document.querySelectorAll('.story-slide');
+    if (slides && slides.length > 0) {
+      slides.forEach((slide, idx) => {
+        if (idx === this.currentStoryPage) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+    } else {
+      const imgEl = document.getElementById('story-image');
+      if (imgEl && page.image) {
+        imgEl.src = page.image;
+      }
     }
 
     if (this.storyPageEl) {

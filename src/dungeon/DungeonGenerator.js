@@ -266,10 +266,35 @@ export class DungeonGenerator {
     // モンスターの生成（フロア開始時4〜7体）
     const monsterSpawns = [];
     const monsterCount = Math.floor(Math.random() * 3) + 4 + Math.floor(floorNumber / 3);
-    const monsterRooms = rooms.filter(r => r.id !== playerRoom.id); // プレイヤー初期部屋以外に配置
 
-    for (let i = 0; i < monsterCount; i++) {
-      const room = monsterRooms[i % monsterRooms.length];
+    // 原作トルネコ仕様：プレイヤー初期部屋に必ず1体モンスターを配置（寝ているか徘徊）
+    // 開始直後からモンスターの姿（グラフィック）が視界に入り、臨場感と世界観を担保
+    const playerRoomFreeTiles = getAvailableTiles(playerRoom);
+    // プレイヤー直隣（チェビシェフ距離1）は避け、距離2以上離れた空きマスから選定
+    const safePlayerTiles = playerRoomFreeTiles.filter(pt =>
+      Math.max(Math.abs(pt.x - playerSpawn.x), Math.abs(pt.y - playerSpawn.y)) >= 2
+    );
+    if (safePlayerTiles.length > 0) {
+      const pIdx = Math.floor(Math.random() * safePlayerTiles.length);
+      const pt = safePlayerTiles[pIdx];
+      const monsterType = this._selectMonsterForFloor(floorNumber);
+      if (monsterType) {
+        monsterSpawns.push({
+          type: monsterType,
+          x: pt.x,
+          y: pt.y
+        });
+        const idx = playerRoomFreeTiles.indexOf(pt);
+        if (idx !== -1) playerRoomFreeTiles.splice(idx, 1);
+      }
+    }
+
+    // 残りのモンスターを他部屋（初期部屋以外）に配置
+    const otherRooms = rooms.filter(r => r.id !== playerRoom.id);
+    const targetRooms = otherRooms.length > 0 ? otherRooms : rooms;
+
+    while (monsterSpawns.length < monsterCount) {
+      const room = targetRooms[monsterSpawns.length % targetRooms.length];
       const freeTiles = getAvailableTiles(room);
       if (freeTiles.length > 0) {
         const pt = freeTiles.pop();
@@ -281,6 +306,8 @@ export class DungeonGenerator {
             y: pt.y
           });
         }
+      } else {
+        break;
       }
     }
 

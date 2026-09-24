@@ -72,16 +72,28 @@ export class DungeonRenderer {
   getMonsterSprite(m) {
     const dir = m.facingName || 'down';
     const directionalSrc = `./assets/monsters/${m.id}_${dir}.png`;
-    return this.getImage(directionalSrc) || this.getImage(m.sprite) || this.getImage(`./assets/monsters/${m.id}.png`);
+    return (
+      this.getImage(directionalSrc) ||
+      this.getImage(m.sprite) ||
+      this.getImage(`./assets/monsters/${m.id}_down.png`) ||
+      this.getImage(`./assets/monsters/${m.id}.png`)
+    );
   }
 
   getImage(src) {
     if (!src) return null;
-    let img = this.images.get(src);
+    let resolvedSrc = src;
+    try {
+      resolvedSrc = new URL(src, document.baseURI).href;
+    } catch (e) {
+      resolvedSrc = src;
+    }
+
+    let img = this.images.get(resolvedSrc);
     if (!img) {
       img = new Image();
-      img.src = src;
-      this.images.set(src, img);
+      img.src = resolvedSrc;
+      this.images.set(resolvedSrc, img);
     }
     return (img.complete && img.naturalWidth > 0) ? img : null;
   }
@@ -633,9 +645,8 @@ export class DungeonRenderer {
         const sh = img.height * scale;
         ctx.drawImage(img, cx - sw / 2, cy - sh / 2 - 1 + wobble, sw, sh);
       } else {
-        // ロード中フォールバック
-        ctx.fillStyle = m.color;
-        ctx.fillRect(px + 10, py + 10, this.tileSize - 20, this.tileSize - 20);
+        // ロード中フォールバック: 単色ベタ塗りではなくDQ風のドット絵モンスターシルエット
+        this._drawMonsterFallback(ctx, m, cx, cy + wobble);
       }
       ctx.restore();
 
@@ -1126,6 +1137,40 @@ export class DungeonRenderer {
       ctx.fillRect(ptx + player.dir.dx * 3 - 1, pty + player.dir.dy * 3 - 1, 2, 2);
     }
 
+    ctx.restore();
+  }
+
+  // ロード中フォールバック：単色四角ではなくDQ風のドット絵モンスターシルエットを描画
+  _drawMonsterFallback(ctx, m, cx, cy) {
+    ctx.save();
+    // モンスターの体
+    ctx.beginPath();
+    ctx.arc(cx, cy - 2, 14, 0, Math.PI * 2);
+    ctx.fillStyle = m.color || '#3b82f6';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+
+    // 大きな目（DQ風）
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(cx - 5, cy - 4, 3.5, 0, Math.PI * 2);
+    ctx.arc(cx + 5, cy - 4, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 黒い瞳
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(cx - 4.5, cy - 4, 1.8, 0, Math.PI * 2);
+    ctx.arc(cx + 4.5, cy - 4, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 頭文字バッジ
+    ctx.font = 'bold 9px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(m.name ? m.name[0] : '敵', cx, cy + 8);
     ctx.restore();
   }
 }
