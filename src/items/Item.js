@@ -54,14 +54,54 @@ export class Item {
   }
 
   _getDefaultUnidentifiedName() {
-    switch (this.type) {
-      case 'weapon': return '未鑑定の剣';
-      case 'shield': return '未鑑定の盾';
-      case 'staff': return '未鑑定の杖';
-      case 'scroll': return '未鑑定の巻物';
-      case 'herb': return '未鑑定の草';
-      default: return '未鑑定の道具';
+    // 武器・盾は原作トルネコ仕様：名前はそのまま表示（修正値が伏せられ、黄色文字になる）
+    if (this.type === 'weapon' || this.type === 'shield') {
+      return this.name;
     }
+
+    // 草（原作トルネコ仕様：色名）
+    const herbNames = {
+      herb: 'みどりの草',
+      otogiri: 'あかい草',
+      antidote: 'あおい草',
+      seed_str: 'きいろの草',
+      seed_stomach: 'ちゃいろの草',
+      warp_herb: 'むらさきの草',
+      fire_herb: 'オレンジの草',
+      sleep_herb: 'しろい草',
+      eyedrop: 'みずいろの草',
+    };
+    if (this.type === 'herb' && herbNames[this.id]) {
+      return herbNames[this.id];
+    }
+
+    // 巻物（原作トルネコ仕様：呪文名）
+    const scrollNames = {
+      light: 'あーの巻物',
+      upgrade: 'いーの巻物',
+      sanctuary: 'うーの巻物',
+      sleep_scroll: 'えーの巻物',
+      confuse: 'おーの巻物',
+      bread_scroll: 'かーの巻物',
+      identify: 'きーの巻物',
+    };
+    if (this.type === 'scroll' && scrollNames[this.id]) {
+      return scrollNames[this.id];
+    }
+
+    // 杖（原作トルネコ仕様：形状名）
+    const staffNames = {
+      staff_knockback: '細い杖',
+      staff_swap: '太い杖',
+      staff_paralyze: '曲がった杖',
+      staff_silence: '黒い杖',
+      staff_polymorph: '光る杖',
+    };
+    if (this.type === 'staff' && staffNames[this.id]) {
+      return staffNames[this.id];
+    }
+
+    return '未識別の道具';
   }
 
   _getDefaultSprite() {
@@ -78,26 +118,28 @@ export class Item {
     }
   }
 
-  // 鑑定を実行する（未鑑定だった場合はtrueを返す）
+  // 識別を実行する（未識別だった場合はtrueを返す）
   identify() {
     const wasUnidentified = !this.identified;
     this.identified = true;
     return wasUnidentified;
   }
 
-  // 説明文（未鑑定時はヒントテキスト）
+  // 説明文（未識別時はヒントテキスト）
   getDesc() {
     if (!this.identified) {
-      if (this.type === 'weapon' || this.type === 'shield') {
-        return '正体不明の装備品。装備するかインパスの巻物で正体が判明する。';
+      if (this.type === 'weapon') {
+        return '正体不明の武器。装備するかインパスの巻物で強さが判明する。';
+      } else if (this.type === 'shield') {
+        return '正体不明の盾。装備するかインパスの巻物で強さが判明する。';
       } else if (this.type === 'herb') {
-        return '正体不明の草。飲むか投げるか、インパスの巻物で正体が判明する。';
+        return '正体不明の草。飲むか投げるか、インパスの巻物で効果が判明する。';
       } else if (this.type === 'scroll') {
-        return '正体不明の巻物。読むかインパスの巻物で正体が判明する。';
+        return '正体不明の巻物。読むかインパスの巻物で効果が判明する。';
       } else if (this.type === 'staff') {
-        return '正体不明の杖。振るかインパスの巻物で正体が判明する。';
+        return '正体不明の杖。振るかインパスの巻物で効果が判明する。';
       }
-      return '正体不明の道具。インパスの巻物で鑑定できる。';
+      return '正体不明の道具。インパスの巻物で識別できる。';
     }
     return this.desc || '特別な効果はない。';
   }
@@ -114,6 +156,9 @@ export class Item {
   // 装備マークなしの名称（リストスロットやHUD表示用）
   getItemCleanName() {
     if (!this.identified) {
+      if (this.type === 'staff') {
+        return `${this.unidentifiedName} [?]`;
+      }
       return this.unidentifiedName;
     }
 

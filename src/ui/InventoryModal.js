@@ -124,8 +124,9 @@ export class InventoryModal {
     this.groundContainer.innerHTML = '';
 
     if (this.groundItem) {
+      const isUnident = (this.groundItem.identified === false);
       const row = document.createElement('div');
-      row.className = `ground-slot ${this.isGroundSelection ? 'selected' : ''}`;
+      row.className = `ground-slot ${this.isGroundSelection ? 'selected' : ''} ${isUnident ? 'unidentified' : ''}`;
       row.innerHTML = `
         <span class="ground-tag">[足元]</span>
         <img class="inv-slot-icon" src="${this.groundItem.sprite}" alt="${this.groundItem.name}" />
@@ -161,7 +162,8 @@ export class InventoryModal {
       if (i < inv.length) {
         const item = inv[i];
         const isSelected = (!this.isGroundSelection && this.selectedItem === item);
-        slot.className = `inv-slot ${isSelected ? 'selected' : ''}`;
+        const isUnident = (item.identified === false);
+        slot.className = `inv-slot ${isSelected ? 'selected' : ''} ${isUnident ? 'unidentified' : ''}`;
 
         const marker = isSelected ? '<span class="inv-cursor">▶</span>' : '<span class="inv-cursor-space">　</span>';
         const equipBadge = item.equipped ? '<span class="inv-equip-badge">E </span>' : '';
@@ -194,8 +196,16 @@ export class InventoryModal {
     this.renderGround();
     this.renderGrid();
 
-    let desc = item.getDesc ? item.getDesc() : (item.desc || item.name);
-    if (item.identified) {
+    const isUnident = (item.identified === false);
+    if (this.detailEl) {
+      this.detailEl.classList.toggle('unidentified', isUnident);
+    }
+
+    let desc = '';
+    if (isUnident) {
+      desc = `【未識別】${item.getDesc ? item.getDesc() : '効果はわからない。'}`;
+    } else {
+      desc = item.getDesc ? item.getDesc() : (item.desc || item.name);
       if (item.type === 'weapon') desc = `攻撃力 +${item.getEffectiveAtk()}。${item.desc}`;
       if (item.type === 'shield') desc = `防御力 +${item.getEffectiveDef()}。${item.desc}`;
     }

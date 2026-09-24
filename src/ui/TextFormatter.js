@@ -144,6 +144,28 @@ export class TextFormatter {
       if (currentLine.trim().length > 0) {
         resultLines.push(currentLine.trimEnd());
       }
+
+      // 孤立行（ウィドウ）防止：最後の行が極端に短く（全角5.5文字以下など）、
+      // かつ1つ前の行が複数トークンで構成されていれば、直前トークンを次行へ送ってバランスを取る
+      // （例: 「スライムは　薬草を」 / 「落とした！」 → 「スライムは」 / 「薬草を　落とした！」）
+      if (resultLines.length >= 2) {
+        const lastIdx = resultLines.length - 1;
+        const prevIdx = lastIdx - 1;
+        const lastLine = resultLines[lastIdx];
+        const prevLine = resultLines[prevIdx];
+        if (TextFormatter.getVisualWidth(lastLine) <= 5.5) {
+          const prevTokens = TextFormatter.tokenize(prevLine);
+          if (prevTokens.length >= 2) {
+            const popped = prevTokens.pop();
+            const newPrev = prevTokens.join('').trimEnd();
+            const newLast = (popped + ' ' + lastLine).replace(/\s+/g, ' ').trim();
+            if (TextFormatter.getVisualWidth(newLast) <= maxVisualWidth && newPrev.length > 0) {
+              resultLines[prevIdx] = newPrev;
+              resultLines[lastIdx] = newLast;
+            }
+          }
+        }
+      }
     }
 
     return resultLines.length > 0 ? resultLines : [''];

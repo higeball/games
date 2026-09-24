@@ -264,35 +264,57 @@ export class Player {
     return false;
   }
 
-  // 装備（トルネコ原作仕様：未鑑定装備は装備時に正体が判明する）
+  // 装備（トルネコ原作仕様：未識別装備は装備時に正体が識別される）
   equipItem(item) {
-    let identifyMsg = '';
-    if (!item.identified) {
+    const wasUnidentified = !item.identified;
+    if (wasUnidentified) {
       item.identify();
-      identifyMsg = `鑑定された！\nそれは　${item.getItemCleanName()}だった！\n`;
     }
 
+    const msgs = [];
     if (item.type === 'weapon') {
       if (this.equippedWeapon) {
         this.equippedWeapon.equipped = false;
       }
       this.equippedWeapon = item;
       item.equipped = true;
-      return `${identifyMsg}${item.getItemCleanName()}を　装備した！\n攻撃力が　上がった！`;
+
+      if (wasUnidentified) {
+        msgs.push(`【${item.name}】が　識別された！`);
+        if (item.refine > 0) {
+          msgs.push(`なんと　+${item.refine}の剣だった！`);
+        } else if (item.refine < 0) {
+          msgs.push(`なんと　${item.refine}の呪いがかかっていた！`);
+        }
+      }
+      msgs.push(`${item.getItemCleanName()}を　装備した！`);
+      msgs.push('攻撃力が　上がった！');
+      return msgs.join('\n');
     } else if (item.type === 'shield') {
       if (this.equippedShield) {
         this.equippedShield.equipped = false;
       }
       this.equippedShield = item;
       item.equipped = true;
-      return `${identifyMsg}${item.getItemCleanName()}を　装備した！\n防御力が　上がった！`;
+
+      if (wasUnidentified) {
+        msgs.push(`【${item.name}】が　識別された！`);
+        if (item.refine > 0) {
+          msgs.push(`なんと　+${item.refine}の盾だった！`);
+        } else if (item.refine < 0) {
+          msgs.push(`なんと　${item.refine}の呪いがかかっていた！`);
+        }
+      }
+      msgs.push(`${item.getItemCleanName()}を　装備した！`);
+      msgs.push('防御力が　上がった！');
+      return msgs.join('\n');
     } else if (item.type === 'arrow') {
       if (this.equippedArrow) {
         this.equippedArrow.equipped = false;
       }
       this.equippedArrow = item;
       item.equipped = true;
-      return `${item.name}を　装備した！`;
+      return `${item.getItemCleanName()}を　装備した！`;
     }
     return null;
   }

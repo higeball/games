@@ -47,8 +47,9 @@ export class TitleScreen {
         image: './character/opening/02-restroom-closed.png',
         lines: [
           'もじさん「う、うぐぐっ……！？ なんだこの激痛は……！？」',
-          '「ヤバい……！ 今すぐトイレに行かないと 社会人生命が終わる……！！」',
-          '脂汗を流しながら 50F レストラン街のトイレへ 駆け込むも、',
+          '「ヤバい……！ 今すぐトイレに行かないと',
+          ' 社会人生命が終わってしまう……！！」',
+          '脂汗を流しながら 50Fレストラン街のトイレへ駆け込むも、',
           '扉には無慈悲な張り紙が……！',
           '『【配管破裂のため 全面使用禁止】』'
         ]
@@ -71,7 +72,8 @@ export class TitleScreen {
         image: './character/opening/04-fortieth-floor-announcement.png',
         lines: [
           '『ピンポンパンポーン――』',
-          '『現在、館内で使用可能な最寄りのトイレは…… 【40階】となります。』',
+          '『現在、館内で使用可能な最寄りのトイレは……',
+          ' 【40階】となります。』',
           'もじさん「よ、40階……！？ ここから非常階段で 10フロアも降りるのか……！？」',
           '午後の始業時間は【13:00】。 残された時間はあとわずか13分……！！'
         ]
@@ -90,7 +92,23 @@ export class TitleScreen {
       }
     ];
 
+    this.preloadStoryImages();
     this.initEvents();
+  }
+
+  // オープニング画像の全事前読み込み（「次へ」のラグ完全解消）
+  preloadStoryImages() {
+    this.preloadedImages = {};
+    for (const page of this.storyPages) {
+      if (page.image) {
+        const img = new Image();
+        img.src = page.image;
+        if (img.decode) {
+          img.decode().catch(() => {});
+        }
+        this.preloadedImages[page.image] = img;
+      }
+    }
   }
 
   initEvents() {

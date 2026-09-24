@@ -285,9 +285,14 @@ class Game {
     // 50F（floorNumber: 1）の生成
     this.loadFloor(1);
 
-    const diffLabel = this.difficulty === 'hard' ? '【HARD】' : '';
-    this.log.addMessage(`【50F】${diffLabel}もじさんは　扉を蹴破った！`);
-    this.log.addMessage('午後の始業までに　40Fのトイレを　目指せ！');
+    if (this.difficulty === 'hard') {
+      this.log.addMessage('【50F】[HARD] 非常事態発生！');
+    } else {
+      this.log.addMessage('【50F】非常事態発生！');
+    }
+    this.log.addMessage('もじさんは　扉を蹴破った！');
+    this.log.addMessage('午後の始業までに');
+    this.log.addMessage('40Fのトイレを　目指せ！');
     SaveManager.saveGame(this);
   }
 
@@ -324,7 +329,8 @@ class Game {
         this.log.addMessage('【40F】ついに　目的の40Fに到達！');
         this.log.addMessage('どこかに　トイレがあるはずだ！');
       } else {
-        this.log.addMessage(`非常階段を駆け降り、${floorDisplay}に　到達した！`);
+        this.log.addMessage('非常階段を駆け降り、');
+        this.log.addMessage(`${floorDisplay}に　到達した！`);
       }
       soundManager.playStairs();
       SaveManager.saveGame(this);
@@ -521,7 +527,8 @@ class Game {
         const dropped = this.generator._generateFloorItem(this.floorNumber, monster.x, monster.y);
         if (dropped) {
           this.dungeon.items.push(dropped);
-          this.log.addMessage(`${monster.name}は　${dropped.name}を　落とした！`);
+          this.log.addMessage(`${monster.name}は`);
+          this.log.addMessage(`${dropped.getItemCleanName()}を　落とした！`);
         }
       }
     }
@@ -576,10 +583,11 @@ class Game {
         if (res.success) {
           this.dungeon.items.splice(itemIdx, 1);
           soundManager.playPickup();
-          this.log.addMessage(`もじさんは　${item.name}を　拾った！`);
+          this.log.addMessage('もじさんは');
+          this.log.addMessage(`${item.getItemCleanName()}を　拾った！`);
         } else {
-          this.log.addMessage(`足元に　${item.name}が　ある。`);
-          this.log.addMessage('（持ち物が　いっぱいです）');
+          this.log.addMessage(`足元に　${item.getItemCleanName()}が`);
+          this.log.addMessage('ある。（持ち物がいっぱい）');
         }
       }
     }
@@ -624,7 +632,8 @@ class Game {
             dropItem.x = px;
             dropItem.y = py;
             this.dungeon.items.push(dropItem);
-            this.log.addMessage(`転んで　${dropItem.name}を　落とした！`);
+            this.log.addMessage('足元のケーブルに　引っ掛かった！');
+            this.log.addMessage(`${dropItem.getItemCleanName()}を　落とした！`);
           }
           break;
         case 'warp':
@@ -801,7 +810,8 @@ class Game {
         item.x = this.player.x;
         item.y = this.player.y;
         this.dungeon.items.push(item);
-        this.log.addMessage(`もじさんは　${item.name}を　足元に置いた。`);
+        this.log.addMessage('もじさんは');
+        this.log.addMessage(`${item.getItemCleanName()}を　足元に置いた。`);
         this.executeTurn(false);
         break;
 
@@ -812,7 +822,8 @@ class Game {
             const idx = this.dungeon.items.indexOf(item);
             if (idx !== -1) this.dungeon.items.splice(idx, 1);
             soundManager.playPickup();
-            this.log.addMessage(`もじさんは　${item.name}を　拾った！`);
+            this.log.addMessage('もじさんは');
+            this.log.addMessage(`${item.getItemCleanName()}を　拾った！`);
           } else {
             this.log.addMessage(res.reason);
           }

@@ -126,7 +126,8 @@ export class ItemManager {
     }
 
     if (wasUnident) {
-      onAddLog(`鑑定された！ それは　${item.name}だった！`);
+      onAddLog(`【${initialName}】が　識別された！`);
+      onAddLog(`それは　${item.name}だった！`);
     }
 
     return true;
@@ -202,11 +203,23 @@ export class ItemManager {
           if (unidentItems.length > 0) {
             onAddLog('インパスの光が　道具袋を包み込む！');
             unidentItems.forEach(i => {
+              const oldName = i.getItemCleanName();
               i.identify();
-              onAddLog(`【${i.getItemCleanName()}】が　鑑定された！`);
+              if (i.type === 'weapon' || i.type === 'shield') {
+                if (i.refine > 0) {
+                  onAddLog(`【${i.name}】は　+${i.refine}だった！`);
+                } else if (i.refine < 0) {
+                  onAddLog(`【${i.name}】は　${i.refine}（呪）だった！`);
+                } else {
+                  onAddLog(`【${i.name}】は　普通の強さだった！`);
+                }
+              } else {
+                onAddLog(`【${oldName}】は`);
+                onAddLog(`${i.getItemCleanName()}だった！`);
+              }
             });
           } else {
-            onAddLog('しかし　未鑑定の道具は');
+            onAddLog('しかし　未識別の道具は');
             onAddLog('持っていなかった！');
           }
         }
@@ -274,7 +287,8 @@ export class ItemManager {
     }
 
     if (wasUnident) {
-      onAddLog(`鑑定された！ それは　${item.name}だった！`);
+      onAddLog(`【${initialName}】が　識別された！`);
+      onAddLog(`それは　${item.name}だった！`);
     }
 
     return true;
@@ -394,7 +408,8 @@ export class ItemManager {
 
     if (wasUnident) {
       if (item.identify) item.identify();
-      onAddLog(`鑑定された！ それは　${item.name}だった！`);
+      onAddLog(`【${initialName}】が　識別された！`);
+      onAddLog(`それは　${item.name}だった！`);
     }
 
     return true;

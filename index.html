@@ -8,6 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+  <!-- オープニング挿絵の事前読み込み（「次へ」のラグ完全解消） -->
+  <link rel="preload" as="image" href="./character/opening/01-stomach-emergency.png">
+  <link rel="preload" as="image" href="./character/opening/02-restroom-closed.png">
+  <link rel="preload" as="image" href="./character/opening/03-elevators-stopped.png">
+  <link rel="preload" as="image" href="./character/opening/04-fortieth-floor-announcement.png">
+  <link rel="preload" as="image" href="./character/opening/05-emergency-stairs.png">
   <style>
     * {
       box-sizing: border-box;
@@ -598,6 +604,18 @@
       font-weight: 500;
     }
 
+    /* トルネコ原作仕様：未識別アイテムは黄色文字（#ffd700） */
+    .inv-slot.unidentified .inv-slot-name,
+    .ground-slot.unidentified .inv-slot-name {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .inv-slot.unidentified .inv-cursor,
+    .ground-slot.unidentified .inv-cursor {
+      color: #ffd700;
+    }
+
     .inv-equip-badge {
       color: #ffffff;
       font-weight: bold;
@@ -620,6 +638,10 @@
       line-height: 18px;
       min-height: 38px;
       color: #e2e8f0;
+    }
+
+    #inventory-detail.unidentified {
+      color: #ffd700;
     }
 
     /* アクションコマンド枠 */
