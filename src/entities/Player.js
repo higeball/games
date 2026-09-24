@@ -218,14 +218,18 @@ export class Player {
     while (this.level < CONFIG.LEVEL_TABLE.length) {
       const nextLevelData = CONFIG.LEVEL_TABLE[this.level]; // 0-indexed: level 1 is index 0, next is index 1
       if (nextLevelData && this.exp >= nextLevelData.exp) {
+        const prevLevelData = CONFIG.LEVEL_TABLE[this.level - 1];
         this.level = nextLevelData.level;
-        const hpGain = nextLevelData.hp - this.maxHp;
-        const strGain = nextLevelData.str - this.maxStr;
 
-        this.maxHp = nextLevelData.hp;
-        this.hp = Math.min(this.maxHp, this.hp + hpGain);
-        this.maxStr = nextLevelData.str;
-        this.str = Math.min(this.maxStr, this.str + strGain);
+        // レベルアップによる成長量（テーブルの差分）
+        const hpGain = prevLevelData ? (nextLevelData.hp - prevLevelData.hp) : 4;
+        const strGain = prevLevelData ? (nextLevelData.str - prevLevelData.str) : 1;
+
+        // ちからの種や薬草で上昇したステータスを保持したまま、成長量を加算
+        this.maxHp += hpGain;
+        this.hp += hpGain;
+        this.maxStr += strGain;
+        this.str += strGain;
 
         messages.push('もじさんは　レベルが上がった！');
         messages.push(`レベル${this.level}に　なった！`);
