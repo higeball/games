@@ -45,9 +45,9 @@ export class TouchControls {
         e.preventDefault();
         e.stopPropagation();
 
-        // メッセージがタイプ中または送り待ち中なら、メッセージ進行を優先
-        if (this.onAdvanceMessage && this.onAdvanceMessage()) {
-          return;
+        // メッセージがタイプ中なら即座に全表示スキップさせつつ、移動はブロックせず即実行！
+        if (this.onAdvanceMessage) {
+          this.onAdvanceMessage();
         }
 
         if (dx === 0 && dy === 0) {
@@ -105,8 +105,8 @@ export class TouchControls {
         const cb = (e) => {
           e.preventDefault();
           e.stopPropagation();
-          if (this.onAdvanceMessage && this.onAdvanceMessage()) {
-            return;
+          if (this.onAdvanceMessage) {
+            this.onAdvanceMessage();
           }
           handler();
         };
@@ -136,8 +136,8 @@ export class TouchControls {
         e.preventDefault();
         e.stopPropagation();
 
-        if (this.onAdvanceMessage && this.onAdvanceMessage()) {
-          return;
+        if (this.onAdvanceMessage) {
+          this.onAdvanceMessage();
         }
 
         this.setTurnOnlyMode(false);
@@ -291,10 +291,17 @@ export class TouchControls {
         return;
       }
 
-      // メッセージがタイプ中または送り待ち中なら、メッセージ進行を最優先して入力を消費
-      if (this.onAdvanceMessage && this.onAdvanceMessage()) {
-        e.preventDefault();
-        return;
+      // スペースキーまたはEnterキーはメッセージ進行を優先
+      if (e.key === ' ' || e.key === 'Enter') {
+        if (this.onAdvanceMessage && this.onAdvanceMessage()) {
+          e.preventDefault();
+          return;
+        }
+      } else {
+        // 移動キーなどの操作時は、メッセージを即座にスキップさせつつ操作はブロックしない
+        if (this.onAdvanceMessage) {
+          this.onAdvanceMessage();
+        }
       }
 
       let dx = 0;
