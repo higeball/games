@@ -15,13 +15,16 @@ export class Player {
 
     // 向き (dx, dy) - デフォルトは下向き
     this.dir = { dx: 0, dy: 1 };
-    this.facingName = 'down'; // 'down', 'up', 'left', 'right'
+    this.facingName = 'down'; // 'down', 'up', 'left', 'right', 'down-left', 'down-right', 'up-left', 'up-right'
 
     // アニメーション制御
     this.animProgress = 1.0;
     this.walkFrame = 1; // 1, 2, 3
     this.stepCounter = 0;
     this.isAttacking = 0; // 攻撃モーションタイマー（武器を振るアニメーション）
+    this.hurtTimer = 0;   // 被ダメージモーションタイマー
+    this.idleStepTimer = 0; // 停止中のアイドル足踏みタイマー
+    this.idleStepFrame = 1; // 停止中のアイドル足踏みフレーム (1, 2, 3)
 
     // ステータス
     this.name = 'もじさん';
@@ -53,35 +56,61 @@ export class Player {
     this.healStepCount = 0;
     this.healCounter = 0; // SFC解析式: 毎ターン最大HP加算し150でHP1回復
 
-    // スプライト画像
-    this.sprites = {};
+    // スプライト画像（walk, attack, hurt の各8方向×3フレーム）
+    this.sprites = {
+      walk: {},
+      attack: {},
+      hurt: {}
+    };
     this._loadSprites();
   }
 
   _loadSprites() {
-    const directions = ['down', 'up', 'left', 'right'];
+    const directions = [
+      'down', 'up', 'left', 'right',
+      'down-left', 'down-right', 'up-left', 'up-right'
+    ];
     const frames = ['01', '02', '03'];
+    const actions = ['walk', 'attack', 'hurt'];
 
-    directions.forEach(dir => {
-      this.sprites[dir] = [];
-      frames.forEach((f, idx) => {
-        const img = new Image();
-        img.src = `${CONFIG.PLAYER.SPRITE_FRAMES_DIR}${dir}-${f}.png`;
-        this.sprites[dir][idx] = img;
+    actions.forEach(act => {
+      this.sprites[act] = {};
+      directions.forEach(dir => {
+        this.sprites[act][dir] = [];
+        frames.forEach((f, idx) => {
+          const img = new Image();
+          // サブディレクトリから読み込み、無ければフォールバック
+          img.src = `${CONFIG.PLAYER.SPRITE_FRAMES_DIR}${act}/${dir}-${f}.png`;
+          this.sprites[act][dir][idx] = img;
+        });
       });
+    });
+
+    // 後方互換参照
+    directions.forEach(dir => {
+      this.sprites[dir] = this.sprites.walk[dir];
     });
   }
 
-  // 向きの設定
+  // 向きの設定（8方向完全対応）
   setDirection(dx, dy) {
     if (dx === 0 && dy === 0) return;
-    this.dir = { dx, dy };
+    const sx = Math.sign(dx);
+    const sy = Math.sign(dy);
+    this.dir = { dx: sx, dy: sy };
 
-    // 4方向スプライトへのマッピング
-    if (Math.abs(dx) >= Math.abs(dy)) {
-      this.facingName = dx > 0 ? 'right' : 'left';
+    if (sy > 0) {
+      if (sx < 0) this.facingName = 'down-left';
+      else if (sx > 0) this.facingName = 'down-right';
+      else this.facingName = 'down';
+    } else if (sy < 0) {
+      if (sx < 0) this.facingName = 'up-left';
+      else if (sx > 0) this.facingName = 'up-right';
+      else this.facingName = 'up';
     } else {
-      this.facingName = dy > 0 ? 'down' : 'up';
+      if (sx < 0) this.facingName = 'left';
+      else if (sx > 0) this.facingName = 'right';
+      else this.facingName = 'down';
     }
   }
 
@@ -207,6 +236,7 @@ export class Player {
     const defFactor = Math.pow(15 / 16, defPower);
     const finalDmg = Math.max(1, Math.round(rawDmg * defFactor));
     this.hp = Math.max(0, this.hp - finalDmg);
+    this.hurtTimer = 10; // 被ダメージモーション用タイマー
     return finalDmg;
   }
 

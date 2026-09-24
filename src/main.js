@@ -468,7 +468,7 @@ class Game {
       return;
     }
 
-    this.player.isAttacking = 8;
+    this.player.isAttacking = 9;
     const dx = this.player.dir.dx;
     const dy = this.player.dir.dy;
     const tx = this.player.x + dx;
@@ -498,7 +498,7 @@ class Game {
 
   // モンスター攻撃処理
   attackMonster(monster) {
-    this.player.isAttacking = 8;
+    this.player.isAttacking = 9;
     this.player.inCombatTimer = 4;
     monster.inCombatTimer = 4;
     monster.setDirection(this.player.x - monster.x, this.player.y - monster.y);
@@ -1010,16 +1010,51 @@ class Game {
     }
   }
 
-  // メインループ（60fps レンダリング＆補間）
+  // メインループ（60fps レンダリング＆補間＆シームレス移動）
   setupGameLoop() {
     const loop = () => {
-      // プレイヤーのスムーズ補間＆攻撃モーション
+      // プレイヤーのスムーズ補間＆モーション制御
       if (this.player) {
         if (this.player.animProgress < 1.0) {
           this.player.animProgress = Math.min(1.0, this.player.animProgress + 0.18);
         }
         if (this.player.isAttacking > 0) {
           this.player.isAttacking--;
+        }
+        if (this.player.hurtTimer > 0) {
+          this.player.hurtTimer--;
+        }
+
+        // 停止中のアイドル足踏みアクション（約0.3秒ごとに1コマ進む）
+        if (this.player.animProgress >= 1.0 && this.player.isAttacking === 0 && this.player.hurtTimer === 0) {
+          this.player.idleStepTimer = (this.player.idleStepTimer || 0) + 1;
+          if (this.player.idleStepTimer >= 18) {
+            this.player.idleStepTimer = 0;
+            this.player.idleStepFrame = (this.player.idleStepFrame % 3) + 1;
+          }
+        } else {
+          this.player.idleStepTimer = 0;
+        }
+
+        // D-Pad長押し時のシームレス連続移動（一歩目のつっかかり完全解消）
+        if (this.controls && this.controls.holdingDir && !this.controls.turnOnlyMode &&
+            !this.isBusy && !this.isGameOver && !this.isGameClear) {
+          // 歩行アニメーションが着地付近（>= 0.82）になった瞬間に隙間ゼロで次の一歩を実行
+          if (this.player.animProgress >= 0.82) {
+            this.handlePlayerMove(this.controls.holdingDir.dx, this.controls.holdingDir.dy);
+          }
+        }
+
+        // 足踏み長押し時のスムーズ連続足踏み
+        if (this.controls && this.controls.isHoldingWait &&
+            !this.isBusy && !this.isGameOver && !this.isGameClear) {
+          this._holdingWaitFrame = (this._holdingWaitFrame || 0) + 1;
+          if (this._holdingWaitFrame >= 7) {
+            this._holdingWaitFrame = 0;
+            this.handlePlayerWait();
+          }
+        } else {
+          this._holdingWaitFrame = 0;
         }
       }
 

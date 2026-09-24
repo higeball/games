@@ -17,28 +17,23 @@ export class TouchControls {
 
     this.turnOnlyMode = false; // 向き変更のみモード
 
-    this._repeatTimer = null;
-    this._repeatInterval = null;
-    this._activeBtn = null;
+    this.holdingDir = null; // 長押し移動中の方向 {dx, dy}
+    this.isHoldingWait = false; // 長押し足踏み中フラグ
+    this.isSlidingTurn = false; // 向きボタンスライド操作中フラグ
+    this.turnSlideCenter = null; // 向きボタンスライド中心座標
+    this.turnHasMoved = false; // スライド操作で移動したか
 
     this._setupDOM();
     this._setupKeyboard();
   }
 
   stopRepeat() {
-    if (this._repeatTimer) {
-      clearTimeout(this._repeatTimer);
-      this._repeatTimer = null;
-    }
-    if (this._repeatInterval) {
-      clearInterval(this._repeatInterval);
-      this._repeatInterval = null;
-    }
-    this._activeBtn = null;
+    this.holdingDir = null;
+    this.isHoldingWait = false;
   }
 
   _setupDOM() {
-    // 8方向D-Padボタン（長押し連続移動対応）
+    // 8方向D-Padボタン（長押しシームレス連続移動対応）
     const dpadBtns = document.querySelectorAll('.dpad-btn[data-dx]');
     dpadBtns.forEach(btn => {
       const dx = parseInt(btn.dataset.dx, 10);
@@ -47,8 +42,6 @@ export class TouchControls {
       const handlePress = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.stopRepeat();
-        this._activeBtn = btn;
 
         // メッセージがタイプ中または送り待ち中なら、メッセージ進行を優先
         if (this.onAdvanceMessage && this.onAdvanceMessage()) {
@@ -56,6 +49,7 @@ export class TouchControls {
         }
 
         if (dx === 0 && dy === 0) {
+          this.isHoldingWait = true;
           this.onWait();
           return;
         }
@@ -66,23 +60,20 @@ export class TouchControls {
           return;
         }
 
-        // 初回移動を即座に実行
+        // 初回移動を即座に実行し、長押し保持状態をセット（メインループと連携して一歩目のつっかかりゼロ）
+        this.holdingDir = { dx, dy };
         this.onMove(dx, dy);
-
-        // 長押しでスムーズに連続移動（待機時間を通常の移動間隔と同じ110msにし、一歩目で止まることなくスムーズに走る）
-        this._repeatTimer = setTimeout(() => {
-          this._repeatInterval = setInterval(() => {
-            this.onMove(dx, dy);
-          }, 110);
-        }, 110);
       };
 
       btn.addEventListener('touchstart', handlePress, { passive: false });
       btn.addEventListener('mousedown', handlePress);
 
       const handleRelease = (e) => {
-        if (this._activeBtn === btn) {
-          this.stopRepeat();
+        if (this.holdingDir && this.holdingDir.dx === dx && this.holdingDir.dy === dy) {
+          this.holdingDir = null;
+        }
+        if (dx === 0 && dy === 0) {
+          this.isHoldingWait = false;
         }
       };
 
@@ -92,11 +83,15 @@ export class TouchControls {
       btn.addEventListener('mouseleave', handleRelease);
     });
 
-    // グローバル解放リスナー（指やマウスがボタン外に外れた時の解除）
-    window.addEventListener('mouseup', () => this.stopRepeat());
-    window.addEventListener('touchend', () => this.stopRepeat());
-    window.addEventListener('touchcancel', () => this.stopRepeat());
-    window.addEventListener('blur', () => this.stopRepeat());
+    // グローバル解放リスナー（指やマウスがボタン外に外れた時の完全解除）
+    const releaseAll = () => {
+      this.holdingDir = null;
+      this.isHoldingWait = false;
+    };
+    window.addEventListener('mouseup', releaseAll);
+    window.addEventListener('touchend', releaseAll);
+    window.addEventListener('touchcancel', releaseAll);
+    window.addEventListener('blur', releaseAll);
 
     // アクションボタン
     const bindBtn = (id, handler) => {
@@ -135,30 +130,21 @@ export class TouchControls {
       const handleWaitPress = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.stopRepeat();
-        this._activeBtn = waitBtn;
 
         if (this.onAdvanceMessage && this.onAdvanceMessage()) {
           return;
         }
 
         this.setTurnOnlyMode(false);
+        this.isHoldingWait = true;
         this.onWait();
-
-        this._repeatTimer = setTimeout(() => {
-          this._repeatInterval = setInterval(() => {
-            this.onWait();
-          }, 110);
-        }, 110);
       };
 
       waitBtn.addEventListener('touchstart', handleWaitPress, { passive: false });
       waitBtn.addEventListener('mousedown', handleWaitPress);
 
       const handleWaitRelease = () => {
-        if (this._activeBtn === waitBtn) {
-          this.stopRepeat();
-        }
+        this.isHoldingWait = false;
       };
       waitBtn.addEventListener('touchend', handleWaitRelease);
       waitBtn.addEventListener('touchcancel', handleWaitRelease);
@@ -166,18 +152,84 @@ export class TouchControls {
       waitBtn.addEventListener('mouseleave', handleWaitRelease);
     }
 
-    // 移動キー中央の向きボタン
+    // 移動キー中央の向きボタン（タップ＆スライド8方向向き変更UI）
     const turnBtn = document.getElementById('btn-turn');
     if (turnBtn) {
-      const toggleTurn = (e) => {
+      const startSlideTurn = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        const nextMode = !this.turnOnlyMode;
-        const curDir = this.getCurrentDirection();
-        this.setTurnOnlyMode(nextMode, curDir);
+        this.isSlidingTurn = true;
+        this.turnHasMoved = false;
+
+        const rect = turnBtn.getBoundingClientRect();
+        this.turnSlideCenter = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2
+        };
+
+        // 向きモード表示（8方向矢印サークル出現）
+        this.setTurnOnlyMode(true);
       };
-      turnBtn.addEventListener('touchstart', toggleTurn, { passive: false });
-      turnBtn.addEventListener('click', toggleTurn);
+
+      turnBtn.addEventListener('touchstart', startSlideTurn, { passive: false });
+      turnBtn.addEventListener('mousedown', startSlideTurn);
+
+      // スライド移動検知（ウィンドウ全体でタッチ位置を追跡）
+      const onMoveSlideTurn = (e) => {
+        if (!this.isSlidingTurn || !this.turnSlideCenter) return;
+        e.preventDefault();
+
+        const touch = e.touches ? e.touches[0] : e;
+        const dx = touch.clientX - this.turnSlideCenter.x;
+        const dy = touch.clientY - this.turnSlideCenter.y;
+        const dist = Math.hypot(dx, dy);
+
+        // 14px以上スライドしたら向き変更
+        if (dist >= 14) {
+          this.turnHasMoved = true;
+          const angle = Math.atan2(dy, dx); // -PI to PI
+          // 8方向判定（各45度 = PI/4）
+          // 0:右, 1:右下, 2:下, 3:左下, 4/-4:左, -3:左上, -2:上, -1:右上
+          const octant = Math.round(angle / (Math.PI / 4));
+          let dirX = 0, dirY = 0;
+          switch (octant) {
+            case 0: dirX = 1; dirY = 0; break;
+            case 1: dirX = 1; dirY = 1; break;
+            case 2: dirX = 0; dirY = 1; break;
+            case 3: dirX = -1; dirY = 1; break;
+            case 4:
+            case -4: dirX = -1; dirY = 0; break;
+            case -3: dirX = -1; dirY = -1; break;
+            case -2: dirX = 0; dirY = -1; break;
+            case -1: dirX = 1; dirY = -1; break;
+          }
+
+          this.onChangeDirection(dirX, dirY);
+          this.updateDpadFacing({ dx: dirX, dy: dirY });
+        }
+      };
+
+      window.addEventListener('touchmove', onMoveSlideTurn, { passive: false });
+      window.addEventListener('mousemove', onMoveSlideTurn);
+
+      // 指を離したときの判定
+      const endSlideTurn = (e) => {
+        if (!this.isSlidingTurn) return;
+        this.isSlidingTurn = false;
+
+        if (this.turnHasMoved) {
+          // スライドして向きを変えた場合：向き変更を確定し、即座に通常モードへ復帰
+          this.setTurnOnlyMode(false);
+        } else {
+          // スライドせず単にタップした場合：トグル動作（向き変更モードON/OFF切り替え）
+          const nextMode = !this.turnOnlyMode;
+          this.setTurnOnlyMode(nextMode);
+        }
+      };
+
+      window.addEventListener('touchend', endSlideTurn);
+      window.addEventListener('touchcancel', endSlideTurn);
+      window.addEventListener('mouseup', endSlideTurn);
     }
   }
 

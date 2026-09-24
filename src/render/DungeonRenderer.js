@@ -834,16 +834,40 @@ export class DungeonRenderer {
       ctx.restore();
     }
 
-    // 歩行時の軽快な上下バウンス（1px）
-    const walkBounce = (player.animProgress < 1.0 && player.walkFrame % 2 === 0) ? -1.5 : 0;
+    // 歩行またはアイドル足踏み時の軽快な上下バウンス（1px〜1.5px）
+    const isMoving = player.animProgress < 1.0;
+    const currentFrame = isMoving ? player.walkFrame : (player.idleStepFrame || 1);
+    const walkBounce = (isMoving && currentFrame % 2 === 0)
+      ? -1.5
+      : (!isMoving && currentFrame % 2 === 0 ? -1.0 : 0);
 
-    // 装備の背面レイヤー描画（上向き時の盾・武器、横向き時の盾など）
+    // 装備の背面レイヤー描画（上向き時の盾・武器、斜め上向き時の盾など）
     this._renderPlayerEquipment(ctx, player, cx, cy, walkBounce, 'back');
 
-    // スプライト描画
-    const frames = player.sprites[player.facingName];
-    const frameIdx = (player.walkFrame - 1) % 3;
-    const img = frames && frames[frameIdx];
+    // アクションに応じたスプライト選定（hurt > attack > walk）
+    let actionCategory = 'walk';
+    let frameIdx = 0;
+
+    if (player.hurtTimer > 0) {
+      actionCategory = 'hurt';
+      frameIdx = Math.min(2, Math.floor((10 - player.hurtTimer) / 3.4));
+    } else if (player.isAttacking > 0) {
+      actionCategory = 'attack';
+      frameIdx = Math.min(2, Math.floor((9 - player.isAttacking) / 3));
+    } else {
+      actionCategory = 'walk';
+      frameIdx = (currentFrame - 1) % 3;
+    }
+
+    const categorySprites = (player.sprites && player.sprites[actionCategory]) || (player.sprites && player.sprites.walk) || player.sprites;
+    const facingSprites = (categorySprites && categorySprites[player.facingName]) || (categorySprites && categorySprites['down']) || (player.sprites && player.sprites[player.facingName]);
+    const img = facingSprites && facingSprites[frameIdx];
+
+    ctx.save();
+    if (player.hurtTimer > 0) {
+      // 被弾時の赤白フラッシュ
+      ctx.filter = 'brightness(2.2) saturate(1.8)';
+    }
 
     if (img && img.complete && img.naturalWidth > 0) {
       // 64x64 スプライトをタイルの中心に合わせて描画
@@ -862,6 +886,7 @@ export class DungeonRenderer {
       ctx.textBaseline = 'middle';
       ctx.fillText('も', cx, cy + walkBounce);
     }
+    ctx.restore();
 
     // 装備の前面レイヤー描画（下向き時の盾・武器、横向き時の武器など）
     this._renderPlayerEquipment(ctx, player, cx, cy, walkBounce, 'front');
@@ -887,11 +912,11 @@ export class DungeonRenderer {
     }
   }
 
-  // プレイヤー装備品（武器・盾）の4方向描画
+  // プレイヤー装備品（武器・盾）の8方向完全描画
   _renderPlayerEquipment(ctx, player, cx, cy, walkBounce, layer) {
     const facing = player.facingName || 'down';
     const isAttacking = (player.isAttacking || 0) > 0;
-    const attRatio = isAttacking ? (player.isAttacking / 8) : 0;
+    const attRatio = isAttacking ? (player.isAttacking / 9) : 0;
 
     const weaponImg = player.equippedWeapon ? this.getImage(player.equippedWeapon.sprite) : null;
     const shieldImg = player.equippedShield ? this.getImage(player.equippedShield.sprite) : null;
@@ -907,13 +932,10 @@ export class DungeonRenderer {
       if (weaponImg) {
         ctx.save();
         const wx = cx - 15;
-        const wy = baseCy + 1 + (isAttacking ? 4 * attRatio : 0);
+        const wy = baseCy + 1 + (isAttacking ? 5 * attRatio : 0);
         ctx.translate(wx, wy);
-
-        // 攻撃モーション時は前方に振り下ろす
         const swingAngle = isAttacking ? (-0.2 + 0.65 * attRatio) * Math.PI : -0.22 * Math.PI;
         ctx.rotate(swingAngle);
-
         const wSize = 24;
         ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
         ctx.restore();
@@ -1007,6 +1029,101 @@ export class DungeonRenderer {
           ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
           ctx.restore();
         }
+      }
+    } else if (facing === 'down-left') {
+      if (layer !== 'front') return;
+      // 盾（右奥）
+      if (shieldImg) {
+        ctx.save();
+        const sx = cx + 13;
+        const sy = baseCy + 2;
+        ctx.translate(sx, sy);
+        ctx.scale(0.8, 0.95);
+        const sSize = 21;
+        ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+        ctx.restore();
+      }
+      // 武器（左手前）
+      if (weaponImg) {
+        ctx.save();
+        const wx = cx - 15 - (isAttacking ? 4 * attRatio : 0);
+        const wy = baseCy + 3 + (isAttacking ? 4 * attRatio : 0);
+        ctx.translate(wx, wy);
+        const swingAngle = isAttacking ? (-0.28 + 0.5 * attRatio) * Math.PI : -0.28 * Math.PI;
+        ctx.rotate(swingAngle);
+        const wSize = 23;
+        ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+        ctx.restore();
+      }
+    } else if (facing === 'down-right') {
+      if (layer !== 'front') return;
+      // 武器（左奥）
+      if (weaponImg) {
+        ctx.save();
+        const wx = cx - 12;
+        const wy = baseCy + 1 + (isAttacking ? 4 * attRatio : 0);
+        ctx.translate(wx, wy);
+        const swingAngle = isAttacking ? (-0.15 + 0.5 * attRatio) * Math.PI : -0.18 * Math.PI;
+        ctx.rotate(swingAngle);
+        const wSize = 22;
+        ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+        ctx.restore();
+      }
+      // 盾（右手前）
+      if (shieldImg) {
+        ctx.save();
+        const sx = cx + 15;
+        const sy = baseCy + 4;
+        ctx.translate(sx, sy);
+        const sSize = 22;
+        ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+        ctx.restore();
+      }
+    } else if (facing === 'up-left') {
+      if (layer !== 'back') return;
+      if (weaponImg) {
+        ctx.save();
+        const wx = cx + 12;
+        const wy = baseCy - 5 - (isAttacking ? 5 * attRatio : 0);
+        ctx.translate(wx, wy);
+        ctx.rotate(-0.35 * Math.PI);
+        const wSize = 21;
+        ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+        ctx.restore();
+      }
+      if (shieldImg) {
+        ctx.save();
+        const sx = cx - 13;
+        const sy = baseCy + 1;
+        ctx.translate(sx, sy);
+        ctx.filter = 'brightness(0.72)';
+        ctx.scale(0.75, 0.95);
+        const sSize = 21;
+        ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+        ctx.restore();
+      }
+    } else if (facing === 'up-right') {
+      if (layer !== 'back') return;
+      if (weaponImg) {
+        ctx.save();
+        const wx = cx + 14;
+        const wy = baseCy - 5 - (isAttacking ? 5 * attRatio : 0);
+        ctx.translate(wx, wy);
+        ctx.rotate(-0.35 * Math.PI);
+        const wSize = 21;
+        ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
+        ctx.restore();
+      }
+      if (shieldImg) {
+        ctx.save();
+        const sx = cx - 12;
+        const sy = baseCy + 1;
+        ctx.translate(sx, sy);
+        ctx.filter = 'brightness(0.72)';
+        ctx.scale(0.75, 0.95);
+        const sSize = 21;
+        ctx.drawImage(shieldImg, -sSize / 2, -sSize / 2, sSize, sSize);
+        ctx.restore();
       }
     }
   }
