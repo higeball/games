@@ -961,6 +961,9 @@ class Game {
     const invCountEl = document.getElementById('inv-count');
     if (invCountEl) invCountEl.textContent = this.player.inventory.length;
 
+    const hudInvCountEl = document.getElementById('hud-inv-count');
+    if (hudInvCountEl) hudInvCountEl.textContent = `${this.player.inventory.length}/16`;
+
     // 装備中の武器（常時表示）
     const weaponEl = document.getElementById('hud-weapon');
     const weaponIcon = document.getElementById('hud-weapon-icon');
@@ -1036,12 +1039,18 @@ class Game {
           this.player.idleStepTimer = 0;
         }
 
-        // D-Pad長押し時のシームレス連続移動（一歩目のつっかかり完全解消）
+        // D-Pad長押し時のシームレス連続移動（チョン押しと長押しの完全両立）
         if (this.controls && this.controls.holdingDir && !this.controls.turnOnlyMode &&
             !this.isBusy && !this.isGameOver && !this.isGameClear) {
-          // 歩行アニメーションが着地付近（>= 0.82）になった瞬間に隙間ゼロで次の一歩を実行
-          if (this.player.animProgress >= 0.82) {
-            this.handlePlayerMove(this.controls.holdingDir.dx, this.controls.holdingDir.dy);
+          const holdElapsed = Date.now() - (this.controls.holdingDir.startTime || 0);
+          // 初回長押しディレイ: 220ms
+          // チョン押し（100〜180ms）では指が離れるため2歩目は発動せず確実に1歩で停止！
+          // 長押し継続時のみ、シームレス連続移動モードに入ってアニメーション着地（>=0.82）でスムーズに走る
+          if (this.controls.isContinuousMoving || holdElapsed >= 220) {
+            this.controls.isContinuousMoving = true;
+            if (this.player.animProgress >= 0.82) {
+              this.handlePlayerMove(this.controls.holdingDir.dx, this.controls.holdingDir.dy);
+            }
           }
         }
 

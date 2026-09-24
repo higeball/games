@@ -17,7 +17,8 @@ export class TouchControls {
 
     this.turnOnlyMode = false; // 向き変更のみモード
 
-    this.holdingDir = null; // 長押し移動中の方向 {dx, dy}
+    this.holdingDir = null; // 長押し移動中の方向 {dx, dy, startTime}
+    this.isContinuousMoving = false; // 長押し連続移動中フラグ（2歩目以降）
     this.isHoldingWait = false; // 長押し足踏み中フラグ
     this.isSlidingTurn = false; // 向きボタンスライド操作中フラグ
     this.turnSlideCenter = null; // 向きボタンスライド中心座標
@@ -29,6 +30,7 @@ export class TouchControls {
 
   stopRepeat() {
     this.holdingDir = null;
+    this.isContinuousMoving = false;
     this.isHoldingWait = false;
   }
 
@@ -60,8 +62,9 @@ export class TouchControls {
           return;
         }
 
-        // 初回移動を即座に実行し、長押し保持状態をセット（メインループと連携して一歩目のつっかかりゼロ）
-        this.holdingDir = { dx, dy };
+        // 初回移動を即座に実行し、押下開始時刻を記録（チョン押しと長押しを識別して意図しない2歩目を完全防止）
+        this.holdingDir = { dx, dy, startTime: Date.now() };
+        this.isContinuousMoving = false;
         this.onMove(dx, dy);
       };
 
@@ -71,6 +74,7 @@ export class TouchControls {
       const handleRelease = (e) => {
         if (this.holdingDir && this.holdingDir.dx === dx && this.holdingDir.dy === dy) {
           this.holdingDir = null;
+          this.isContinuousMoving = false;
         }
         if (dx === 0 && dy === 0) {
           this.isHoldingWait = false;
@@ -86,6 +90,7 @@ export class TouchControls {
     // グローバル解放リスナー（指やマウスがボタン外に外れた時の完全解除）
     const releaseAll = () => {
       this.holdingDir = null;
+      this.isContinuousMoving = false;
       this.isHoldingWait = false;
     };
     window.addEventListener('mouseup', releaseAll);

@@ -149,23 +149,18 @@
       border: 1px solid #ff8888;
     }
 
-    /* 2行目の装備グループ */
-    .status-equip-group {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      flex: 1;
-      min-width: 0;
-      overflow: hidden;
-      margin-left: 2px;
-      padding-left: 4px;
-      border-left: 1px dashed rgba(255, 255, 255, 0.35);
+    /* 3行目の装備専用行（文字切れ完全防止） */
+    .status-equip-row {
+      border-top: 1px dashed rgba(255, 255, 255, 0.35);
+      padding-top: 3px;
+      margin-top: 1px;
+      gap: 6px 10px;
     }
 
     .equip-cell {
       display: flex;
       align-items: center;
-      gap: 2px;
+      gap: 3px;
       overflow: hidden;
       flex: 1;
       min-width: 0;
@@ -173,15 +168,15 @@
 
     .equip-tag {
       color: #ffffff;
-      opacity: 0.85;
-      font-size: 10px;
+      opacity: 0.9;
+      font-size: 11px;
       font-weight: bold;
       flex-shrink: 0;
     }
 
     .hud-mini-icon {
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
       object-fit: contain;
       image-rendering: pixelated;
       vertical-align: middle;
@@ -194,7 +189,12 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 10.5px;
+      font-size: 11.5px;
+      font-weight: 500;
+    }
+
+    .status-cell-bag {
+      margin-left: auto;
     }
 
     /* 下部コントロール＆メッセージエリア */
@@ -516,23 +516,28 @@
       color: #ffffff;
     }
 
-    .close-btn {
+    .inv-close-btn {
       background: #000000;
-      border: 1px solid #ffffff;
-      border-radius: 3px;
+      border: 1.5px solid #ffffff;
+      border-radius: 4px;
       color: #ffffff;
-      width: 22px;
-      height: 22px;
+      padding: 3px 12px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
-      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
+      flex-shrink: 0;
+      margin-left: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.8);
     }
 
-    .close-btn:hover {
-      background: #333333;
-      border-color: #ffffff;
+    .inv-close-btn:hover, .inv-close-btn:active {
+      background: #ffffff;
+      color: #000000;
     }
 
     /* 足元アイテム枠（ドラクエ風点線区切り） */
@@ -1405,9 +1410,9 @@
 
   <!-- UIオーバーレイ -->
   <div id="ui-container">
-    <!-- 上部ステータスウィンドウ（ドラクエ風・2行固定配置・HP3桁対応） -->
+    <!-- 上部ステータスウィンドウ（ドラクエ風・3行固定配置・文字切れ完全防止） -->
     <div id="status-window" class="interactive">
-      <!-- 1行目: 進行・LV・HP・満腹度・中断 -->
+      <!-- 1行目: 進行・LV・HP・満腹度・地図・中断 -->
       <div class="status-row">
         <div class="status-cell">
           <span class="dq-label">階</span>
@@ -1430,7 +1435,7 @@
         <button id="btn-save-quit" class="dq-save-btn" title="冒険をセーブしてタイトル画面へ戻る">中断</button>
       </div>
 
-      <!-- 2行目: ちから・攻・防・G・装備（武・盾・矢） -->
+      <!-- 2行目: ちから・攻・防・G・持ち物数 -->
       <div class="status-row">
         <div class="status-cell status-cell-str">
           <span class="dq-label">力</span>
@@ -1448,22 +1453,29 @@
           <img src="./assets/props/gold.png" class="hud-mini-icon" alt="G" />
           <span class="dq-val"><span id="hud-gold">0</span>G</span>
         </div>
-        <div class="status-equip-group">
-          <div class="equip-cell">
-            <span class="equip-tag">[武]</span>
-            <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" style="display:none;" />
-            <span class="equip-name" id="hud-weapon">素手</span>
-          </div>
-          <div class="equip-cell">
-            <span class="equip-tag">[盾]</span>
-            <img id="hud-shield-icon" class="hud-mini-icon" src="./assets/items/leather_shield.png" alt="盾" style="display:none;" />
-            <span class="equip-name" id="hud-shield">なし</span>
-          </div>
-          <div class="equip-cell">
-            <span class="equip-tag">[矢]</span>
-            <img id="hud-arrow-icon" class="hud-mini-icon" src="./assets/items/arrow.png" alt="矢" style="display:none;" />
-            <span class="equip-name" id="hud-arrow">なし</span>
-          </div>
+        <div class="status-cell status-cell-bag">
+          <img src="./assets/items/miracle_box.png" class="hud-mini-icon" alt="道具" />
+          <span class="dq-label">道具</span>
+          <span class="dq-val" id="hud-inv-count">0/16</span>
+        </div>
+      </div>
+
+      <!-- 3行目: 装備品スロット専用行（武・盾・矢）文字切れ完全解消 -->
+      <div class="status-row status-equip-row">
+        <div class="equip-cell">
+          <span class="equip-tag">[武]</span>
+          <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" style="display:none;" />
+          <span class="equip-name" id="hud-weapon">素手</span>
+        </div>
+        <div class="equip-cell">
+          <span class="equip-tag">[盾]</span>
+          <img id="hud-shield-icon" class="hud-mini-icon" src="./assets/items/leather_shield.png" alt="盾" style="display:none;" />
+          <span class="equip-name" id="hud-shield">なし</span>
+        </div>
+        <div class="equip-cell">
+          <span class="equip-tag">[矢]</span>
+          <img id="hud-arrow-icon" class="hud-mini-icon" src="./assets/items/arrow.png" alt="矢" style="display:none;" />
+          <span class="equip-name" id="hud-arrow">なし</span>
         </div>
       </div>
     </div>
@@ -1526,7 +1538,7 @@
           <button class="inv-sort-btn active" id="btn-sort-obtained" title="拾った順序で整理">入手順</button>
           <button class="inv-sort-btn" id="btn-sort-type" title="種類別（武器・盾・矢・草など）に整理">種類順</button>
         </div>
-        <button class="close-btn" id="inventory-close-btn">×</button>
+        <button class="inv-close-btn" id="inventory-close-btn">閉じる</button>
       </div>
 
       <!-- 足元枠 -->
