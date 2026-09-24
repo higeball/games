@@ -64,10 +64,10 @@
       pointer-events: auto;
     }
 
-    /* 上部ステータスウィンドウ（本家ドラクエ／トルネコ風・黒地に白枠） */
+    /* 上部ステータスウィンドウ（本家ドラクエ／トルネコ風・黒地に白枠・2行固定配置） */
     #status-window {
       margin: env(safe-area-inset-top, 6px) 8px 0 8px;
-      padding: 5px 8px;
+      padding: 4px 8px;
       background: rgba(0, 0, 0, 0.95);
       border: 2px solid #ffffff;
       border-radius: 4px;
@@ -77,21 +77,15 @@
       gap: 3px;
     }
 
-    .status-primary-row {
+    .status-row {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-wrap: nowrap;
-      gap: 2px 5px;
-      font-size: clamp(10px, 2.7vw, 13px);
+      justify-content: space-between;
+      gap: 4px 6px;
+      font-size: clamp(10.5px, 2.8vw, 12px);
       line-height: 16px;
       white-space: nowrap;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-
-    .status-primary-row::-webkit-scrollbar {
-      display: none;
+      overflow: hidden;
     }
 
     .status-cell {
@@ -102,10 +96,18 @@
       flex-shrink: 0;
     }
 
+    .status-cell-hp {
+      min-width: 62px;
+    }
+
+    .status-cell-str {
+      min-width: 52px;
+    }
+
     .dq-label {
       color: #ffffff;
       opacity: 0.85;
-      font-size: clamp(9px, 2.3vw, 11px);
+      font-size: 10px;
     }
 
     .dq-val {
@@ -114,8 +116,8 @@
     }
 
     .diff-badge {
-      font-size: 10px;
-      padding: 1px 4px;
+      font-size: 9px;
+      padding: 0 3px;
       border-radius: 2px;
       font-weight: bold;
       margin-left: 2px;
@@ -135,41 +137,44 @@
       border: 1px solid #ff8888;
     }
 
-    /* 装備常時表示サブストリップ */
-    .status-equip-row {
+    /* 2行目の装備グループ */
+    .status-equip-group {
       display: flex;
       align-items: center;
-      justify-content: flex-start;
-      gap: 10px;
-      padding-top: 3px;
-      border-top: 1px dashed rgba(255, 255, 255, 0.35);
-      font-size: 12px;
-      line-height: 15px;
-      white-space: nowrap;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
       overflow: hidden;
+      margin-left: 2px;
+      padding-left: 4px;
+      border-left: 1px dashed rgba(255, 255, 255, 0.35);
     }
 
     .equip-cell {
       display: flex;
       align-items: center;
-      gap: 3px;
+      gap: 2px;
       overflow: hidden;
+      flex: 1;
+      min-width: 0;
     }
 
     .equip-tag {
       color: #ffffff;
       opacity: 0.85;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: bold;
+      flex-shrink: 0;
     }
 
     .hud-mini-icon {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       object-fit: contain;
       image-rendering: pixelated;
       vertical-align: middle;
       display: inline-block;
+      flex-shrink: 0;
     }
 
     .equip-name {
@@ -177,7 +182,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 100px;
+      font-size: 10.5px;
     }
 
     /* 下部コントロール＆メッセージエリア */
@@ -490,12 +495,13 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      padding: 4px 8px;
+      padding: 6px 10px;
       background: #000000;
       border-left: 3px solid #ffffff;
-      font-size: 12px;
+      font-size: 13px;
       color: #ffffff;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .ground-slot.selected {
@@ -507,7 +513,7 @@
     .ground-tag {
       color: #ffffff;
       font-weight: bold;
-      font-size: 11px;
+      font-size: 12px;
     }
 
     .ground-tag.stairs-tag {
@@ -517,35 +523,37 @@
 
     .ground-hint {
       color: #aaaaaa;
-      font-size: 10px;
+      font-size: 11px;
       margin-left: auto;
     }
 
-    /* 16スロット 2列×8行 グリッド（1画面収容・スクロール不要・ドラクエ漆黒背景） */
+    /* 16スロット 2列×8行 グリッド（大型スロット・誤タップ防止設計） */
     .inv-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: repeat(8, 26px);
-      gap: 3px 5px;
-      padding: 5px 6px;
+      grid-template-rows: repeat(8, 36px);
+      gap: 4px 6px;
+      padding: 6px 8px;
       background: #000000;
     }
 
     .inv-slot {
-      height: 26px;
-      padding: 1px 4px;
+      height: 36px;
+      padding: 4px 6px;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
       background: #000000;
-      border: 1px solid #333333;
-      border-radius: 3px;
-      font-size: 11px;
+      border: 1.5px solid #333333;
+      border-radius: 4px;
+      font-size: 13px;
       color: #ffffff;
       cursor: pointer;
       overflow: hidden;
       white-space: nowrap;
       box-sizing: border-box;
+      touch-action: manipulation;
+      transition: background 0.08s, border-color 0.08s;
     }
 
     .inv-slot:hover, .inv-slot.selected {
@@ -555,26 +563,28 @@
     }
 
     .inv-slot.empty {
-      color: #555555;
+      color: #666666;
       background: #000000;
-      border: 1px dashed #222222;
+      border: 1px dashed #282828;
       cursor: default;
     }
 
     .inv-cursor {
       color: #ffffff;
-      font-size: 9px;
+      font-size: 11px;
       margin-right: -1px;
+      flex-shrink: 0;
     }
 
     .inv-cursor-space {
       display: inline-block;
-      width: 9px;
+      width: 11px;
+      flex-shrink: 0;
     }
 
     .inv-slot-icon {
-      width: 17px;
-      height: 17px;
+      width: 20px;
+      height: 20px;
       object-fit: contain;
       image-rendering: pixelated;
       flex-shrink: 0;
@@ -585,53 +595,56 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       flex: 1;
+      font-weight: 500;
     }
 
     .inv-equip-badge {
       color: #ffffff;
       font-weight: bold;
-      font-size: 10px;
-      margin-right: 1px;
+      font-size: 11px;
+      margin-right: 2px;
+      flex-shrink: 0;
     }
 
     .empty-slot-label {
-      opacity: 0.35;
-      font-size: 10px;
+      opacity: 0.45;
+      font-size: 11.5px;
     }
 
     /* アイテム説明枠 */
     #inventory-detail {
-      padding: 5px 8px;
+      padding: 6px 10px;
       background: #000000;
       border-top: 1px solid #334155;
-      font-size: 11px;
-      line-height: 15px;
-      min-height: 34px;
-      color: #cbd5e1;
+      font-size: 12.5px;
+      line-height: 18px;
+      min-height: 38px;
+      color: #e2e8f0;
     }
 
     /* アクションコマンド枠 */
     #inventory-actions {
-      padding: 5px 8px;
+      padding: 6px 10px;
       background: #000000;
       border-top: 2px solid #ffffff;
       display: flex;
-      gap: 6px;
+      gap: 8px;
       justify-content: flex-end;
       flex-wrap: wrap;
     }
 
     .dq-action-btn {
-      padding: 4px 10px;
+      padding: 6px 14px;
       background: #000000;
       border: 1.5px solid #ffffff;
-      border-radius: 3px;
+      border-radius: 4px;
       color: #ffffff;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 13.5px;
       cursor: pointer;
       touch-action: manipulation;
       transition: background 0.1s, color 0.1s;
+      min-height: 34px;
     }
 
     .dq-action-btn:active {
@@ -1317,10 +1330,10 @@
 
   <!-- UIオーバーレイ -->
   <div id="ui-container">
-    <!-- 上部ステータスウィンドウ（ドラクエ風・ちから＆装備常時表示） -->
+    <!-- 上部ステータスウィンドウ（ドラクエ風・2行固定配置・HP3桁対応） -->
     <div id="status-window" class="interactive">
-      <!-- 1行目: メインステータス -->
-      <div class="status-primary-row">
+      <!-- 1行目: 進行・LV・HP・満腹度・中断 -->
+      <div class="status-row">
         <div class="status-cell">
           <span class="dq-label">階</span>
           <span class="dq-val" id="hud-floor">50F</span>
@@ -1330,12 +1343,21 @@
           <span class="dq-label">LV</span>
           <span class="dq-val" id="hud-level">1</span>
         </div>
-        <div class="status-cell">
+        <div class="status-cell status-cell-hp">
           <span class="dq-label">HP</span>
           <span class="dq-val"><span id="hud-hp">15</span>/<span id="hud-maxhp">15</span></span>
         </div>
         <div class="status-cell">
-          <span class="dq-label">ちから</span>
+          <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
+          <span class="dq-val" id="hud-satiety">100%</span>
+        </div>
+        <button id="btn-save-quit" class="dq-save-btn" title="冒険をセーブしてタイトル画面へ戻る">中断</button>
+      </div>
+
+      <!-- 2行目: ちから・攻・防・G・装備（武・盾・矢） -->
+      <div class="status-row">
+        <div class="status-cell status-cell-str">
+          <span class="dq-label">力</span>
           <span class="dq-val"><span id="hud-str">8</span>/<span id="hud-maxstr">8</span></span>
         </div>
         <div class="status-cell">
@@ -1347,32 +1369,25 @@
           <span class="dq-val" id="hud-def">0</span>
         </div>
         <div class="status-cell">
-          <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
-          <span class="dq-val" id="hud-satiety">100%</span>
-        </div>
-        <div class="status-cell">
           <img src="./assets/props/gold.png" class="hud-mini-icon" alt="G" />
           <span class="dq-val"><span id="hud-gold">0</span>G</span>
         </div>
-        <button id="btn-save-quit" class="dq-save-btn" title="冒険をセーブしてタイトル画面へ戻る">中断</button>
-      </div>
-
-      <!-- 2行目: 装備武器・防具・矢（常時表示） -->
-      <div class="status-equip-row">
-        <div class="equip-cell">
-          <span class="equip-tag">[武]</span>
-          <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" style="display:none;" />
-          <span class="equip-name" id="hud-weapon">素手</span>
-        </div>
-        <div class="equip-cell">
-          <span class="equip-tag">[盾]</span>
-          <img id="hud-shield-icon" class="hud-mini-icon" src="./assets/items/leather_shield.png" alt="盾" style="display:none;" />
-          <span class="equip-name" id="hud-shield">なし</span>
-        </div>
-        <div class="equip-cell">
-          <span class="equip-tag">[矢]</span>
-          <img id="hud-arrow-icon" class="hud-mini-icon" src="./assets/items/arrow.png" alt="矢" style="display:none;" />
-          <span class="equip-name" id="hud-arrow">なし</span>
+        <div class="status-equip-group">
+          <div class="equip-cell">
+            <span class="equip-tag">[武]</span>
+            <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" style="display:none;" />
+            <span class="equip-name" id="hud-weapon">素手</span>
+          </div>
+          <div class="equip-cell">
+            <span class="equip-tag">[盾]</span>
+            <img id="hud-shield-icon" class="hud-mini-icon" src="./assets/items/leather_shield.png" alt="盾" style="display:none;" />
+            <span class="equip-name" id="hud-shield">なし</span>
+          </div>
+          <div class="equip-cell">
+            <span class="equip-tag">[矢]</span>
+            <img id="hud-arrow-icon" class="hud-mini-icon" src="./assets/items/arrow.png" alt="矢" style="display:none;" />
+            <span class="equip-name" id="hud-arrow">なし</span>
+          </div>
         </div>
       </div>
     </div>

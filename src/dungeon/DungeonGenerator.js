@@ -372,6 +372,17 @@ export class DungeonGenerator {
       item.refine = Math.random() < 0.2 ? 2 : 1;
     }
 
+    // 原作トルネコ仕様：未鑑定アイテムの抽選生成
+    if (category === 'weapon' || category === 'shield') {
+      if (Math.random() < 0.6) {
+        item.identified = false;
+      }
+    } else if (category === 'herb' || category === 'scroll' || category === 'staff') {
+      if (Math.random() < 0.45) {
+        item.identified = false;
+      }
+    }
+
     return item;
   }
 

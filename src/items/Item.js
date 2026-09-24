@@ -44,9 +44,24 @@ export class Item {
       this.sprite = './assets/props/gold.png';
     }
 
+    // 未鑑定システム（トルネコ原作仕様）
+    this.identified = data.identified !== undefined ? data.identified : true;
+    this.unidentifiedName = data.unidentifiedName || this._getDefaultUnidentifiedName();
+
     // 配置座標（マップ上）
     this.x = data.x !== undefined ? data.x : -1;
     this.y = data.y !== undefined ? data.y : -1;
+  }
+
+  _getDefaultUnidentifiedName() {
+    switch (this.type) {
+      case 'weapon': return '未鑑定の剣';
+      case 'shield': return '未鑑定の盾';
+      case 'staff': return '未鑑定の杖';
+      case 'scroll': return '未鑑定の巻物';
+      case 'herb': return '未鑑定の草';
+      default: return '未鑑定の道具';
+    }
   }
 
   _getDefaultSprite() {
@@ -63,6 +78,30 @@ export class Item {
     }
   }
 
+  // 鑑定を実行する（未鑑定だった場合はtrueを返す）
+  identify() {
+    const wasUnidentified = !this.identified;
+    this.identified = true;
+    return wasUnidentified;
+  }
+
+  // 説明文（未鑑定時はヒントテキスト）
+  getDesc() {
+    if (!this.identified) {
+      if (this.type === 'weapon' || this.type === 'shield') {
+        return '正体不明の装備品。装備するかインパスの巻物で正体が判明する。';
+      } else if (this.type === 'herb') {
+        return '正体不明の草。飲むか投げるか、インパスの巻物で正体が判明する。';
+      } else if (this.type === 'scroll') {
+        return '正体不明の巻物。読むかインパスの巻物で正体が判明する。';
+      } else if (this.type === 'staff') {
+        return '正体不明の杖。振るかインパスの巻物で正体が判明する。';
+      }
+      return '正体不明の道具。インパスの巻物で鑑定できる。';
+    }
+    return this.desc || '特別な効果はない。';
+  }
+
   // 表示名（+1や装備マーク、残り回数を含む）
   getDisplayName() {
     let title = this.getItemCleanName();
@@ -74,6 +113,10 @@ export class Item {
 
   // 装備マークなしの名称（リストスロットやHUD表示用）
   getItemCleanName() {
+    if (!this.identified) {
+      return this.unidentifiedName;
+    }
+
     let title = this.name;
     if (this.type === 'weapon' || this.type === 'shield') {
       if (this.refine > 0) {

@@ -116,7 +116,8 @@ export const CONFIG = {
       { id: 'sanctuary', name: '聖域の巻物', type: 'scroll', price: 800, sprite: './assets/items/scroll.png', desc: '足元に置くと、その上にいる間モンスターから直接攻撃を受けなくなる！' },
       { id: 'sleep_scroll', name: 'バクスイの巻物', type: 'scroll', price: 350, sprite: './assets/items/scroll.png', desc: '部屋にいるすべてのモンスターを深い眠りに落とす！' },
       { id: 'confuse', name: '混乱の巻物', type: 'scroll', price: 300, sprite: './assets/items/scroll.png', desc: '部屋にいるすべてのモンスターを混乱させて同士討ちさせる！' },
-      { id: 'bread_scroll', name: 'パンの巻物', type: 'scroll', price: 250, sprite: './assets/items/scroll.png', desc: '選んだ道具を「大きいパン」に変えてしまう！' }
+      { id: 'bread_scroll', name: 'パンの巻物', type: 'scroll', price: 250, sprite: './assets/items/scroll.png', desc: '選んだ道具を「大きいパン」に変えてしまう！' },
+      { id: 'identify', name: 'インパスの巻物', type: 'scroll', price: 200, sprite: './assets/items/scroll.png', desc: '持っている未鑑定の道具の正体を鑑定して明らかにする！' }
     ],
 
     // 杖（回数制限あり）

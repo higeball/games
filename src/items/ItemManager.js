@@ -33,10 +33,14 @@ export class ItemManager {
   }
 
   // 草効果
+  // 草効果
   static _useHerb(item, player, dungeon, allMonsters, onAddLog) {
-    onAddLog(`もじさんは　${item.name}を　飲んだ。`);
+    const wasUnident = !item.identified;
+    const initialName = item.getItemCleanName ? item.getItemCleanName() : item.name;
+    onAddLog(`もじさんは　${initialName}を　飲んだ。`);
     soundManager.playUseHerb();
     player.removeItem(item);
+    if (item.identify) item.identify();
 
     switch (item.id) {
       case 'herb': // 薬草
@@ -120,6 +124,11 @@ export class ItemManager {
         onAddLog('ワナが　見えるようになった！');
         break;
     }
+
+    if (wasUnident) {
+      onAddLog(`鑑定された！ それは　${item.name}だった！`);
+    }
+
     return true;
   }
 
@@ -153,9 +162,12 @@ export class ItemManager {
 
   // 巻物効果
   static _readScroll(item, player, dungeon, allMonsters, onAddLog) {
-    onAddLog(`もじさんは　${item.name}を　読んだ。`);
+    const wasUnident = !item.identified;
+    const initialName = item.getItemCleanName ? item.getItemCleanName() : item.name;
+    onAddLog(`もじさんは　${initialName}を　読んだ。`);
     soundManager.playCastMagic();
     player.removeItem(item);
+    if (item.identify) item.identify();
 
     switch (item.id) {
       case 'light': // あかりの巻物
@@ -172,15 +184,31 @@ export class ItemManager {
       case 'upgrade': // 強化の巻物
         if (player.equippedWeapon) {
           player.equippedWeapon.refine += 1;
-          onAddLog(`${player.equippedWeapon.name}は`);
+          onAddLog(`${player.equippedWeapon.getItemCleanName()}は`);
           onAddLog(`+${player.equippedWeapon.refine}に　強化された！`);
         } else if (player.equippedShield) {
           player.equippedShield.refine += 1;
-          onAddLog(`${player.equippedShield.name}は`);
+          onAddLog(`${player.equippedShield.getItemCleanName()}は`);
           onAddLog(`+${player.equippedShield.refine}に　強化された！`);
         } else {
           onAddLog('しかし　強化する装備品を');
           onAddLog('身につけていなかった！');
+        }
+        break;
+
+      case 'identify': // インパスの巻物（トルネコ原作仕様）
+        {
+          const unidentItems = player.inventory.filter(i => !i.identified);
+          if (unidentItems.length > 0) {
+            onAddLog('インパスの光が　道具袋を包み込む！');
+            unidentItems.forEach(i => {
+              i.identify();
+              onAddLog(`【${i.getItemCleanName()}】が　鑑定された！`);
+            });
+          } else {
+            onAddLog('しかし　未鑑定の道具は');
+            onAddLog('持っていなかった！');
+          }
         }
         break;
 
@@ -226,7 +254,7 @@ export class ItemManager {
             const idx = player.inventory.indexOf(target);
             const bigBread = Item.fromCatalog(CONFIG.ITEMS.BREADS[1]);
             player.inventory[idx] = bigBread;
-            onAddLog(`${target.name}は　大きいパンに変わった！`);
+            onAddLog(`${target.getItemCleanName()}は　大きいパンに変わった！`);
           } else {
             onAddLog('パンに変化させられる道具がなかった。');
           }
@@ -244,20 +272,27 @@ export class ItemManager {
         onAddLog('モンスターの攻撃を　防ぐ！');
         break;
     }
+
+    if (wasUnident) {
+      onAddLog(`鑑定された！ それは　${item.name}だった！`);
+    }
+
     return true;
   }
 
   // 杖を振る
   static _waveStaff(item, player, dungeon, allMonsters, onAddLog) {
+    const wasUnident = !item.identified;
+    const initialName = item.getItemCleanName ? item.getItemCleanName() : item.name;
     if (item.uses <= 0) {
-      onAddLog(`${item.name}は`);
+      onAddLog(`${initialName}は`);
       onAddLog('魔法の力が　切れている！');
       return false;
     }
 
     item.uses--;
     soundManager.playCastMagic();
-    onAddLog(`もじさんは　${item.name}を　振った！`);
+    onAddLog(`もじさんは　${initialName}を　振った！`);
 
     // 前方に光線を射出
     let hitMonster = null;
@@ -355,6 +390,11 @@ export class ItemManager {
           onAddLog(`${hitMonster.name}に　変身した！`);
         }
         break;
+    }
+
+    if (wasUnident) {
+      if (item.identify) item.identify();
+      onAddLog(`鑑定された！ それは　${item.name}だった！`);
     }
 
     return true;

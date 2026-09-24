@@ -140,8 +140,10 @@ export class Monster {
       }
     }
 
-    // 隣接している場合は攻撃
-    if (isAdjacent) {
+    // 隣接しており、かつ角抜けでない場合のみ直接攻撃可能（原作ローグライク仕様）
+    const canAttack = isAdjacent && this._canAttackDirectly(player.x, player.y, dungeon);
+
+    if (canAttack) {
       this.setDirection(player.x - this.x, player.y - this.y);
       // 混乱時はランダム攻撃
       if (this.statusConfused > 0) {
@@ -272,6 +274,29 @@ export class Monster {
       if (other !== this && other.hp > 0 && other.x === nx && other.y === ny) {
         return false;
       }
+    }
+
+    return true;
+  }
+
+  // 原作ローグライク仕様：角抜け直接攻撃の禁止判定
+  _canAttackDirectly(targetX, targetY, dungeon) {
+    const dx = targetX - this.x;
+    const dy = targetY - this.y;
+
+    // 隣接していない
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== 1) return false;
+
+    // 直線（上下左右）は直接届く
+    if (dx === 0 || dy === 0) return true;
+
+    // ゴーストなどの壁すり抜けモンスターは角抜け攻撃可能
+    if (this.id === 'ghost') return true;
+
+    // 斜め攻撃時：隣接する2つの角マスのいずれかが壁なら角抜け攻撃不可！
+    if (dungeon.tiles[this.y][targetX] === CONFIG.TILE.WALL ||
+        dungeon.tiles[targetY][this.x] === CONFIG.TILE.WALL) {
+      return false;
     }
 
     return true;

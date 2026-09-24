@@ -264,22 +264,28 @@ export class Player {
     return false;
   }
 
-  // 装備
+  // 装備（トルネコ原作仕様：未鑑定装備は装備時に正体が判明する）
   equipItem(item) {
+    let identifyMsg = '';
+    if (!item.identified) {
+      item.identify();
+      identifyMsg = `鑑定された！\nそれは　${item.getItemCleanName()}だった！\n`;
+    }
+
     if (item.type === 'weapon') {
       if (this.equippedWeapon) {
         this.equippedWeapon.equipped = false;
       }
       this.equippedWeapon = item;
       item.equipped = true;
-      return `${item.name}を　装備した！\n攻撃力が　上がった！`;
+      return `${identifyMsg}${item.getItemCleanName()}を　装備した！\n攻撃力が　上がった！`;
     } else if (item.type === 'shield') {
       if (this.equippedShield) {
         this.equippedShield.equipped = false;
       }
       this.equippedShield = item;
       item.equipped = true;
-      return `${item.name}を　装備した！\n防御力が　上がった！`;
+      return `${identifyMsg}${item.getItemCleanName()}を　装備した！\n防御力が　上がった！`;
     } else if (item.type === 'arrow') {
       if (this.equippedArrow) {
         this.equippedArrow.equipped = false;
@@ -293,18 +299,19 @@ export class Player {
 
   // 装備解除
   unequipItem(item) {
+    const itemName = item.getItemCleanName ? item.getItemCleanName() : item.name;
     if (item === this.equippedWeapon) {
       this.equippedWeapon = null;
       item.equipped = false;
-      return `${item.name}を　はずした。`;
+      return `${itemName}を　はずした。`;
     } else if (item === this.equippedShield) {
       this.equippedShield = null;
       item.equipped = false;
-      return `${item.name}を　はずした。`;
+      return `${itemName}を　はずした。`;
     } else if (item === this.equippedArrow) {
       this.equippedArrow = null;
       item.equipped = false;
-      return `${item.name}を　はずした。`;
+      return `${itemName}を　はずした。`;
     }
     return null;
   }

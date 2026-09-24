@@ -194,10 +194,12 @@ export class InventoryModal {
     this.renderGround();
     this.renderGrid();
 
-    let desc = item.desc;
-    if (item.type === 'weapon') desc = `攻撃力 +${item.getEffectiveAtk()}。${desc}`;
-    if (item.type === 'shield') desc = `防御力 +${item.getEffectiveDef()}。${desc}`;
-    this.showDetail(desc || item.name);
+    let desc = item.getDesc ? item.getDesc() : (item.desc || item.name);
+    if (item.identified) {
+      if (item.type === 'weapon') desc = `攻撃力 +${item.getEffectiveAtk()}。${item.desc}`;
+      if (item.type === 'shield') desc = `防御力 +${item.getEffectiveDef()}。${item.desc}`;
+    }
+    this.showDetail(desc);
 
     this.renderActions(item, isGround);
   }

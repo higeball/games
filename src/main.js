@@ -69,6 +69,25 @@ class Game {
           this.player.setDirection(1, 0);
         }
       }
+      if (urlParams.get('hp3') === 'true') {
+        this.player.maxHp = 145;
+        this.player.hp = 145;
+        this.player.str = 14;
+        this.player.maxStr = 14;
+        this.player.level = 12;
+        this.player.gold = 12450;
+        this.updateHUD();
+      }
+      if (urlParams.get('test_inv') === 'true') {
+        this.player.inventory = [
+          new Item({ id: 'bronze_sword', name: '銅の剣', type: 'weapon', atk: 3, refine: 1, identified: false, sprite: './assets/items/bronze_sword.png' }),
+          new Item({ id: 'scale_shield', name: 'うろこの盾', type: 'shield', def: 4, identified: false, sprite: './assets/items/scale_shield.png' }),
+          new Item({ id: 'herb', name: '薬草', type: 'herb', identified: false, sprite: './assets/items/herb.png' }),
+          new Item({ id: 'identify', name: 'インパスの巻物', type: 'scroll', identified: true, sprite: './assets/items/scroll.png' }),
+          new Item({ id: 'bread', name: 'パン', type: 'bread', identified: true, sprite: './assets/items/bread.png' })
+        ];
+        this.openInventory();
+      }
       if (urlParams.get('inv') === 'true') {
         this.openInventory();
       }
@@ -438,10 +457,22 @@ class Game {
     }
 
     this.player.isAttacking = 8;
-    const tx = this.player.x + this.player.dir.dx;
-    const ty = this.player.y + this.player.dir.dy;
+    const dx = this.player.dir.dx;
+    const dy = this.player.dir.dy;
+    const tx = this.player.x + dx;
+    const ty = this.player.y + dy;
 
-    const monster = this.monsters.find(m => m.hp > 0 && m.x === tx && m.y === ty);
+    // 斜め攻撃時の角抜け防止（壁角を挟んだ敵へは攻撃が届かない）
+    const isCornerObstructed = (dx !== 0 && dy !== 0) && (
+      tx < 0 || tx >= this.dungeon.width || ty < 0 || ty >= this.dungeon.height ||
+      this.dungeon.tiles[this.player.y][tx] === CONFIG.TILE.WALL ||
+      this.dungeon.tiles[ty][this.player.x] === CONFIG.TILE.WALL
+    );
+
+    const monster = (!isCornerObstructed)
+      ? this.monsters.find(m => m.hp > 0 && m.x === tx && m.y === ty)
+      : null;
+
     if (monster) {
       this.attackMonster(monster);
     } else {
@@ -918,10 +949,7 @@ class Game {
     const weaponIcon = document.getElementById('hud-weapon-icon');
     if (weaponEl) {
       if (this.player.equippedWeapon) {
-        let wName = this.player.equippedWeapon.name;
-        if (this.player.equippedWeapon.refine > 0) wName += `+${this.player.equippedWeapon.refine}`;
-        else if (this.player.equippedWeapon.refine < 0) wName += `${this.player.equippedWeapon.refine}`;
-        weaponEl.textContent = wName;
+        weaponEl.textContent = this.player.equippedWeapon.getItemCleanName();
         if (weaponIcon) {
           weaponIcon.src = this.player.equippedWeapon.sprite;
           weaponIcon.style.display = 'inline-block';
@@ -937,10 +965,7 @@ class Game {
     const shieldIcon = document.getElementById('hud-shield-icon');
     if (shieldEl) {
       if (this.player.equippedShield) {
-        let sName = this.player.equippedShield.name;
-        if (this.player.equippedShield.refine > 0) sName += `+${this.player.equippedShield.refine}`;
-        else if (this.player.equippedShield.refine < 0) sName += `${this.player.equippedShield.refine}`;
-        shieldEl.textContent = sName;
+        shieldEl.textContent = this.player.equippedShield.getItemCleanName();
         if (shieldIcon) {
           shieldIcon.src = this.player.equippedShield.sprite;
           shieldIcon.style.display = 'inline-block';
