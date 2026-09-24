@@ -268,4 +268,17 @@ export class MessageWindowUI {
       onComplete?.();
     }
   }
+
+  /**
+   * ウィンドウの表示・非表示（3秒無更新後のフェードアウト対応）
+   * @param {boolean} show 
+   */
+  showWindow(show) {
+    if (!this.container) return;
+    if (show) {
+      this.container.classList.remove('fade-out');
+    } else {
+      this.container.classList.add('fade-out');
+    }
+  }
 }

@@ -169,6 +169,12 @@ class Game {
           this.player.setDirection(dx, dy);
         }
       },
+      getCurrentDirection: () => this.player ? this.player.dir : { dx: 0, dy: 1 },
+      onTurnModeChange: (isTurnMode) => {
+        if (this.renderer) {
+          this.renderer.isTurnMode = isTurnMode;
+        }
+      },
       onAdvanceMessage: () => this.log.advance()
     });
 

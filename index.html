@@ -224,6 +224,15 @@
       user-select: none;
       cursor: pointer;
       touch-action: manipulation;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #message-window.fade-out {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
     }
 
     .msg-window-inner {
@@ -289,28 +298,87 @@
       }
     }
 
-    /* コントロールパネル（8方向パッド ＋ ドラクエ風コマンドウィンドウ） */
+    /* コントロールパネル（左コマンド ＋ 中央8方向移動キー ＋ 右コマンド） */
     #controls-panel {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      padding: 0 8px 4px 8px;
-      gap: 6px;
+      justify-content: center;
+      align-items: center;
+      padding: 0 4px 4px 4px;
+      gap: clamp(6px, 2vw, 12px);
+      width: 100%;
+      box-sizing: border-box;
     }
 
-    /* スーパーファミコン風 十字キー（D-Pad）コンテナ */
+    /* 左右のコマンド列（縦2ボタン） */
+    .dq-cmd-col {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(6px, 1.8vw, 10px);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .dq-side-btn {
+      width: clamp(54px, 14.5vw, 68px);
+      height: clamp(52px, 13.5vw, 64px);
+      background: #000000;
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      padding: 4px 2px;
+      touch-action: manipulation;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.85);
+      transition: background 0.1s, color 0.1s, transform 0.05s;
+    }
+
+    .dq-side-btn:active {
+      background: #ffffff;
+      color: #000000;
+      transform: scale(0.95);
+    }
+    .dq-side-btn:active .dq-cmd-text {
+      color: #000000;
+    }
+
+    .dq-side-btn.btn-main-attack {
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.85);
+    }
+
+    .dq-cmd-icon {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      margin-bottom: 2px;
+    }
+
+    .dq-cmd-text {
+      font-size: 12.5px;
+      font-weight: bold;
+      line-height: 14px;
+    }
+
+    /* スーパーファミコン風 十字キー（D-Pad）コンテナ（中央配置） */
     .dpad-container {
       background: #1c1e24;
       border: 2px solid #ffffff;
       border-radius: 8px;
-      padding: 4px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.9);
+      padding: 3px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
+      flex-shrink: 0;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .dpad-grid {
       display: grid;
-      grid-template-columns: repeat(3, clamp(56px, 14.5vw, 68px));
-      grid-template-rows: repeat(3, clamp(56px, 14.5vw, 68px));
+      grid-template-columns: repeat(3, clamp(48px, 13.5vw, 62px));
+      grid-template-rows: repeat(3, clamp(48px, 13.5vw, 62px));
       gap: 3px;
     }
 
@@ -319,7 +387,7 @@
       background: #2b2e38;
       border: 1px solid #1a1c22;
       color: #e2e4ea;
-      font-size: 21px;
+      font-size: 20px;
       font-weight: 900;
       border-radius: 4px;
       display: flex;
@@ -329,17 +397,17 @@
       touch-action: manipulation;
       box-shadow: inset 1px 1px 0 rgba(255,255,255,0.16), inset -1px -1px 0 rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5);
       text-shadow: 0 -1px 0 #111216, 0 1px 0 rgba(255,255,255,0.12);
-      transition: background 0.08s, transform 0.05s;
+      transition: background 0.08s, transform 0.05s, border-color 0.1s;
     }
 
     .dpad-btn.dpad-cardinal {
-      font-size: 23px;
+      font-size: 22px;
       color: #f8fafc;
       background: #30333e;
     }
 
     .dpad-btn.dpad-diagonal {
-      font-size: 15px;
+      font-size: 14px;
       color: #94a3b8;
       background: #252730;
       opacity: 0.85;
@@ -353,85 +421,55 @@
       border-color: #111216;
     }
 
-    /* 中央のSFCディボット（くぼみピボット） */
-    .dpad-pivot {
-      background: #20222a;
+    /* 移動キー中央の「向き」ボタン */
+    .dpad-btn.dpad-turn {
+      background: #20232c;
+      border: 1.5px solid #383c48;
+      font-size: 13px;
+      font-weight: bold;
+      color: #ffd700;
       border-radius: 50%;
-      border: 2px solid #17181e;
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.08);
-      margin: 4px;
-      pointer-events: none;
-    }
-
-    /* ドラクエ風コマンドウィンドウ（右側アクションボタン群） */
-    .dq-cmd-window {
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 6px;
-      padding: 3px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
-      display: grid;
-      grid-template-columns: repeat(3, 52px);
-      grid-template-rows: repeat(2, 50px);
-      gap: 3px;
-    }
-
-    .dq-cmd-btn {
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      border-radius: 4px;
-      color: #ffffff;
+      margin: 2px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.1);
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      cursor: pointer;
-      padding: 2px 2px;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
+      transition: all 0.15s ease;
     }
 
-    .dq-cmd-btn:active {
-      background: #ffffff;
-      color: #000000;
-      transform: scale(0.96);
-    }
-    .dq-cmd-btn:active .dq-cmd-text {
-      color: #000000;
-    }
-
-    .dq-cmd-btn.active {
-      background: #ffffff;
-      border-color: #ffffff;
-      color: #000000;
-    }
-    .dq-cmd-btn.active .dq-cmd-text {
-      color: #000000;
-    }
-
-    .dq-cmd-btn.btn-main-attack {
-      border-color: #ffffff;
-    }
-
-    .dq-cmd-icon {
-      width: 18px;
-      height: 18px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      margin-bottom: 1px;
-    }
-
-    .dq-cmd-sub {
-      font-size: 10px;
-      color: #ffd54f;
-      line-height: 11px;
+    .dpad-btn.dpad-turn .turn-btn-label {
+      font-size: 12.5px;
+      font-weight: 900;
       letter-spacing: -0.5px;
     }
 
-    .dq-cmd-text {
-      font-size: 12px;
-      font-weight: bold;
-      line-height: 14px;
+    .dpad-btn.dpad-turn:active,
+    .dpad-btn.dpad-turn.active {
+      background: #ffd700 !important;
+      color: #000000 !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 0 10px #ffd700, inset 0 1px 2px rgba(255,255,255,0.8) !important;
+      transform: scale(0.95);
+    }
+
+    /* 向き変更モード時の移動キーハイライト表示 */
+    .dpad-container.turn-mode {
+      border-color: #ffd700;
+      box-shadow: 0 0 14px rgba(255, 215, 0, 0.45);
+    }
+
+    .dpad-container.turn-mode .dpad-btn.current-facing {
+      background: #d97706 !important;
+      color: #ffffff !important;
+      border-color: #ffd700 !important;
+      box-shadow: 0 0 8px #ffd700, inset 0 1px 2px rgba(255,255,255,0.6) !important;
+      animation: facingPulse 0.8s infinite alternate ease-in-out;
+    }
+
+    @keyframes facingPulse {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.05); filter: brightness(1.25); }
     }
 
     /* どうぐメニューモーダル（トルネコ風・1画面全16スロット一覧） */
@@ -1388,6 +1426,7 @@
           <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
           <span class="dq-val" id="hud-satiety">100%</span>
         </div>
+        <button id="btn-map" class="dq-save-btn" title="ミニマップ表示切替" style="margin-left: auto; margin-right: 4px;">地図</button>
         <button id="btn-save-quit" class="dq-save-btn" title="冒険をセーブしてタイトル画面へ戻る">中断</button>
       </div>
 
@@ -1434,14 +1473,28 @@
       <div id="message-window" class="interactive"></div>
 
       <div id="controls-panel" class="interactive">
-        <!-- 8方向十字パッド（拡大＆押し間違い防止） -->
-        <div class="dpad-container">
+        <!-- 左側コマンド（上：道具、下：足踏） -->
+        <div class="dq-cmd-col dq-col-left">
+          <button class="dq-side-btn" id="btn-inventory">
+            <img src="./assets/items/miracle_box.png" class="dq-cmd-icon" alt="道具" />
+            <span class="dq-cmd-text">道具</span>
+          </button>
+          <button class="dq-side-btn" id="btn-wait">
+            <img src="./assets/ui/wait.png" class="dq-cmd-icon" alt="足踏" />
+            <span class="dq-cmd-text">足踏</span>
+          </button>
+        </div>
+
+        <!-- 中央：8方向移動キー（中央に向きボタンを設置） -->
+        <div class="dpad-container" id="dpad-container">
           <div class="dpad-grid">
             <button class="dpad-btn dpad-diagonal" data-dx="-1" data-dy="-1">↖</button>
             <button class="dpad-btn dpad-cardinal" data-dx="0" data-dy="-1">▲</button>
             <button class="dpad-btn dpad-diagonal" data-dx="1" data-dy="-1">↗</button>
             <button class="dpad-btn dpad-cardinal" data-dx="-1" data-dy="0">◀</button>
-            <div class="dpad-pivot"></div>
+            <button class="dpad-btn dpad-turn" id="btn-turn" title="向き変更">
+              <span class="turn-btn-label">向き</span>
+            </button>
             <button class="dpad-btn dpad-cardinal" data-dx="1" data-dy="0">▶</button>
             <button class="dpad-btn dpad-diagonal" data-dx="-1" data-dy="1">↙</button>
             <button class="dpad-btn dpad-cardinal" data-dx="0" data-dy="1">▼</button>
@@ -1449,34 +1502,15 @@
           </div>
         </div>
 
-        <!-- 右側アクションボタン（ドラクエ風コマンドウィンドウ） -->
-        <div class="dq-cmd-window">
-          <!-- 上段: 矢、向き、地図 -->
-          <button class="dq-cmd-btn" id="btn-shoot">
-            <img src="./assets/items/arrow.png" class="dq-cmd-icon" alt="矢" />
-            <span class="dq-cmd-text">矢</span>
-          </button>
-          <button class="dq-cmd-btn" id="btn-turn">
-            <img src="./assets/ui/turn.png" class="dq-cmd-icon" alt="向き" />
-            <span class="dq-cmd-text">向き</span>
-          </button>
-          <button class="dq-cmd-btn" id="btn-map">
-            <img src="./assets/ui/map.png" class="dq-cmd-icon" alt="地図" />
-            <span class="dq-cmd-text">地図</span>
-          </button>
-
-          <!-- 下段: 足踏み、道具、攻撃 -->
-          <button class="dq-cmd-btn" id="btn-wait">
-            <img src="./assets/ui/wait.png" class="dq-cmd-icon" alt="足踏" />
-            <span class="dq-cmd-text">足踏</span>
-          </button>
-          <button class="dq-cmd-btn" id="btn-inventory">
-            <img src="./assets/items/miracle_box.png" class="dq-cmd-icon" alt="道具" />
-            <span class="dq-cmd-text">道具</span>
-          </button>
-          <button class="dq-cmd-btn btn-main-attack" id="btn-attack">
+        <!-- 右側コマンド（上：攻撃、下：矢） -->
+        <div class="dq-cmd-col dq-col-right">
+          <button class="dq-side-btn btn-main-attack" id="btn-attack">
             <img src="./assets/items/bronze_sword.png" class="dq-cmd-icon" alt="攻撃" />
             <span class="dq-cmd-text">攻撃</span>
+          </button>
+          <button class="dq-side-btn" id="btn-shoot">
+            <img src="./assets/items/arrow.png" class="dq-cmd-icon" alt="矢" />
+            <span class="dq-cmd-text">矢</span>
           </button>
         </div>
       </div>

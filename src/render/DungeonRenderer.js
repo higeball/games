@@ -17,6 +17,7 @@ export class DungeonRenderer {
     this.effects = [];       // { type, x, y, life, maxLife, ... }
 
     this.showMinimap = true;
+    this.isTurnMode = false; // 向き変更モード時の全8方向矢印表示フラグ
 
     // スプライト画像キャッシュ
     this.images = new Map();
@@ -748,27 +749,90 @@ export class DungeonRenderer {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
     ctx.fill();
 
-    // 向きガイド（トルネコ風ゴールド矢印）
-    const angle = Math.atan2(player.dir.dy, player.dir.dx);
-    const arrowDist = this.tileSize * 0.46;
-    const ax = cx + Math.cos(angle) * arrowDist;
-    const ay = cy + Math.sin(angle) * arrowDist;
+    // 向きガイド（通常時：現在向きのゴールド矢印／向き変更モード時：全8方向矢印リング＆現在向き強ハイライト）
+    if (this.isTurnMode) {
+      const allDirs = [
+        { dx: 0, dy: -1 }, { dx: 1, dy: -1 }, { dx: 1, dy: 0 }, { dx: 1, dy: 1 },
+        { dx: 0, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: 0 }, { dx: -1, dy: -1 }
+      ];
 
-    ctx.save();
-    ctx.translate(ax, ay);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    ctx.moveTo(6, 0);
-    ctx.lineTo(-4, -4);
-    ctx.lineTo(-2, 0);
-    ctx.lineTo(-4, 4);
-    ctx.closePath();
-    ctx.fillStyle = '#ffd700';
-    ctx.fill();
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
+      const now = Date.now();
+      const pulse = 1.0 + 0.15 * Math.sin(now / 130);
+
+      // 八方位ガイドサークルリング
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(cx, cy, this.tileSize * 0.54, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 3]);
+      ctx.stroke();
+      ctx.restore();
+
+      allDirs.forEach(d => {
+        const isCurrent = (d.dx === player.dir.dx && d.dy === player.dir.dy);
+        const ang = Math.atan2(d.dy, d.dx);
+        const dist = this.tileSize * (isCurrent ? 0.60 : 0.52);
+        const ax = cx + Math.cos(ang) * dist;
+        const ay = cy + Math.sin(ang) * dist;
+
+        ctx.save();
+        ctx.translate(ax, ay);
+        ctx.rotate(ang);
+
+        if (isCurrent) {
+          ctx.scale(pulse * 1.35, pulse * 1.35);
+          ctx.shadowColor = '#ffd700';
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.moveTo(8, 0);
+          ctx.lineTo(-5, -5);
+          ctx.lineTo(-3, 0);
+          ctx.lineTo(-5, 5);
+          ctx.closePath();
+          ctx.fillStyle = '#ffd700';
+          ctx.fill();
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(6, 0);
+          ctx.lineTo(-4, -4);
+          ctx.lineTo(-2, 0);
+          ctx.lineTo(-4, 4);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+        ctx.restore();
+      });
+    } else {
+      // 通常時：現在向きのゴールド矢印
+      const angle = Math.atan2(player.dir.dy, player.dir.dx);
+      const arrowDist = this.tileSize * 0.46;
+      const ax = cx + Math.cos(angle) * arrowDist;
+      const ay = cy + Math.sin(angle) * arrowDist;
+
+      ctx.save();
+      ctx.translate(ax, ay);
+      ctx.rotate(angle);
+      ctx.beginPath();
+      ctx.moveTo(6, 0);
+      ctx.lineTo(-4, -4);
+      ctx.lineTo(-2, 0);
+      ctx.lineTo(-4, 4);
+      ctx.closePath();
+      ctx.fillStyle = '#ffd700';
+      ctx.fill();
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // 歩行時の軽快な上下バウンス（1px）
     const walkBounce = (player.animProgress < 1.0 && player.walkFrame % 2 === 0) ? -1.5 : 0;

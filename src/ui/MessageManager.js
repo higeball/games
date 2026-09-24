@@ -31,6 +31,26 @@ export class MessageManager {
     this.maxHistory = 100;
 
     this.isProcessing = false;
+    this.hideDelay = options.hideDelay !== undefined ? options.hideDelay : 3000; // 更新停止後3秒で非表示
+    this._hideTimer = null;
+  }
+
+  _clearHideTimer() {
+    if (this._hideTimer) {
+      clearTimeout(this._hideTimer);
+      this._hideTimer = null;
+    }
+  }
+
+  _startHideTimer() {
+    this._clearHideTimer();
+    if (this.hideDelay > 0) {
+      this._hideTimer = setTimeout(() => {
+        if (this.queue.length === 0 && !this.isProcessing && !this.ui.isTyping) {
+          this.ui.showWindow(false);
+        }
+      }, this.hideDelay);
+    }
   }
 
   /**
@@ -41,6 +61,10 @@ export class MessageManager {
    */
   addMessage(textOrTemplate, params = null) {
     if (!textOrTemplate) return;
+
+    // メッセージが追加されたら直ちに非表示タイマーを解除し、ウィンドウを表示
+    this._clearHideTimer();
+    this.ui.showWindow(true);
 
     // 1. テンプレート変数の置換
     const formattedText = TextFormatter.format(textOrTemplate, params);
@@ -84,9 +108,12 @@ export class MessageManager {
     if (this.queue.length === 0) {
       this.isProcessing = false;
       this.ui.showIndicator(false);
+      this._startHideTimer();
       return;
     }
 
+    this._clearHideTimer();
+    this.ui.showWindow(true);
     this.isProcessing = true;
 
     if (this.updateMode === 'page') {
@@ -104,6 +131,7 @@ export class MessageManager {
           this._processNext();
         } else {
           this.isProcessing = false;
+          this._startHideTimer(); // 更新が止まったら3秒後に非表示
         }
       });
     } else {
@@ -116,6 +144,7 @@ export class MessageManager {
           this._processNext();
         } else {
           this.isProcessing = false;
+          this._startHideTimer(); // 更新が止まったら3秒後に非表示
         }
       });
     }
@@ -145,9 +174,11 @@ export class MessageManager {
     // 待ち状態（▼表示中）だがキューがちょうど空になった場合
     if (this.ui.isWaitingInput) {
       this.ui.showIndicator(false);
+      this._startHideTimer();
       return true;
     }
 
+    this._startHideTimer();
     return false;
   }
 
@@ -182,8 +213,10 @@ export class MessageManager {
    * 全メッセージとキューをクリア
    */
   clear() {
+    this._clearHideTimer();
     this.queue = [];
     this.isProcessing = false;
     this.ui.clear();
+    this.ui.showWindow(false);
   }
 }

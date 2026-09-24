@@ -11,6 +11,8 @@ export class TouchControls {
     this.onShootArrow = options.onShootArrow || (() => {});
     this.onToggleMap = options.onToggleMap || (() => {});
     this.onChangeDirection = options.onChangeDirection || (() => {});
+    this.onTurnModeChange = options.onTurnModeChange || (() => {});
+    this.getCurrentDirection = options.getCurrentDirection || (() => ({ dx: 0, dy: 1 }));
     this.onAdvanceMessage = options.onAdvanceMessage || null;
 
     this.turnOnlyMode = false; // 向き変更のみモード
@@ -37,7 +39,7 @@ export class TouchControls {
 
   _setupDOM() {
     // 8方向D-Padボタン（長押し連続移動対応）
-    const dpadBtns = document.querySelectorAll('.dpad-btn');
+    const dpadBtns = document.querySelectorAll('.dpad-btn[data-dx]');
     dpadBtns.forEach(btn => {
       const dx = parseInt(btn.dataset.dx, 10);
       const dy = parseInt(btn.dataset.dy, 10);
@@ -60,19 +62,19 @@ export class TouchControls {
 
         if (this.turnOnlyMode) {
           this.onChangeDirection(dx, dy);
-          this.setTurnOnlyMode(false); // 1回向きを変えたら通常モードに戻す
+          this.updateDpadFacing({ dx, dy });
           return;
         }
 
         // 初回移動を即座に実行
         this.onMove(dx, dy);
 
-        // 長押しで連続移動（220ms後に開始、110ms間隔）
+        // 長押しでスムーズに連続移動（待機時間を通常の移動間隔と同じ110msにし、一歩目で止まることなくスムーズに走る）
         this._repeatTimer = setTimeout(() => {
           this._repeatInterval = setInterval(() => {
             this.onMove(dx, dy);
           }, 110);
-        }, 220);
+        }, 110);
       };
 
       btn.addEventListener('touchstart', handlePress, { passive: false });
@@ -96,7 +98,7 @@ export class TouchControls {
     window.addEventListener('touchcancel', () => this.stopRepeat());
     window.addEventListener('blur', () => this.stopRepeat());
 
-    // 右側アクションボタン
+    // アクションボタン
     const bindBtn = (id, handler) => {
       const el = document.getElementById(id);
       if (el) {
@@ -113,9 +115,18 @@ export class TouchControls {
       }
     };
 
-    bindBtn('btn-attack', () => this.onAttack());
-    bindBtn('btn-inventory', () => this.onInventory());
-    bindBtn('btn-shoot', () => this.onShootArrow());
+    bindBtn('btn-attack', () => {
+      this.setTurnOnlyMode(false);
+      this.onAttack();
+    });
+    bindBtn('btn-inventory', () => {
+      this.setTurnOnlyMode(false);
+      this.onInventory();
+    });
+    bindBtn('btn-shoot', () => {
+      this.setTurnOnlyMode(false);
+      this.onShootArrow();
+    });
     bindBtn('btn-map', () => this.onToggleMap());
 
     // 足踏みボタン（長押し連続足踏み対応）
@@ -131,13 +142,14 @@ export class TouchControls {
           return;
         }
 
+        this.setTurnOnlyMode(false);
         this.onWait();
 
         this._repeatTimer = setTimeout(() => {
           this._repeatInterval = setInterval(() => {
             this.onWait();
-          }, 120);
-        }, 220);
+          }, 110);
+        }, 110);
       };
 
       waitBtn.addEventListener('touchstart', handleWaitPress, { passive: false });
@@ -154,20 +166,25 @@ export class TouchControls {
       waitBtn.addEventListener('mouseleave', handleWaitRelease);
     }
 
+    // 移動キー中央の向きボタン
     const turnBtn = document.getElementById('btn-turn');
     if (turnBtn) {
       const toggleTurn = (e) => {
         e.preventDefault();
-        this.setTurnOnlyMode(!this.turnOnlyMode);
+        e.stopPropagation();
+        const nextMode = !this.turnOnlyMode;
+        const curDir = this.getCurrentDirection();
+        this.setTurnOnlyMode(nextMode, curDir);
       };
       turnBtn.addEventListener('touchstart', toggleTurn, { passive: false });
       turnBtn.addEventListener('click', toggleTurn);
     }
   }
 
-  setTurnOnlyMode(val) {
+  setTurnOnlyMode(val, currentDir = null) {
     this.turnOnlyMode = val;
     const turnBtn = document.getElementById('btn-turn');
+    const dpadContainer = document.getElementById('dpad-container');
     if (turnBtn) {
       if (this.turnOnlyMode) {
         turnBtn.classList.add('active');
@@ -175,6 +192,38 @@ export class TouchControls {
         turnBtn.classList.remove('active');
       }
     }
+    if (dpadContainer) {
+      if (this.turnOnlyMode) {
+        dpadContainer.classList.add('turn-mode');
+      } else {
+        dpadContainer.classList.remove('turn-mode');
+      }
+    }
+    if (this.turnOnlyMode) {
+      const dir = currentDir || this.getCurrentDirection();
+      this.updateDpadFacing(dir);
+    } else {
+      this.clearDpadFacing();
+    }
+    this.onTurnModeChange(this.turnOnlyMode);
+  }
+
+  updateDpadFacing(dir) {
+    if (!dir) return;
+    this.clearDpadFacing();
+    const dpadBtns = document.querySelectorAll('.dpad-btn[data-dx]');
+    dpadBtns.forEach(btn => {
+      const bdx = parseInt(btn.dataset.dx, 10);
+      const bdy = parseInt(btn.dataset.dy, 10);
+      if (bdx === dir.dx && bdy === dir.dy) {
+        btn.classList.add('current-facing');
+      }
+    });
+  }
+
+  clearDpadFacing() {
+    const dpadBtns = document.querySelectorAll('.dpad-btn');
+    dpadBtns.forEach(btn => btn.classList.remove('current-facing'));
   }
 
   _setupKeyboard() {
@@ -263,7 +312,7 @@ export class TouchControls {
         e.preventDefault();
         if (e.shiftKey || this.turnOnlyMode) {
           this.onChangeDirection(dx, dy);
-          this.setTurnOnlyMode(false);
+          this.updateDpadFacing({ dx, dy });
         } else {
           this.onMove(dx, dy);
         }
