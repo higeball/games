@@ -128,15 +128,24 @@ export class TitleScreen {
     });
 
     // ストーリー「次へ」
-    this.btnNext?.addEventListener('click', () => {
+    this.btnNext?.addEventListener('click', (e) => {
+      e.stopPropagation();
       soundManager.playStep();
       this.nextStoryPage();
     });
 
     // ストーリー「スキップ」
-    this.btnSkip?.addEventListener('click', () => {
+    this.btnSkip?.addEventListener('click', (e) => {
+      e.stopPropagation();
       soundManager.playConfirm();
       this.finishStoryAndStart();
+    });
+
+    // ストーリーモーダル内のボタン以外の領域タップでもページ送り
+    this.storyModal?.addEventListener('click', (e) => {
+      if (e.target.closest('#btn-story-skip') || e.target.closest('#btn-story-next')) return;
+      soundManager.playStep();
+      this.nextStoryPage();
     });
 
     // キーボード操作対応

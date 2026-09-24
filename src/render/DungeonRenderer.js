@@ -895,10 +895,11 @@ export class DungeonRenderer {
       } else if (layer === 'front') {
         if (weaponImg) {
           ctx.save();
-          const wx = cx - 16 - (isAttacking ? 8 * attRatio : 0);
-          const wy = baseCy + 2;
+          const wx = cx - 14 - (isAttacking ? 6 * attRatio : 0);
+          const wy = baseCy + 1 + (isAttacking ? 2 * attRatio : 0);
           ctx.translate(wx, wy);
-          const swingAngle = isAttacking ? (0.25 - 0.3 * attRatio) * Math.PI : 0.25 * Math.PI;
+          // 横向き時も縦向きに構える (-0.22 * PI で垂直上向き)
+          const swingAngle = isAttacking ? (-0.22 - 0.28 * attRatio) * Math.PI : -0.22 * Math.PI;
           ctx.rotate(swingAngle);
           const wSize = 22;
           ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);
@@ -920,11 +921,12 @@ export class DungeonRenderer {
       } else if (layer === 'front') {
         if (weaponImg) {
           ctx.save();
-          const wx = cx + 16 + (isAttacking ? 8 * attRatio : 0);
-          const wy = baseCy + 2;
+          const wx = cx + 14 + (isAttacking ? 6 * attRatio : 0);
+          const wy = baseCy + 1 + (isAttacking ? 2 * attRatio : 0);
           ctx.translate(wx, wy);
           ctx.scale(-1, 1);
-          const swingAngle = isAttacking ? (0.25 - 0.3 * attRatio) * Math.PI : 0.25 * Math.PI;
+          // 横向き時も縦向きに構える (-0.22 * PI で垂直上向き)
+          const swingAngle = isAttacking ? (-0.22 - 0.28 * attRatio) * Math.PI : -0.22 * Math.PI;
           ctx.rotate(swingAngle);
           const wSize = 22;
           ctx.drawImage(weaponImg, -wSize / 2, -wSize / 2, wSize, wSize);

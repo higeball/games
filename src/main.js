@@ -24,8 +24,8 @@ class Game {
     this.generator = new DungeonGenerator();
     this.log = new MessageLog('message-window', {
       updateMode: 'scroll',
-      typewriterSpeed: 16,
-      autoAdvanceDelay: 700,
+      typewriterSpeed: 8,
+      autoAdvanceDelay: 500,
       maxVisualWidth: 19
     });
 
@@ -45,6 +45,37 @@ class Game {
     this.titleScreen = new TitleScreen(this);
     this.setupGameLoop();
     this.titleScreen.show();
+
+    // デバッグ・テスト用シーン直接起動
+    const urlParams = new URLSearchParams(window.location.search);
+    const scene = urlParams.get('scene');
+    if (scene === 'diff') {
+      this.titleScreen.openDifficultySelect();
+    } else if (scene === 'story') {
+      this.titleScreen.startOpeningStory();
+      const page = parseInt(urlParams.get('page') || '0', 10);
+      if (page > 0) {
+        this.titleScreen.currentStoryPage = page;
+        this.titleScreen.renderStoryPage();
+      }
+    } else if (scene === 'game') {
+      this.titleScreen.finishStoryAndStart();
+      if (urlParams.get('equip') === 'true') {
+        this.player.equippedWeapon = { name: 'どうのつるぎ', sprite: './assets/items/bronze_sword.png', attack: 3 };
+        this.player.equippedShield = { name: '皮の盾', sprite: './assets/items/leather_shield.png', defense: 2 };
+        if (urlParams.get('facing') === 'left') {
+          this.player.setDirection(-1, 0);
+        } else if (urlParams.get('facing') === 'right') {
+          this.player.setDirection(1, 0);
+        }
+      }
+      if (urlParams.get('inv') === 'true') {
+        this.openInventory();
+      }
+      if (urlParams.get('stairs') === 'true') {
+        this.showStairsModal();
+      }
+    }
   }
 
   initUI() {
@@ -155,6 +186,35 @@ class Game {
     };
     window.addEventListener('click', unlockAudio);
     window.addEventListener('touchstart', unlockAudio);
+
+    // 方向キーやボタン以外の画面タップでメッセージ送り
+    const handleScreenTapForMessage = (e) => {
+      // モーダル表示中（タイトル、ストーリー、階段、道具、ゲーム終了、難易度）は除外
+      const titleScreen = document.getElementById('title-screen');
+      if (titleScreen && !titleScreen.classList.contains('hidden') && titleScreen.style.display !== 'none') return;
+      const storyModal = document.getElementById('story-modal');
+      if (storyModal && !storyModal.classList.contains('hidden')) return;
+      const stairsModal = document.getElementById('stairs-modal');
+      if (stairsModal && !stairsModal.classList.contains('hidden')) return;
+      const invModal = document.getElementById('inventory-modal');
+      if (invModal && !invModal.classList.contains('hidden')) return;
+      const endModal = document.getElementById('end-modal');
+      if (endModal && !endModal.classList.contains('hidden')) return;
+      const diffModal = document.getElementById('difficulty-modal');
+      if (diffModal && !diffModal.classList.contains('hidden')) return;
+
+      // ボタンやD-Padなどの操作部をタップした場合は除外
+      const target = e.target;
+      if (target.closest('.dpad-btn') || target.closest('.dq-cmd-btn') || target.closest('button')) {
+        return;
+      }
+
+      // メッセージの進行（タイプ中スキップ or 次行表示）
+      if (this.log) {
+        this.log.advance();
+      }
+    };
+    window.addEventListener('pointerdown', handleScreenTapForMessage, { passive: true });
 
     // ウィンドウリサイズ対応
     window.addEventListener('resize', () => this.renderer.resize());

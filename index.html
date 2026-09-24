@@ -103,7 +103,8 @@
     }
 
     .dq-label {
-      color: #ffd54f;
+      color: #ffffff;
+      opacity: 0.85;
       font-size: clamp(9px, 2.3vw, 11px);
     }
 
@@ -119,15 +120,19 @@
       font-weight: bold;
       margin-left: 2px;
       text-transform: uppercase;
+      background: #000000;
+      border: 1px solid #ffffff;
+      color: #ffffff;
     }
     .diff-badge.normal {
-      background: #1e3a8a;
-      color: #93c5fd;
+      background: #000000;
+      color: #ffffff;
+      border: 1px solid #ffffff;
     }
     .diff-badge.hard {
-      background: #7f1d1d;
-      color: #fca5a5;
-      border: 1px solid #ef4444;
+      background: #000000;
+      color: #ff8888;
+      border: 1px solid #ff8888;
     }
 
     /* 装備常時表示サブストリップ */
@@ -152,7 +157,8 @@
     }
 
     .equip-tag {
-      color: #60a5fa;
+      color: #ffffff;
+      opacity: 0.85;
       font-size: 11px;
       font-weight: bold;
     }
@@ -182,13 +188,15 @@
       padding-bottom: env(safe-area-inset-bottom, 6px);
     }
 
-    /* メッセージウィンドウ（トルネコ風・固定2行完全表示＆▼点滅インジケータ） */
+    /* メッセージウィンドウ（ドラクエ・トルネコ風・透過＆固定2行表示＆▼点滅インジケータ） */
     #message-window {
       margin: 0 8px 6px 8px;
-      background: rgba(0, 0, 0, 0.95);
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
       border: 2px solid #ffffff;
       border-radius: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.8);
       padding: 6px 12px;
       height: 62px;
       min-height: 62px;
@@ -198,6 +206,7 @@
       position: relative;
       user-select: none;
       cursor: pointer;
+      touch-action: manipulation;
     }
 
     .msg-window-inner {
@@ -227,7 +236,7 @@
       font-size: clamp(12.5px, 3.4vw, 14px);
       font-weight: 500;
       letter-spacing: 0.8px;
-      text-shadow: 1px 1px 0 #000;
+      text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
       white-space: nowrap;
       overflow: hidden;
       flex-grow: 1;
@@ -235,12 +244,13 @@
 
     /* 送り待ちインジケータ（▼マーク点滅） */
     .msg-indicator {
-      color: #ffd54f;
+      color: #ffffff;
       font-size: 13px;
       line-height: 1;
       margin-left: 6px;
       flex-shrink: 0;
       user-select: none;
+      text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
     }
 
     .msg-indicator.blinking {
@@ -271,13 +281,13 @@
       gap: 6px;
     }
 
-    /* 8方向バーチャルパッド（拡大＆押し間違い防止） */
+    /* スーパーファミコン風 十字キー（D-Pad）コンテナ */
     .dpad-container {
-      background: rgba(0, 0, 0, 0.95);
+      background: #1c1e24;
       border: 2px solid #ffffff;
-      border-radius: 6px;
-      padding: 3px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
+      border-radius: 8px;
+      padding: 4px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.9);
     }
 
     .dpad-grid {
@@ -287,11 +297,12 @@
       gap: 3px;
     }
 
+    /* スーパーファミコン十字キースタイル */
     .dpad-btn {
-      background: #081122;
-      border: 1px solid #334155;
-      color: #ffffff;
-      font-size: 24px;
+      background: #2b2e38;
+      border: 1px solid #1a1c22;
+      color: #e2e4ea;
+      font-size: 21px;
       font-weight: 900;
       border-radius: 4px;
       display: flex;
@@ -299,26 +310,45 @@
       align-items: center;
       cursor: pointer;
       touch-action: manipulation;
+      box-shadow: inset 1px 1px 0 rgba(255,255,255,0.16), inset -1px -1px 0 rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5);
+      text-shadow: 0 -1px 0 #111216, 0 1px 0 rgba(255,255,255,0.12);
+      transition: background 0.08s, transform 0.05s;
+    }
+
+    .dpad-btn.dpad-cardinal {
+      font-size: 23px;
+      color: #f8fafc;
+      background: #30333e;
+    }
+
+    .dpad-btn.dpad-diagonal {
+      font-size: 15px;
+      color: #94a3b8;
+      background: #252730;
+      opacity: 0.85;
     }
 
     .dpad-btn:active {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      color: #ffd700;
-      transform: scale(0.94);
+      background: #1c1d22;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
+      transform: translateY(1px);
+      color: #ffffff;
+      border-color: #111216;
     }
 
-    /* 中央の無効ピボット（足踏み押し間違いを完全防止） */
+    /* 中央のSFCディボット（くぼみピボット） */
     .dpad-pivot {
-      background: #040816;
-      border: 1px dashed #1e293b;
-      border-radius: 4px;
+      background: #20222a;
+      border-radius: 50%;
+      border: 2px solid #17181e;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.08);
+      margin: 4px;
       pointer-events: none;
     }
 
     /* ドラクエ風コマンドウィンドウ（右側アクションボタン群） */
     .dq-cmd-window {
-      background: rgba(0, 0, 0, 0.95);
+      background: #000000;
       border: 2px solid #ffffff;
       border-radius: 6px;
       padding: 3px;
@@ -330,7 +360,7 @@
     }
 
     .dq-cmd-btn {
-      background: #081122;
+      background: #000000;
       border: 1.5px solid #ffffff;
       border-radius: 4px;
       color: #ffffff;
@@ -340,25 +370,30 @@
       align-items: center;
       cursor: pointer;
       padding: 2px 2px;
-      box-shadow: inset 0 0 3px rgba(0,0,0,0.6);
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
 
     .dq-cmd-btn:active {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      color: #ffd700;
-      transform: scale(0.95);
+      background: #ffffff;
+      color: #000000;
+      transform: scale(0.96);
+    }
+    .dq-cmd-btn:active .dq-cmd-text {
+      color: #000000;
     }
 
     .dq-cmd-btn.active {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      box-shadow: 0 0 8px #ffd700;
-      color: #ffd700;
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #000000;
+    }
+    .dq-cmd-btn.active .dq-cmd-text {
+      color: #000000;
     }
 
     .dq-cmd-btn.btn-main-attack {
-      border-color: #ffd700;
+      border-color: #ffffff;
     }
 
     .dq-cmd-icon {
@@ -416,17 +451,18 @@
 
     .dialog-header {
       padding: 6px 10px;
-      background: #060e22;
+      background: #000000;
       border-bottom: 2px solid #ffffff;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 14px;
       font-weight: bold;
+      color: #ffffff;
     }
 
     .close-btn {
-      background: none;
+      background: #000000;
       border: 1px solid #ffffff;
       border-radius: 3px;
       color: #ffffff;
@@ -440,13 +476,14 @@
     }
 
     .close-btn:hover {
-      background: #1e3a8a;
-      border-color: #ffd700;
+      background: #333333;
+      border-color: #ffffff;
     }
 
-    /* 足元アイテム枠 */
+    /* 足元アイテム枠（ドラクエ風点線区切り） */
     #inv-ground-container {
       border-bottom: 1px dashed rgba(255,255,255,0.4);
+      background: #000000;
     }
 
     .ground-slot {
@@ -454,42 +491,44 @@
       align-items: center;
       gap: 6px;
       padding: 4px 8px;
-      background: #141208;
-      border-left: 4px solid #f59e0b;
+      background: #000000;
+      border-left: 3px solid #ffffff;
       font-size: 12px;
+      color: #ffffff;
       cursor: pointer;
     }
 
     .ground-slot.selected {
-      background: #1e3a8a;
-      border-left-color: #ffd700;
-      color: #ffd700;
+      background: #1c1c1c;
+      border-left-color: #ffffff;
+      color: #ffffff;
     }
 
     .ground-tag {
-      color: #f59e0b;
+      color: #ffffff;
       font-weight: bold;
       font-size: 11px;
     }
 
     .ground-tag.stairs-tag {
-      color: #60a5fa;
+      color: #ffffff;
+      opacity: 0.9;
     }
 
     .ground-hint {
-      color: #ffd54f;
+      color: #aaaaaa;
       font-size: 10px;
       margin-left: auto;
     }
 
-    /* 16スロット 2列×8行 グリッド（1画面収容・スクロール不要） */
+    /* 16スロット 2列×8行 グリッド（1画面収容・スクロール不要・ドラクエ漆黒背景） */
     .inv-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       grid-template-rows: repeat(8, 26px);
       gap: 3px 5px;
       padding: 5px 6px;
-      background: #020612;
+      background: #000000;
     }
 
     .inv-slot {
@@ -498,8 +537,8 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      background: #060e22;
-      border: 1px solid #1e293b;
+      background: #000000;
+      border: 1px solid #333333;
       border-radius: 3px;
       font-size: 11px;
       color: #ffffff;
@@ -510,20 +549,20 @@
     }
 
     .inv-slot:hover, .inv-slot.selected {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      color: #ffd700;
+      background: #1a1a1a;
+      border-color: #ffffff;
+      color: #ffffff;
     }
 
     .inv-slot.empty {
-      color: #475569;
-      background: #02050f;
-      border: 1px dashed #1e293b;
+      color: #555555;
+      background: #000000;
+      border: 1px dashed #222222;
       cursor: default;
     }
 
     .inv-cursor {
-      color: #ffd700;
+      color: #ffffff;
       font-size: 9px;
       margin-right: -1px;
     }
@@ -549,7 +588,7 @@
     }
 
     .inv-equip-badge {
-      color: #ffd700;
+      color: #ffffff;
       font-weight: bold;
       font-size: 10px;
       margin-right: 1px;
@@ -574,7 +613,7 @@
     /* アクションコマンド枠 */
     #inventory-actions {
       padding: 5px 8px;
-      background: #060e22;
+      background: #000000;
       border-top: 2px solid #ffffff;
       display: flex;
       gap: 6px;
@@ -584,29 +623,30 @@
 
     .dq-action-btn {
       padding: 4px 10px;
-      background: #081122;
+      background: #000000;
       border: 1.5px solid #ffffff;
       border-radius: 3px;
       color: #ffffff;
       font-weight: bold;
       font-size: 12px;
       cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
 
     .dq-action-btn:active {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      color: #ffd700;
+      background: #ffffff;
+      color: #000000;
     }
 
     .dq-action-btn.primary {
-      border-color: #ffd700;
-      color: #ffd700;
+      border-color: #ffffff;
+      color: #ffffff;
     }
 
     .dq-action-btn.danger {
-      color: #f87171;
-      border-color: #ef4444;
+      color: #ffffff;
+      border-color: #ffffff;
     }
 
     /* リザルト / ゲームオーバー / クリアモーダル */
@@ -647,18 +687,18 @@
     }
 
     .game-clear {
-      color: #ffd700;
+      color: #ffffff;
     }
 
     .game-over {
-      color: #ef4444;
+      color: #ffffff;
     }
 
     .end-stats {
       margin: 14px 0;
       text-align: left;
-      background: #060e22;
-      border: 1px solid #334155;
+      background: #000000;
+      border: 1px solid #444444;
       padding: 10px;
       border-radius: 4px;
       font-size: 13px;
@@ -671,34 +711,40 @@
       margin-top: 12px;
       width: 100%;
       padding: 10px;
-      background: #081122;
-      border: 2px solid #ffd700;
+      background: #000000;
+      border: 2px solid #ffffff;
       border-radius: 4px;
-      color: #ffd700;
+      color: #ffffff;
       font-size: 14px;
       font-weight: bold;
       cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
 
     .restart-btn:active {
-      background: #1e3a8a;
+      background: #ffffff;
+      color: #000000;
     }
 
     /* 中断セーブボタン */
     .dq-save-btn {
-      background: #0f172a;
-      border: 1px solid #64748b;
-      color: #ffd54f;
+      background: #000000;
+      border: 1.5px solid #ffffff;
+      color: #ffffff;
       font-size: 11px;
       font-weight: bold;
-      padding: 1px 6px;
+      padding: 1px 7px;
       border-radius: 3px;
       cursor: pointer;
       margin-left: auto;
       white-space: nowrap;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
     .dq-save-btn:active {
-      background: #334155;
+      background: #ffffff;
+      color: #000000;
     }
 
     /* タイトル画面（レトロSFC/ドラクエ風フルスクリーンオーバーレイ） */
@@ -709,7 +755,7 @@
       width: 100%;
       height: 100%;
       z-index: 200;
-      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+      background: #000000;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -728,17 +774,17 @@
 
     .title-logo-container {
       text-align: center;
-      background: rgba(0, 0, 0, 0.88);
-      border: 3px double #ffd700;
-      border-radius: 8px;
+      background: #000000;
+      border: 3px double #ffffff;
+      border-radius: 6px;
       padding: 16px 20px;
       width: 100%;
-      box-shadow: 0 0 24px rgba(255, 215, 0, 0.25);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
     }
 
     .title-subtitle {
       font-size: 11px;
-      color: #93c5fd;
+      color: #ffffff;
       letter-spacing: 1px;
       margin-bottom: 4px;
     }
@@ -747,7 +793,7 @@
       font-size: 38px;
       font-weight: 900;
       color: #ffffff;
-      text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 12px rgba(0, 229, 255, 0.7);
+      text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
       letter-spacing: 4px;
       line-height: 48px;
     }
@@ -756,17 +802,17 @@
       display: inline-block;
       margin-top: 6px;
       padding: 2px 8px;
-      background: #1e3a8a;
-      border: 1px solid #60a5fa;
+      background: #000000;
+      border: 1.5px solid #ffffff;
       border-radius: 4px;
       font-size: 11px;
-      color: #fef08a;
+      color: #ffffff;
     }
 
     /* タイトルメニュー（ドラクエ風選択ウィンドウ） */
     .title-menu-container {
       width: 100%;
-      background: rgba(0, 0, 0, 0.95);
+      background: #000000;
       border: 2px solid #ffffff;
       border-radius: 6px;
       padding: 12px 16px;
@@ -785,22 +831,22 @@
       cursor: pointer;
       padding: 8px 12px;
       border-radius: 4px;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.1s, color 0.1s;
     }
 
     .title-menu-item:hover, .title-menu-item.selected {
-      background: #1e293b;
-      color: #ffd700;
+      background: #1c1c1c;
+      color: #ffffff;
     }
 
     .title-menu-item.disabled {
-      color: #475569;
+      color: #555555;
       cursor: not-allowed;
       pointer-events: none;
     }
 
     .title-menu-item .menu-cursor {
-      color: #ffd700;
+      color: #ffffff;
       opacity: 0;
       font-size: 13px;
     }
@@ -811,13 +857,13 @@
 
     .save-badge {
       font-size: 11px;
-      color: #38bdf8;
+      color: #aaaaaa;
       margin-left: auto;
     }
 
     .title-footer {
       font-size: 11px;
-      color: #94a3b8;
+      color: #888888;
       text-align: center;
       line-height: 1.5;
     }
@@ -840,16 +886,17 @@
     .story-dialog {
       width: 100%;
       max-width: 440px;
-      max-height: 94vh;
-      overflow-y: auto;
-      background: rgba(4, 10, 24, 0.98);
-      border: 2px solid #ffffff;
+      height: clamp(480px, 86vh, 560px);
+      background: #000000;
+      border: 3px solid #ffffff;
       border-radius: 6px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
       padding: 12px 16px;
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
       gap: 10px;
+      box-sizing: border-box;
       scrollbar-width: thin;
     }
 
@@ -857,28 +904,30 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
       padding-bottom: 5px;
+      flex-shrink: 0;
     }
 
     .story-header-title {
       font-size: 13px;
       font-weight: bold;
-      color: #f87171;
+      color: #ffffff;
     }
 
     .story-header-time {
       font-size: 12px;
-      color: #facc15;
+      color: #ffffff;
     }
 
     .story-image-wrap {
       width: 100%;
-      height: clamp(140px, 28vh, 190px);
-      border: 1px solid #475569;
+      height: clamp(140px, 25vh, 180px);
+      flex-shrink: 0;
+      border: 1.5px solid #ffffff;
       border-radius: 4px;
       overflow: hidden;
-      background: #020612;
+      background: #000000;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -892,16 +941,24 @@
     }
 
     .story-body {
-      min-height: 95px;
+      height: 148px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      font-size: 13px;
-      line-height: 20px;
+      gap: 4px;
+      font-size: 12.5px;
+      line-height: 19px;
       color: #ffffff;
       word-break: keep-all;
       overflow-wrap: anywhere;
       line-break: strict;
+    }
+
+    .story-body::-webkit-scrollbar {
+      display: none;
     }
 
     .story-line {
@@ -914,13 +971,15 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px dashed rgba(255, 255, 255, 0.3);
+      border-top: 1px dashed rgba(255, 255, 255, 0.4);
       padding-top: 8px;
+      flex-shrink: 0;
+      margin-top: auto;
     }
 
     .story-page-indicator {
       font-size: 11px;
-      color: #94a3b8;
+      color: #aaaaaa;
     }
 
     .story-btns {
@@ -934,18 +993,30 @@
       font-size: 12px;
       font-weight: bold;
       cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
 
     .btn-skip {
-      background: transparent;
-      border: 1px solid #64748b;
-      color: #94a3b8;
+      background: #000000;
+      border: 1.5px solid #ffffff;
+      color: #ffffff;
+    }
+
+    .btn-skip:active {
+      background: #ffffff;
+      color: #000000;
     }
 
     .btn-next {
-      background: #1e3a8a;
-      border: 1px solid #60a5fa;
+      background: #000000;
+      border: 1.5px solid #ffffff;
       color: #ffffff;
+    }
+
+    .btn-next:active {
+      background: #ffffff;
+      color: #000000;
     }
 
     /* 階段確認モーダル（インゲーム・ドラクエ調） */
@@ -964,8 +1035,8 @@
     }
 
     .stairs-dialog {
-      background: rgba(2, 6, 23, 0.98);
-      border: 2px solid #ffffff;
+      background: #000000;
+      border: 3px solid #ffffff;
       border-radius: 6px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
       padding: 18px 20px;
@@ -980,7 +1051,7 @@
     .stairs-dialog-title {
       font-size: 15px;
       font-weight: bold;
-      color: #60a5fa;
+      color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1006,16 +1077,16 @@
       font-size: 14px;
       font-weight: bold;
       cursor: pointer;
-      border: 2px solid #475569;
-      background: #0b1329;
+      border: 1.5px solid #ffffff;
+      background: #000000;
       color: #ffffff;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
 
     .stairs-btn.selected, .stairs-btn:hover {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      color: #ffd700;
+      background: #ffffff;
+      color: #000000;
     }
 
     /* 難易度選択モーダル */
@@ -1026,7 +1097,7 @@
       width: 100%;
       height: 100%;
       z-index: 205;
-      background: rgba(0, 0, 0, 0.88);
+      background: rgba(0, 0, 0, 0.9);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -1034,8 +1105,8 @@
     }
 
     .diff-dialog {
-      background: rgba(4, 10, 24, 0.98);
-      border: 2px solid #ffffff;
+      background: #000000;
+      border: 3px solid #ffffff;
       border-radius: 6px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
       padding: 16px 18px;
@@ -1049,9 +1120,9 @@
     .diff-title {
       font-size: 15px;
       font-weight: bold;
-      color: #ffd700;
+      color: #ffffff;
       text-align: center;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.3);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
       padding-bottom: 6px;
     }
 
@@ -1062,17 +1133,18 @@
     }
 
     .diff-card {
-      background: #081122;
-      border: 2px solid #334155;
+      background: #000000;
+      border: 1.5px solid #555555;
       border-radius: 4px;
       padding: 10px 12px;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      touch-action: manipulation;
+      transition: background 0.1s, border-color 0.1s;
     }
 
     .diff-card:hover, .diff-card.selected {
-      background: #1e293b;
-      border-color: #ffd700;
+      background: #1c1c1c;
+      border-color: #ffffff;
     }
 
     .diff-card-header {
@@ -1086,24 +1158,30 @@
     }
 
     .diff-card.selected .diff-card-header {
-      color: #ffd700;
+      color: #ffffff;
     }
 
     .diff-card-desc {
       font-size: 11px;
-      color: #94a3b8;
+      color: #aaaaaa;
       line-height: 16px;
     }
 
     .diff-cancel-btn {
-      background: transparent;
-      border: 1px solid #475569;
-      color: #94a3b8;
+      background: #000000;
+      border: 1.5px solid #ffffff;
+      color: #ffffff;
       padding: 6px;
       border-radius: 4px;
       font-size: 12px;
       cursor: pointer;
       text-align: center;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
+    }
+    .diff-cancel-btn:active {
+      background: #ffffff;
+      color: #000000;
     }
 
     /* インベントリソート用タブ */
@@ -1115,21 +1193,22 @@
     }
 
     .inv-sort-btn {
-      background: #0f172a;
-      border: 1px solid #475569;
-      color: #cbd5e1;
+      background: #000000;
+      border: 1.5px solid #555555;
+      color: #888888;
       font-size: 11px;
       padding: 2px 7px;
       border-radius: 3px;
       cursor: pointer;
       font-weight: bold;
-      transition: background 0.15s, color 0.15s;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
     }
 
     .inv-sort-btn:hover, .inv-sort-btn.active {
-      background: #1e3a8a;
-      border-color: #ffd700;
-      color: #ffd700;
+      background: #ffffff;
+      border-color: #ffffff;
+      color: #000000;
     }
 
     .btn-next:active {
@@ -1306,15 +1385,15 @@
         <!-- 8方向十字パッド（拡大＆押し間違い防止） -->
         <div class="dpad-container">
           <div class="dpad-grid">
-            <button class="dpad-btn" data-dx="-1" data-dy="-1">↖</button>
-            <button class="dpad-btn" data-dx="0" data-dy="-1">↑</button>
-            <button class="dpad-btn" data-dx="1" data-dy="-1">↗</button>
-            <button class="dpad-btn" data-dx="-1" data-dy="0">←</button>
+            <button class="dpad-btn dpad-diagonal" data-dx="-1" data-dy="-1">↖</button>
+            <button class="dpad-btn dpad-cardinal" data-dx="0" data-dy="-1">▲</button>
+            <button class="dpad-btn dpad-diagonal" data-dx="1" data-dy="-1">↗</button>
+            <button class="dpad-btn dpad-cardinal" data-dx="-1" data-dy="0">◀</button>
             <div class="dpad-pivot"></div>
-            <button class="dpad-btn" data-dx="1" data-dy="0">→</button>
-            <button class="dpad-btn" data-dx="-1" data-dy="1">↙</button>
-            <button class="dpad-btn" data-dx="0" data-dy="1">↓</button>
-            <button class="dpad-btn" data-dx="1" data-dy="1">↘</button>
+            <button class="dpad-btn dpad-cardinal" data-dx="1" data-dy="0">▶</button>
+            <button class="dpad-btn dpad-diagonal" data-dx="-1" data-dy="1">↙</button>
+            <button class="dpad-btn dpad-cardinal" data-dx="0" data-dy="1">▼</button>
+            <button class="dpad-btn dpad-diagonal" data-dx="1" data-dy="1">↘</button>
           </div>
         </div>
 
@@ -1392,6 +1471,28 @@
     </div>
   </div>
 
+  <script>
+    // ダブルタップによる意図しない拡大ズームを完全に防止
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 320) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, { passive: false });
+
+    // iOS Safari 等のピンチズーム・ジェスチャー拡大を抑止
+    document.addEventListener('gesturestart', function (event) {
+      event.preventDefault();
+    });
+    document.addEventListener('gesturechange', function (event) {
+      event.preventDefault();
+    });
+    document.addEventListener('gestureend', function (event) {
+      event.preventDefault();
+    });
+  </script>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
