@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#000000">
-  <title>もじダン</title>
+  <title>ヒゲボールゲームズ</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
@@ -831,6 +831,172 @@
       color: #000000;
     }
 
+    /* ヒゲボールゲームズ ポータル画面 */
+    #portal-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 250;
+      background: #000000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      overflow-y: auto;
+      box-sizing: border-box;
+    }
+
+    .portal-container {
+      width: 100%;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin: auto 0;
+    }
+
+    .portal-header {
+      width: 100%;
+      background: #000000;
+      border: 3px double #ffffff;
+      border-radius: 8px;
+      padding: 16px 20px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+    }
+
+    .portal-brand-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      color: #ffd700;
+      margin-bottom: 4px;
+    }
+
+    .portal-title {
+      font-size: clamp(24px, 6.5vw, 32px);
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: 3px;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .portal-subtitle {
+      font-size: 11px;
+      color: #aaaaaa;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .portal-games-list {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .portal-card {
+      width: 100%;
+      background: #000000;
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+      transition: transform 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .portal-card:hover {
+      border-color: #ffd700;
+      background: #0d0d0d;
+    }
+
+    .portal-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .portal-card-tag {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .portal-card-tag.live {
+      background: #000000;
+      border: 1px solid #4ade80;
+      color: #4ade80;
+    }
+
+    .portal-card-tag.coming {
+      background: #000000;
+      border: 1px solid #ffd700;
+      color: #ffd700;
+    }
+
+    .portal-card-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .portal-card-icon {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .portal-card-desc {
+      font-size: 12px;
+      color: #cccccc;
+      line-height: 18px;
+    }
+
+    .portal-play-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px;
+      background: #000000;
+      border: 2px solid #ffffff;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: bold;
+      text-decoration: none;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .portal-play-btn:hover, .portal-play-btn:active {
+      background: #ffffff;
+      color: #000000;
+    }
+
+    .portal-footer {
+      font-size: 11px;
+      color: #777777;
+      text-align: center;
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
     /* タイトル画面（レトロSFC/ドラクエ風フルスクリーンオーバーレイ） */
     #title-screen {
       position: absolute;
@@ -1306,8 +1472,61 @@
   </style>
 </head>
 <body>
+  <!-- ヒゲボールゲームズ ポータル画面 -->
+  <div id="portal-screen" class="interactive">
+    <div class="portal-container">
+      <div class="portal-header">
+        <div class="portal-brand-badge">★ HIGEBALL GAMES ★</div>
+        <div class="portal-title">ヒゲボールゲームズ</div>
+        <div class="portal-subtitle">〜 レトロブラウザゲームポータル 〜</div>
+      </div>
+
+      <div class="portal-games-list">
+        <!-- ゲーム1: もじダン -->
+        <div class="portal-card" id="portal-card-mojidan">
+          <div class="portal-card-header">
+            <div class="portal-card-title">
+              <span class="portal-card-icon">🏃</span>
+              <span>もじダン</span>
+            </div>
+            <span class="portal-card-tag live">NOW PLAYING</span>
+          </div>
+          <div class="portal-card-desc">
+            〜 午後の始業と消えたトイレ 〜<br>
+            昼休み残り20分！ 配管破裂で閉鎖されたトイレを求め、オフィスタワー50Fから40Fへ非常階段を駆け降りる本格ローグライクRPG！
+          </div>
+          <button class="portal-play-btn" id="btn-portal-play-mojidan">
+            <span>プレイする ▶</span>
+          </button>
+        </div>
+
+        <!-- ゲーム2: ネコナイン -->
+        <div class="portal-card" id="portal-card-nekonine">
+          <div class="portal-card-header">
+            <div class="portal-card-title">
+              <span class="portal-card-icon">🐱</span>
+              <span>ネコナイン</span>
+            </div>
+            <span class="portal-card-tag coming">COMING SOON</span>
+          </div>
+          <div class="portal-card-desc">
+            〜 Neko Nine 〜<br>
+            ニャンと驚く仕掛けが満載！ ただいまゲームコンテンツを鋭意制作中。
+          </div>
+          <a href="./neko-nine/" class="portal-play-btn" id="btn-portal-play-nekonine">
+            <span>あそぶ ▶</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="portal-footer">
+        © 2026 株式会社ヒゲボール / ヒゲボール制作委員会
+      </div>
+    </div>
+  </div>
+
   <!-- タイトル画面（SFC風ドラクエ調） -->
-  <div id="title-screen" class="interactive">
+  <div id="title-screen" class="hidden interactive">
     <div class="title-box">
       <div class="title-logo-container">
         <div class="title-subtitle">〜 午後の始業と消えたトイレ 〜</div>
@@ -1325,11 +1544,15 @@
           <span>つづきから</span>
           <span class="save-badge" id="save-info-text"></span>
         </div>
+        <div class="title-menu-item" id="btn-title-portal">
+          <span class="menu-cursor">▶</span>
+          <span>◀ ゲーム一覧へもどる</span>
+        </div>
       </div>
 
       <div class="title-footer">
         昼休み残り20分！ 階段を駆け降りて40Fのトイレを目指せ！<br>
-        © 2026 株式会社もじ / もじダン製作委員会
+        © 2026 株式会社ヒゲボール / ヒゲボール制作委員会
       </div>
     </div>
   </div>

@@ -9,7 +9,11 @@ import { soundManager } from '../audio/SoundManager.js';
 export class TitleScreen {
   constructor(game) {
     this.game = game;
+    this.portalEl = document.getElementById('portal-screen');
+    this.btnPortalPlayMojidan = document.getElementById('btn-portal-play-mojidan');
+
     this.titleEl = document.getElementById('title-screen');
+    this.btnTitlePortal = document.getElementById('btn-title-portal');
     this.storyModal = document.getElementById('story-modal');
     this.storyTextEl = document.getElementById('story-body-text');
     this.storyPageEl = document.getElementById('story-page-indicator');
@@ -19,6 +23,8 @@ export class TitleScreen {
     this.btnNew = document.getElementById('btn-title-new');
     this.btnContinue = document.getElementById('btn-title-continue');
     this.saveInfoEl = document.getElementById('save-info-text');
+
+    this.currentMenuIndex = 0; // 0: new, 1: continue, 2: portal
 
     // 難易度モーダル関連
     this.diffModal = document.getElementById('difficulty-modal');
@@ -34,7 +40,7 @@ export class TitleScreen {
         time: '🕒 12:40 PM',
         image: './character/opening/01-stomach-emergency.webp',
         lines: [
-          '大手IT企業「株式会社もじ」が入居する 地上50階建てのオフィスタワー。',
+          '大手IT企業「株式会社ヒゲボール」が入居する 地上50階建てのオフィスタワー。',
           '社員食堂で 激辛大盛りカレーを堪能した 会社員・もじさん。',
           '食後の至福のひとときを 過ごしていたその時……！',
           '――ドクンッ！！',
@@ -112,11 +118,40 @@ export class TitleScreen {
   }
 
   initEvents() {
+    // ポータル画面「もじダンをプレイ」
+    this.btnPortalPlayMojidan?.addEventListener('click', () => {
+      soundManager.playConfirm();
+      this.hidePortal();
+      this.show();
+      window.location.hash = '#mojidan';
+    });
+
+    // タイトル画面「ゲーム一覧へもどる」
+    this.btnTitlePortal?.addEventListener('click', () => {
+      soundManager.playCursor?.();
+      this.hide();
+      this.showPortal();
+    });
+
     // はじめから（難易度選択モーダルを開く）
     this.btnNew?.addEventListener('click', () => {
       soundManager.playConfirm();
       this.openDifficultySelect();
     });
+
+    // つづきから
+    this.btnContinue?.addEventListener('click', () => {
+      if (!SaveManager.hasSaveData()) return;
+      soundManager.playConfirm();
+      this.continueGame();
+    });
+
+    // タイトルメニューのマウスホバー対応
+    this.btnNew?.addEventListener('mouseenter', () => this.setMenuSelection(0));
+    this.btnContinue?.addEventListener('mouseenter', () => {
+      if (SaveManager.hasSaveData()) this.setMenuSelection(1);
+    });
+    this.btnTitlePortal?.addEventListener('mouseenter', () => this.setMenuSelection(2));
 
     // 難易度カード選択
     this.diffChoiceNormal?.addEventListener('click', () => {
@@ -136,13 +171,6 @@ export class TitleScreen {
     this.btnDiffCancel?.addEventListener('click', () => {
       soundManager.playCursor?.();
       this.closeDifficultySelect();
-    });
-
-    // つづきから
-    this.btnContinue?.addEventListener('click', () => {
-      if (!SaveManager.hasSaveData()) return;
-      soundManager.playConfirm();
-      this.continueGame();
     });
 
     // ストーリー「次へ」
@@ -204,17 +232,24 @@ export class TitleScreen {
         return;
       }
 
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        // カーソル切り替え
-        this._toggleMenuCursor();
+      // タイトル画面表示中
+      if (e.key === 'ArrowDown') {
+        this._moveMenuCursor(1);
+      } else if (e.key === 'ArrowUp') {
+        this._moveMenuCursor(-1);
       } else if (e.key === 'Enter') {
-        const isContinueSelected = this.btnContinue?.classList.contains('selected');
-        if (isContinueSelected && SaveManager.hasSaveData()) {
-          soundManager.playConfirm();
-          this.continueGame();
-        } else {
+        if (this.currentMenuIndex === 0) {
           soundManager.playConfirm();
           this.openDifficultySelect();
+        } else if (this.currentMenuIndex === 1) {
+          if (SaveManager.hasSaveData()) {
+            soundManager.playConfirm();
+            this.continueGame();
+          }
+        } else if (this.currentMenuIndex === 2) {
+          soundManager.playCursor?.();
+          this.hide();
+          this.showPortal();
         }
       }
     });
@@ -231,10 +266,29 @@ export class TitleScreen {
   }
 
   /**
+   * ポータル画面（ヒゲボールゲームズ）を表示
+   */
+  showPortal() {
+    this.portalEl?.classList.remove('hidden');
+    this.titleEl?.classList.add('hidden');
+    this.diffModal?.classList.add('hidden');
+    this.storyModal?.classList.add('hidden');
+    if (window.location.hash === '#mojidan') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }
+
+  hidePortal() {
+    this.portalEl?.classList.add('hidden');
+  }
+
+  /**
    * タイトル画面を表示
    */
   show() {
+    this.hidePortal();
     this.titleEl?.classList.remove('hidden');
+    this.diffModal?.classList.add('hidden');
     this.storyModal?.classList.add('hidden');
 
     // セーブデータ確認
@@ -252,17 +306,41 @@ export class TitleScreen {
       }
     }
 
-    this.btnNew?.classList.add('selected');
-    this.btnContinue?.classList.remove('selected');
+    this.setMenuSelection(0);
+  }
+
+  setMenuSelection(index) {
+    this.currentMenuIndex = index;
+    const items = [this.btnNew, this.btnContinue, this.btnTitlePortal];
+    items.forEach((item, idx) => {
+      if (!item) return;
+      if (idx === index) {
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+  }
+
+  _moveMenuCursor(delta) {
+    const hasSave = SaveManager.hasSaveData();
+    const validIndices = hasSave ? [0, 1, 2] : [0, 2];
+    let pos = validIndices.indexOf(this.currentMenuIndex);
+    if (pos === -1) pos = 0;
+    pos = (pos + delta + validIndices.length) % validIndices.length;
+    this.setMenuSelection(validIndices[pos]);
+    soundManager.playCursor?.();
   }
 
   hide() {
+    this.hidePortal();
     this.titleEl?.classList.add('hidden');
     this.diffModal?.classList.add('hidden');
     this.storyModal?.classList.add('hidden');
   }
 
   startOpeningStory() {
+    this.hidePortal();
     this.titleEl?.classList.add('hidden');
     this.diffModal?.classList.add('hidden');
     this.storyModal?.classList.remove('hidden');
@@ -334,20 +412,6 @@ export class TitleScreen {
     } else {
       alert('セーブデータの読み込みに失敗しました。');
       this.show();
-    }
-  }
-
-  _toggleMenuCursor() {
-    if (!SaveManager.hasSaveData()) return;
-    const isNew = this.btnNew?.classList.contains('selected');
-    if (isNew) {
-      this.btnNew?.classList.remove('selected');
-      this.btnContinue?.classList.add('selected');
-      soundManager.playCursor?.();
-    } else {
-      this.btnContinue?.classList.remove('selected');
-      this.btnNew?.classList.add('selected');
-      soundManager.playCursor?.();
     }
   }
 }

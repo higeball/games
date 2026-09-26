@@ -1,3 +1,4 @@
+import { resolve } from 'path';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
@@ -8,6 +9,12 @@ export default defineConfig({
   },
   build: {
     assetsDir: 'assets',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        nekoNine: resolve(__dirname, 'neko-nine/index.html')
+      }
+    }
   }
 });

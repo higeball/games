@@ -44,11 +44,17 @@ class Game {
     this.initUI();
     this.titleScreen = new TitleScreen(this);
     this.setupGameLoop();
-    this.titleScreen.show();
 
-    // デバッグ・テスト用シーン直接起動
+    // デバッグ・テスト用シーン直接起動 または ポータル判定
     const urlParams = new URLSearchParams(window.location.search);
     const scene = urlParams.get('scene');
+    const shouldDirectMojidan = (window.location.hash === '#mojidan' || urlParams.get('game') === 'mojidan' || !!scene);
+
+    if (shouldDirectMojidan) {
+      this.titleScreen.show();
+    } else {
+      this.titleScreen.showPortal();
+    }
     if (scene === 'diff') {
       this.titleScreen.openDifficultySelect();
     } else if (scene === 'story') {
