@@ -20,6 +20,9 @@ export type CatPlayer = {
   trait: { name: string; description: string }
   stats: Stats
   condition: number
+  isSpecial?: boolean
+  specialTitle?: string
+  conditionRank?: '絶好調' | '好調' | '普通' | '不調'
 }
 
 export type Opponent = {
@@ -31,13 +34,14 @@ export type Opponent = {
   scouting: string
 }
 
-export type TacticId = 'contact' | 'power' | 'patience' | 'attack' | 'careful' | 'grounder'
+export type TacticId = 'contact' | 'power' | 'patience' | 'bunt' | 'attack' | 'careful' | 'grounder' | 'strikeout'
 
 export type TacticOption = {
   id: TacticId
   label: string
   description: string
   hint: '有利' | '五分' | '危険'
+  tacticEffect?: string
 }
 
 export type DecisionContext = {
@@ -46,6 +50,8 @@ export type DecisionContext = {
   situation: string
   recommended: TacticId
   options: TacticOption[]
+  activeCatName?: string
+  activeCatTrait?: string
 }
 
 export type MatchState = {
@@ -53,9 +59,13 @@ export type MatchState = {
   inning: number
   half: 'top' | 'bottom'
   outs: number
+  balls: number
+  strikes: number
   bases: [boolean, boolean, boolean]
   ourScore: number
   theirScore: number
+  inningScores: { our: number[]; their: number[] }
+  hits: { our: number; their: number }
   plateAppearances: number
   decisionCount: number
   nextDecisionAt: number
@@ -63,6 +73,8 @@ export type MatchState = {
   pending: DecisionContext | null
   commentary: string[]
   lastPlay: string
+  lastOutcome?: 'homer' | 'double' | 'single' | 'walk' | 'out' | 'strikeout' | 'doubleplay'
+  lastOutcomeText?: string
   finished: boolean
   won: boolean | null
 }
