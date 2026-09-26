@@ -5,11 +5,11 @@ import { clearActiveRun, EMPTY_META, loadSave, saveGame } from './game/save'
 import { createMatch, resolveDecision, simulateToNextDecision } from './game/simulation/match'
 import type { CatPlayer, MatchState, MetaProgress, RunState, Stats, TacticId } from './game/types'
 import { POSITIONS } from './game/types'
-import type { StadiumUpdate } from './phaser/GameScene'
+import type { StadiumUpdate } from './three/Stadium3D'
 import { CatPortrait, YasuPortrait } from './ui/Sprites'
 import { activateUpdate, registerPwa } from './pwa'
 
-const Stadium = lazy(() => import('./phaser/Stadium').then(module => ({ default: module.Stadium })))
+const Stadium = lazy(() => import('./three/Stadium3D').then(module => ({ default: module.Stadium3D })))
 
 const POSITION_NAMES = {
   P: '投手', C: '捕手', '1B': '一塁手', '2B': '二塁手', '3B': '三塁手',
@@ -17,13 +17,13 @@ const POSITION_NAMES = {
 }
 
 const TRAINING_MENUS: Array<{ key: keyof Stats | 'rest' | 'meeting'; label: string; icon: string; desc: string }> = [
-  { key: 'contact', label: '打撃練習', icon: '⚾', desc: '打撃（ミート）+1' },
-  { key: 'power', label: '筋力練習', icon: '💪', desc: '長打（パワー）+1' },
-  { key: 'speed', label: '走塁練習', icon: '💨', desc: '走力（スピード）+1' },
-  { key: 'defense', label: '守備練習', icon: '🧤', desc: '守備力+1' },
-  { key: 'pitching', label: '投球練習', icon: '🎯', desc: '投球（投手専用）+1' },
-  { key: 'rest', label: 'ひなたぼっこ', icon: '☀', desc: '調子+25（コンディション回復）' },
-  { key: 'meeting', label: '作戦会議', icon: '💬', desc: 'チーム士気+12（全員に効果）' }
+  { key: 'contact', label: '打撃', icon: '⚾', desc: 'ミート+1' },
+  { key: 'power', label: '筋力', icon: '💪', desc: '長打+1' },
+  { key: 'speed', label: '走塁', icon: '💨', desc: '走力+1' },
+  { key: 'defense', label: '守備', icon: '🧤', desc: '守備+1' },
+  { key: 'pitching', label: '投球', icon: '🎯', desc: '投球+1' },
+  { key: 'rest', label: '休養', icon: '☀', desc: '調子+25' },
+  { key: 'meeting', label: '作戦', icon: '💬', desc: '士気+12' }
 ]
 
 type TrainingPlan = {
@@ -79,7 +79,7 @@ function App() {
     setRun({ ...run, roster, draftRound: run.draftRound + 1, phase: roster.length === 9 ? 'training' : 'draft' })
   }
 
-  // 3つの特訓メニューを一括確定実行
+  // 特訓メニューを一括確定実行
   const commitTrainingPlans = (plans: TrainingPlan[]) => {
     if (!run || plans.length === 0) return
     let updatedRoster = [...run.roster]
@@ -135,9 +135,8 @@ function App() {
     window.setTimeout(() => {
       const advanced = simulateToNextDecision(resolved, run.roster)
       setRun(current => current ? { ...current, match: advanced } : current)
-      dispatchStadium(advanced, advanced.finished ? (advanced.won ? 'win' : 'lose') : 'idle')
       setAdvancing(false)
-      window.setTimeout(() => setLastActionOutcome(null), 1200)
+      dispatchStadium(advanced, advanced.finished ? (advanced.won ? 'win' : 'lose') : 'idle')
     }, 900)
   }
 
@@ -211,9 +210,8 @@ function App() {
         {run?.phase === 'seasonEnd' && <SeasonEnd run={run} onTitle={backToTitle} />}
         {needRefresh && (
           <div className="update-toast">
-            <span>新しいシーズンデータがあります</span>
+            <span>新しいバージョンがあります</span>
             <button onClick={activateUpdate}>更新</button>
-            <button onClick={() => setNeedRefresh(false)}>あとで</button>
           </div>
         )}
       </div>
@@ -224,7 +222,7 @@ function App() {
 
 function TitleScreen({ meta, hasContinue, onStart, onContinue }: { meta: MetaProgress; hasContinue: boolean; onStart: () => void; onContinue: () => void }) {
   return (
-    <section className="title-screen screen">
+    <section className="title-screen screen compact-title">
       <div className="title-rays" />
       <div className="title-logo">
         <span>ヤス監督の挑戦</span>
@@ -246,77 +244,112 @@ function TitleScreen({ meta, hasContinue, onStart, onContinue }: { meta: MetaPro
         <span>優勝 {meta.championships}</span>
         <span>図鑑 {meta.discoveredCats.length}/9</span>
       </div>
-      <div style={{ marginTop: '12px', fontSize: '10px', color: '#fff8e899', textAlign: 'center', letterSpacing: '0.5px' }}>
+      <div style={{ marginTop: '8px', fontSize: '9px', color: '#fff8e899', textAlign: 'center', letterSpacing: '0.5px' }}>
         © 2026 株式会社ヒゲボール / ヒゲボール制作委員会
       </div>
     </section>
   )
 }
 
+// 1画面にぴったり収まるタブ切り替えドラフト
 function DraftScreen({ run, candidates, onChoose }: { run: RunState; candidates: CatPlayer[]; onChoose: (cat: CatPlayer) => void }) {
   const position = POSITIONS[run.draftRound]
+  const [selectedCandidateIndex, setSelectedCandidateIndex] = useState(0)
+
+  useEffect(() => {
+    setSelectedCandidateIndex(0)
+  }, [run.draftRound])
+
+  const activeCat = candidates[selectedCandidateIndex] || candidates[0]
+
   return (
-    <section className="screen paper-screen">
-      <div className="section-heading">
-        <small>DRAFT {run.draftRound + 1}/9</small>
-        <h2>{POSITION_NAMES[position]}を選ぼう</h2>
-        <p>個性と能力を見比べて指名！</p>
+    <section className="screen paper-screen draft-screen-compact">
+      <div className="section-heading compact-heading">
+        <div className="heading-row">
+          <small>DRAFT {run.draftRound + 1}/9</small>
+          <h2>{POSITION_NAMES[position]}を指名</h2>
+        </div>
       </div>
-      <div className="draft-progress">
+
+      <div className="draft-progress compact-progress">
         {POSITIONS.map((value, index) => (
           <span key={value} className={index < run.draftRound ? 'done' : index === run.draftRound ? 'active' : ''}>
             {value}
           </span>
         ))}
       </div>
-      <div className="candidate-list">
-        {candidates.map(cat => (
-          <article className={`player-card ${cat.isSpecial ? 'special-card' : ''}`} key={cat.id}>
-            {cat.isSpecial && (
-              <div className="special-badge">
-                <span className="sparkle">✨</span>
-                <b>{cat.specialTitle || '★ 超逸材 ★'}</b>
-                <span className="sparkle">✨</span>
-              </div>
-            )}
-            <div className="card-top">
-              <CatPortrait index={cat.breedIndex} />
-              <div>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span className="position-chip">{POSITION_NAMES[cat.position]}</span>
-                  {cat.isSpecial && <span className="special-chip">超逸材</span>}
-                </div>
-                <h3>{cat.name}</h3>
-                <p>{cat.breed}・{cat.personality}</p>
-              </div>
-            </div>
-            <div className="stat-grid">
-              {(Object.keys(STAT_LABELS) as Array<keyof Stats>)
-                .filter(key => key !== 'pitching' || cat.position === 'P')
-                .map(key => (
-                  <div key={key}>
-                    <span>{STAT_LABELS[key]}</span>
-                    <b>
-                      {'■'.repeat(cat.stats[key])}
-                      <i>{'□'.repeat(Math.max(0, 9 - cat.stats[key]))}</i>
-                    </b>
-                  </div>
-                ))}
-            </div>
-            <div className="trait">
-              <strong>★ {cat.trait.name}</strong>
-              <span>{cat.trait.description}</span>
-            </div>
-            <button className={`pick-button ${cat.isSpecial ? 'pick-special' : ''}`} onClick={() => onChoose(cat)}>
-              {cat.isSpecial ? '★ この超逸材を指名！ ★' : 'この猫を指名'}
+
+      {/* 3候補切り替えタブ（1画面で直感比較） */}
+      <div className="candidate-tabs" role="tablist">
+        {candidates.map((cat, idx) => {
+          const isSelected = idx === selectedCandidateIndex
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              className={`candidate-tab-btn ${isSelected ? 'active' : ''} ${cat.isSpecial ? 'special-tab' : ''}`}
+              onClick={() => setSelectedCandidateIndex(idx)}
+            >
+              <span className="tab-idx">第{idx + 1}候補</span>
+              <strong className="tab-name">{cat.isSpecial ? `✨${cat.name}✨` : cat.name}</strong>
+              <small className="tab-pos">{POSITION_NAMES[cat.position]}</small>
             </button>
-          </article>
-        ))}
+          )
+        })}
       </div>
+
+      {activeCat && (
+        <article className={`player-card compact-card ${activeCat.isSpecial ? 'special-card' : ''}`} key={activeCat.id}>
+          {activeCat.isSpecial && (
+            <div className="special-badge">
+              <span className="sparkle">✨</span>
+              <b>{activeCat.specialTitle || '★ 超逸材 ★'}</b>
+              <span className="sparkle">✨</span>
+            </div>
+          )}
+          <div className="card-top">
+            <CatPortrait index={activeCat.breedIndex} />
+            <div>
+              <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                <span className="position-chip">{POSITION_NAMES[activeCat.position]}</span>
+                {activeCat.isSpecial && <span className="special-chip">超逸材</span>}
+                <span className="cond-chip">調子 100%</span>
+              </div>
+              <h3>{activeCat.name}</h3>
+              <p>{activeCat.breed}・{activeCat.personality}</p>
+            </div>
+          </div>
+          <div className="stat-grid compact-stat-grid">
+            {(Object.keys(STAT_LABELS) as Array<keyof Stats>)
+              .filter(key => key !== 'pitching' || activeCat.position === 'P')
+              .map(key => (
+                <div key={key}>
+                  <span>{STAT_LABELS[key]}</span>
+                  <b>
+                    {'■'.repeat(activeCat.stats[key])}
+                    <i>{'□'.repeat(Math.max(0, 9 - activeCat.stats[key]))}</i>
+                  </b>
+                </div>
+              ))}
+          </div>
+          <div className="trait compact-trait">
+            <strong>★ {activeCat.trait.name}</strong>
+            <span>{activeCat.trait.description}</span>
+          </div>
+          <button
+            type="button"
+            className={`pick-button ${activeCat.isSpecial ? 'pick-special' : ''}`}
+            onClick={() => onChoose(activeCat)}
+          >
+            {activeCat.isSpecial ? `★ 超逸材【${activeCat.name}】を指名！ ★` : `【${activeCat.name}】を指名して次へ ▶`}
+          </button>
+        </article>
+      )}
     </section>
   )
 }
 
+// 1画面に収まるコンパクト育成キャンプ
 function TrainingScreen({
   run,
   selected,
@@ -361,118 +394,99 @@ function TrainingScreen({
   const selectedCatObj = run.roster[selected]
 
   return (
-    <section className="screen paper-screen training-screen">
-      <div className="section-heading">
-        <small>{run.gameIndex === 3 ? 'FINAL PREP' : `GAME ${run.gameIndex + 1} PREP`}</small>
-        <h2>{run.gameIndex === 3 ? '決勝前の最終調整' : '育成キャンプ'}</h2>
-        <p>残り特訓可能回数: <b>{remaining}</b> 回</p>
+    <section className="screen paper-screen training-screen-compact">
+      <div className="section-heading compact-heading">
+        <div className="heading-row">
+          <small>{run.gameIndex === 3 ? 'FINAL' : `GAME ${run.gameIndex + 1}`}</small>
+          <h2>{run.gameIndex === 3 ? '決勝前調整' : '育成キャンプ'}</h2>
+          <span className="remaining-badge">残り特訓 <b>{remaining}</b>回</span>
+        </div>
       </div>
 
-      <div className="scout-card">
-        <span>次の相手球団</span>
+      <div className="scout-bar-compact">
+        <span className="scout-tag">次戦</span>
         <strong>{opponent.name}</strong>
-        <em>{opponent.tendency}</em>
-        <p>{opponent.scouting}</p>
+        <em>({opponent.tendency})</em>
+        <span>{opponent.scouting}</span>
       </div>
 
-      {/* 9匹全員一覧グリッド（タップで選択） */}
-      <div className="roster-grid-label">
-        <span>▼ 特訓する猫選手を選んでください（全9匹）</span>
-      </div>
-      <div className="roster-grid">
+      {/* 9匹ロスター一覧（コンパクト3x3グリッド） */}
+      <div className="roster-grid-compact">
         {run.roster.map((cat, index) => {
           const isSelected = selected === index
           return (
             <button
               key={cat.id}
-              className={`roster-grid-cell ${isSelected ? 'selected' : ''} ${cat.isSpecial ? 'special-cell' : ''}`}
+              type="button"
+              className={`roster-grid-cell compact-cell ${isSelected ? 'selected' : ''} ${cat.isSpecial ? 'special-cell' : ''}`}
               onClick={() => onSelect(index)}
               title={`${cat.name} (${cat.position})`}
             >
-              <div className="roster-cell-pos">{cat.position}</div>
+              <span className="roster-cell-pos">{cat.position}</span>
               <CatPortrait index={cat.breedIndex} className="roster-cell-icon" />
-              <div className="roster-cell-name">{cat.name}</div>
-              <div className="roster-cell-cond" title={`調子: ${cat.condition}`}>
+              <span className="roster-cell-name">{cat.name}</span>
+              <span className="roster-cell-cond">
                 {cat.condition >= 90 ? '😆' : cat.condition >= 75 ? '😊' : cat.condition >= 50 ? '😐' : '🙁'}
-              </div>
+              </span>
             </button>
           )
         })}
       </div>
 
-      {/* 選択中の猫の情報 */}
-      {selectedCatObj && (
-        <div className="selected-cat-banner">
-          <div className="banner-left">
-            <strong>{selectedCatObj.name}</strong>
-            <span className="banner-breed">[{POSITION_NAMES[selectedCatObj.position]}] {selectedCatObj.breed}</span>
-          </div>
-          <div className="banner-right">
-            <span>士気 {run.morale}</span>
-            <span>調子 {selectedCatObj.condition}%</span>
-          </div>
-        </div>
-      )}
-
-      {/* 特訓予約スロット（3枠選んでから確定） */}
+      {/* 選択中の猫ステータス & 予約スロット & 確定ボタン */}
       {remaining > 0 && (
-        <div className="training-planner">
-          <div className="planner-header">
-            <span>📋 特訓メニュー予約スロット ({plans.length} / {remaining})</span>
-            <small>メニューを選んでスロットを埋め、最後に確定！</small>
+        <div className="training-planner compact-planner">
+          <div className="planner-top-row">
+            <span className="planner-target">
+              対象: <b>{selectedCatObj?.name}</b> [{POSITION_NAMES[selectedCatObj?.position || 'P']}]
+              <small>調子{selectedCatObj?.condition}%/士気{run.morale}</small>
+            </span>
+            <button
+              type="button"
+              className="commit-plan-btn compact-commit-btn"
+              disabled={plans.length === 0}
+              onClick={handleCommit}
+            >
+              {plans.length === remaining ? `【特訓確定】実行 ▶` : `特訓確定 (${plans.length}/${remaining}) ▶`}
+            </button>
           </div>
-          <div className="planner-slots">
+          <div className="planner-slots compact-slots">
             {Array.from({ length: remaining }).map((_, idx) => {
               const plan = plans[idx]
               return (
                 <div
                   key={idx}
-                  className={`planner-slot ${plan ? 'filled' : 'empty'}`}
+                  className={`planner-slot compact-slot ${plan ? 'filled' : 'empty'}`}
                   onClick={() => plan && removePlan(idx)}
-                  title={plan ? 'タップで取り消し' : '未選択'}
                 >
                   {plan ? (
                     <>
-                      <span className="slot-idx">{idx + 1}</span>
                       <span className="slot-icon">{plan.icon}</span>
-                      <div className="slot-text">
-                        <b>{plan.label}</b>
-                        <small>➔ {plan.targetName}</small>
-                      </div>
+                      <span className="slot-name">{plan.label}➔{plan.targetName}</span>
                       <span className="slot-remove">✕</span>
                     </>
                   ) : (
-                    <span className="slot-empty-text">【 {idx + 1}枠目 未選択 】</span>
+                    <span className="slot-empty-text">{idx + 1}枠目:未選択</span>
                   )}
                 </div>
               )
             })}
           </div>
-
-          {/* 3枠決定ボタン */}
-          <button
-            className="primary-button commit-plan-btn"
-            disabled={plans.length === 0}
-            onClick={handleCommit}
-          >
-            {plans.length === remaining
-              ? `【特訓確定！】${plans.length}つのメニューを実行する ▶`
-              : `選択中の特訓を実行 (${plans.length}/${remaining}枠) ▶`}
-          </button>
         </div>
       )}
 
-      {/* 練習メニューボタン群 */}
+      {/* 練習メニューボタン群（コンパクトグリッド） */}
       {remaining > 0 ? (
-        <div className="training-menu-section">
-          <div className="menu-section-title">▼ 実行したい特訓メニューをタップ</div>
-          <div className="training-grid">
+        <div className="training-menu-section compact-menu-section">
+          <div className="training-grid compact-grid">
             {TRAINING_MENUS.map(item => {
               const isPitching = item.key === 'pitching'
               const disabled = plans.length >= remaining || (isPitching && selectedCatObj?.position !== 'P')
               return (
                 <button
                   key={item.key}
+                  type="button"
+                  className="training-menu-btn compact-btn"
                   disabled={disabled}
                   onClick={() => addPlan(item)}
                 >
@@ -487,19 +501,20 @@ function TrainingScreen({
           </div>
         </div>
       ) : (
-        <div className="training-complete-notice">
+        <div className="training-complete-notice compact-notice">
           ★ 本日のキャンプ特訓はすべて完了しました！
         </div>
       )}
 
       {/* 試合開始ボタン */}
-      <button className="primary-button sticky-action" disabled={remaining > 0} onClick={onStart}>
-        {run.gameIndex === 3 ? '決勝戦へ突入！ ▶' : '試合開始！ ▶'}
+      <button type="button" className="primary-button sticky-action compact-action" disabled={remaining > 0} onClick={onStart}>
+        {run.gameIndex === 3 ? '決勝戦へ挑む！ ▶' : '試合開始！ ▶'}
       </button>
     </section>
   )
 }
 
+// 3D野球場 & 1画面収まるコンパクト試合画面
 function MatchScreen({
   run,
   advancing,
@@ -519,26 +534,47 @@ function MatchScreen({
     ? (match.won ? 2 : 3)
     : match.pending?.options.find(option => option.id === match.pending?.recommended)?.hint === '有利' ? 1 : 0
 
-  // 9イニングのスコア表示用配列
   const maxInnings = Math.max(9, match.inning)
   const inningsArray = Array.from({ length: maxInnings }, (_, i) => i + 1)
 
   return (
-    <section className="match-screen">
-      <Suspense fallback={<div className="stadium stadium-loading">球場を準備中…</div>}>
-        <Stadium />
-      </Suspense>
+    <section className="match-screen compact-match-screen">
+      {/* 3D Baseball Stadium (Three.js) */}
+      <div className="stadium-3d-wrap">
+        <Suspense fallback={<div className="stadium stadium-loading">3D球場を展開中…</div>}>
+          <Stadium />
+        </Suspense>
 
-      {/* 攻守が一目でわかる特大モードバナー */}
-      <div className={`inning-mode-banner ${isOffense ? 'mode-attack' : 'mode-defense'}`}>
-        <span className="mode-badge">{isOffense ? '⚡ 攻撃中' : '🛡️ 守備中'}</span>
-        <span className="mode-desc">
-          {isOffense ? '自チームの攻撃！ 監督の采配で得点を奪え！' : '相手チームの攻撃！ 堅守の采配でゼロに抑えろ！'}
-        </span>
+        {/* 攻守特大モードバナー（3Dスタジアム上部にフロート） */}
+        <div className={`inning-mode-banner compact-mode-banner ${isOffense ? 'mode-attack' : 'mode-defense'}`}>
+          <span className="mode-badge">{isOffense ? '⚡ 攻撃中' : '🛡️ 守備中'}</span>
+          <span className="mode-desc">
+            {isOffense ? '【攻撃】采配で得点を奪え！' : '【守備】堅守采配で抑えろ！'}
+          </span>
+        </div>
+
+        {/* 采配実行後のダイナミック結果バナー演出（3D空間上にポップアップ） */}
+        {lastOutcome && (
+          <div className={`result-cutin-banner cutin-${lastOutcome.kind}`}>
+            <div className="cutin-content">
+              <span className="cutin-sub">PLAY RESULT</span>
+              <strong className="cutin-title">
+                {lastOutcome.kind === 'homer' && '🏆 特大ホームラン！！'}
+                {lastOutcome.kind === 'double' && '💥 ツーベースヒット！！'}
+                {lastOutcome.kind === 'single' && '⚾ クリーンヒット！'}
+                {lastOutcome.kind === 'walk' && '🚶 フォアボール！'}
+                {lastOutcome.kind === 'strikeout' && '⚡ 空振り三振！'}
+                {lastOutcome.kind === 'doubleplay' && '🛡️ 併殺打（ゲッツー）！'}
+                {lastOutcome.kind === 'out' && '🧤 打者アウト！'}
+              </strong>
+              <p className="cutin-desc">{lastOutcome.text}</p>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 本格スコアボード（電光掲示板スタイル） */}
-      <div className="scoreboard-container">
+      {/* 電光掲示スコアボード & カウントバー（コンパクト） */}
+      <div className="scoreboard-container compact-scoreboard">
         <div className="scoreboard-table-wrap">
           <table className="scoreboard-table">
             <thead>
@@ -553,7 +589,7 @@ function MatchScreen({
             </thead>
             <tbody>
               <tr className={!isOffense ? 'active-batting' : ''}>
-                <td className="team-col opponent-team-name">{match.opponent.name.slice(0, 5)}</td>
+                <td className="team-col opponent-team-name">{match.opponent.name.slice(0, 4)}</td>
                 {inningsArray.map((_, i) => (
                   <td key={i} className={i + 1 === match.inning ? 'current-inn' : ''}>
                     {match.inningScores?.their?.[i] !== undefined ? match.inningScores.their[i] : (i + 1 < match.inning ? 0 : '-')}
@@ -576,8 +612,8 @@ function MatchScreen({
           </table>
         </div>
 
-        {/* BSO・アウトカウント・ランナーランプ */}
-        <div className="count-and-runner-bar">
+        {/* BSOランプ & イニング & 走者ダイヤモンド */}
+        <div className="count-and-runner-bar compact-count-bar">
           <div className="bso-board">
             <div className="bso-row">
               <span className="bso-lbl bso-b">B</span>
@@ -597,76 +633,58 @@ function MatchScreen({
             </div>
           </div>
 
-          <div className="inning-text-pill">
+          <div className="inning-text-pill compact-pill">
             <b>{match.inning}回{match.half === 'top' ? '表' : '裏'}</b>
           </div>
 
-          {/* 走者ダイヤモンド */}
           <div className="diamond-mini">
-            <span className={`base base-2 ${match.bases[1] ? 'occupied' : ''}`} title="2塁" />
-            <span className={`base base-3 ${match.bases[2] ? 'occupied' : ''}`} title="3塁" />
-            <span className={`base base-1 ${match.bases[0] ? 'occupied' : ''}`} title="1塁" />
+            <span className={`base base-1 ${match.bases?.[0] ? 'occupied' : ''}`} />
+            <span className={`base base-2 ${match.bases?.[1] ? 'occupied' : ''}`} />
+            <span className={`base base-3 ${match.bases?.[2] ? 'occupied' : ''}`} />
           </div>
         </div>
       </div>
 
-      {/* 采配実行後のダイナミック結果バナー演出 */}
-      {lastOutcome && (
-        <div className={`result-cutin-banner cutin-${lastOutcome.kind}`}>
-          <div className="cutin-content">
-            <span className="cutin-sub">PLAY RESULT</span>
-            <strong className="cutin-title">
-              {lastOutcome.kind === 'homer' && '🏆 特大ホームラン！！'}
-              {lastOutcome.kind === 'double' && '💥 ツーベースヒット！！'}
-              {lastOutcome.kind === 'single' && '⚾ クリーンヒット！'}
-              {lastOutcome.kind === 'walk' && '🚶 フォアボール！'}
-              {lastOutcome.kind === 'strikeout' && '⚡ 空振り三振！'}
-              {lastOutcome.kind === 'doubleplay' && '🛡️ ダブルプレー（併殺）！'}
-              {lastOutcome.kind === 'out' && '🧤 打者アウト！'}
-            </strong>
-            <p className="cutin-desc">{lastOutcome.text}</p>
-          </div>
-        </div>
-      )}
-
-      {/* 采配コマンドパネル */}
+      {/* 采配コマンドパネル（2x2グリッドで1画面に収める） */}
       {!match.finished && (
-        <div className="command-panel">
-          <div className="coach-line">
+        <div className="command-panel compact-command-panel">
+          <div className="coach-line compact-coach-line">
             <YasuPortrait mood={mood} />
-            <div>
+            <div className="coach-text-wrap">
               <div className="coach-bubble-tag">
                 {match.pending?.side === 'offense' ? '⚡ 攻撃の采配' : '🛡️ 守備の采配'}
                 {match.pending?.activeCatName && ` ─ 【${match.pending.activeCatName}】`}
               </div>
-              <strong>{advancing ? '試合が動いている…' : match.pending?.title}</strong>
-              <span>{match.pending?.situation}</span>
-              {match.pending?.activeCatTrait && (
-                <span className="cat-trait-hint">特技: {match.pending.activeCatTrait}</span>
-              )}
+              <strong className="situation-title">{advancing ? '試合が動いている…' : match.pending?.title}</strong>
+              <div className="situation-sub">
+                <span>{match.pending?.situation}</span>
+                {match.pending?.activeCatTrait && (
+                  <span className="cat-trait-hint">特技: {match.pending.activeCatTrait}</span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="tactic-list">
+          <div className="tactic-list tactic-grid-2x2">
             {match.pending?.options.map(option => (
               <button
+                type="button"
                 disabled={advancing}
                 key={option.id}
-                className={`tactic-btn tactic-${option.hint}`}
+                className={`tactic-btn compact-tactic-btn tactic-${option.hint}`}
                 onClick={() => onTactic(option.id)}
               >
                 <span className={`hint hint-${option.hint}`}>{option.hint}</span>
                 <div className="tactic-info">
                   <b>{option.label}</b>
-                  <small>{option.description}</small>
                   {option.tacticEffect && <span className="tactic-effect">{option.tacticEffect}</span>}
                 </div>
               </button>
             ))}
           </div>
 
-          {/* 実況メッセージ */}
-          <div className="commentary-box">
+          {/* 実況メッセージ（1行テロップ） */}
+          <div className="commentary-box compact-commentary">
             <span className="commentary-label">実況</span>
             <p className="commentary">{match.commentary[0]}</p>
           </div>
@@ -675,14 +693,14 @@ function MatchScreen({
 
       {/* 試合終了結果パネル */}
       {match.finished && (
-        <div className="result-panel">
+        <div className="result-panel compact-result-panel">
           <YasuPortrait mood={match.won ? 2 : 3} />
           <small>GAME SET</small>
           <h2>{match.won ? '🎉 勝利！！' : '😢 惜敗…'}</h2>
           <p className="result-score-line">
             NEKO {match.ourScore} ─ {match.theirScore} {match.opponent.name}
           </p>
-          <button className="primary-button" onClick={onClose}>次へ進む ▶</button>
+          <button type="button" className="primary-button" onClick={onClose}>次へ進む ▶</button>
         </div>
       )}
     </section>
@@ -705,7 +723,7 @@ function SeasonEnd({ run, onTitle }: { run: RunState; onTitle: () => void }) {
       <p className="end-message">
         {run.champion ? '9匹とヤス監督が、ついに頂点へ！歓喜のビールかけ！' : '猫たちは確かに強くなった。次のドラフトで雪辱だ。'}
       </p>
-      <button className="primary-button" onClick={onTitle}>タイトルへもどる ▶</button>
+      <button type="button" className="primary-button" onClick={onTitle}>タイトルへもどる ▶</button>
     </section>
   )
 }
