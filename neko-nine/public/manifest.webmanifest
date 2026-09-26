@@ -1,0 +1,15 @@
+{
+  "name": "ネコナイン — ヤス監督の挑戦",
+  "short_name": "ネコナイン",
+  "description": "猫選手を育て、采配で頂点を目指す短編野球ゲーム",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#13243a",
+  "background_color": "#f4e7c5",
+  "icons": [
+    { "src": "./icons/neko-nine.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
