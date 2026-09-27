@@ -3,23 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
-  <title>ヒゲボールゲームズ</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
-  <script>
-    // GitHub Pages等のサブディレクトリ直下で末尾スラッシュが無い場合の相対パス解決エラーを自動補正
-    if (location.pathname && !location.pathname.endsWith('/') && !location.pathname.includes('.')) {
-      location.replace(location.pathname + '/' + location.search + location.hash);
-    }
-  </script>
-  <!-- オープニング挿絵（軽量WebP）の事前読み込み（「次へ」のラグ完全解消） -->
-  <link rel="preload" as="image" href="./character/opening/01-stomach-emergency.webp" type="image/webp">
-  <link rel="preload" as="image" href="./character/opening/02-restroom-closed.webp" type="image/webp">
-  <link rel="preload" as="image" href="./character/opening/03-elevators-stopped.webp" type="image/webp">
-  <link rel="preload" as="image" href="./character/opening/04-fortieth-floor-announcement.webp" type="image/webp">
-  <link rel="preload" as="image" href="./character/opening/05-emergency-stairs.webp" type="image/webp">
+  <title>ヒゲボールゲームズ | レトロブラウザゲームポータル</title>
+  <meta name="description" content="株式会社ヒゲボールがお届けするブラウザゲームポータル「ヒゲボールゲームズ」。もじダン、ネコナインなどレトロテイストの本格ゲームを今すぐプレイ！">
+  <link rel="icon" href="./mojidan/public/assets/props/toilet.png" type="image/png">
   <style>
     * {
       box-sizing: border-box;
@@ -27,831 +13,30 @@
       padding: 0;
       user-select: none;
       -webkit-user-select: none;
-      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000000;
-      font-family: 'DotGothic16', 'Hiragino Kaku Gothic ProN', 'MS Gothic', monospace, sans-serif;
-      touch-action: none;
-      -webkit-font-smoothing: none;
-    }
-
-    button, input, select {
-      font-family: inherit;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    #game-canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      display: block;
-      z-index: 1;
-    }
-
-    /* UIレイヤー */
-    #ui-container {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 10;
-      pointer-events: none;
+    body {
+      background-color: #050508;
+      color: #ffffff;
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .interactive {
-      pointer-events: auto;
-    }
-
-    /* 上部ステータスウィンドウ（本家ドラクエ／トルネコ風・黒地に白枠・2行固定配置） */
-    #status-window {
-      margin: env(safe-area-inset-top, 6px) 8px 0 8px;
-      padding: 4px 8px;
-      background: rgba(0, 0, 0, 0.95);
-      border: 2px solid #ffffff;
-      border-radius: 4px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.9);
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-    }
-
-    .status-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 4px 6px;
-      font-size: clamp(10.5px, 2.8vw, 12px);
-      line-height: 16px;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-
-    .status-cell {
-      display: flex;
-      align-items: center;
-      gap: 2px;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .status-cell-hp {
-      min-width: 62px;
-    }
-
-    .status-cell-str {
-      min-width: 52px;
-    }
-
-    .dq-label {
-      color: #ffffff;
-      opacity: 0.85;
-      font-size: 10px;
-    }
-
-    .dq-val {
-      color: #ffffff;
-      font-weight: bold;
-    }
-
-    .diff-badge {
-      font-size: 9px;
-      padding: 0 3px;
-      border-radius: 2px;
-      font-weight: bold;
-      margin-left: 2px;
-      text-transform: uppercase;
-      background: #000000;
-      border: 1px solid #ffffff;
-      color: #ffffff;
-    }
-    .diff-badge.normal {
-      background: #000000;
-      color: #ffffff;
-      border: 1px solid #ffffff;
-    }
-    .diff-badge.hard {
-      background: #000000;
-      color: #ff8888;
-      border: 1px solid #ff8888;
-    }
-
-    /* 3行目の装備専用行（文字切れ完全防止） */
-    .status-equip-row {
-      border-top: 1px dashed rgba(255, 255, 255, 0.35);
-      padding-top: 3px;
-      margin-top: 1px;
-      gap: 6px 10px;
-    }
-
-    .equip-cell {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      overflow: hidden;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .equip-tag {
-      color: #ffffff;
-      opacity: 0.9;
-      font-size: 11px;
-      font-weight: bold;
-      flex-shrink: 0;
-    }
-
-    .hud-mini-icon {
-      width: 15px;
-      height: 15px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      vertical-align: middle;
-      display: inline-block;
-      flex-shrink: 0;
-    }
-
-    .equip-name {
-      color: #ffffff;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 11.5px;
-      font-weight: 500;
-    }
-
-    .status-cell-bag {
-      margin-left: auto;
-    }
-
-    /* 下部コントロール＆メッセージエリア */
-    #bottom-container {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      padding-bottom: env(safe-area-inset-bottom, 6px);
-    }
-
-    /* メッセージウィンドウ（ドラクエ・トルネコ風・透過＆固定2行表示＆▼点滅インジケータ） */
-    #message-window {
-      margin: 0 8px 6px 8px;
-      background: rgba(0, 0, 0, 0.72);
-      backdrop-filter: blur(2px);
-      -webkit-backdrop-filter: blur(2px);
-      border: 2px solid #ffffff;
-      border-radius: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.8);
-      padding: 6px 12px;
-      height: 62px;
-      min-height: 62px;
-      max-height: 62px;
-      box-sizing: border-box;
-      overflow: hidden;
-      position: relative;
-      user-select: none;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: opacity 0.35s ease, visibility 0.35s ease;
-      opacity: 1;
-      visibility: visible;
-    }
-
-    #message-window.fade-out {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
-    .msg-window-inner {
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      height: 100%;
-      position: relative;
-    }
-
-    .msg-row {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      height: 22px;
-      line-height: 22px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .msg-row-2 {
-      justify-content: space-between;
-    }
-
-    .msg-text {
-      color: #ffffff;
-      font-size: clamp(12.5px, 3.4vw, 14px);
-      font-weight: 500;
-      letter-spacing: 0.8px;
-      text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
-      white-space: nowrap;
-      overflow: hidden;
-      flex-grow: 1;
-    }
-
-    /* 送り待ちインジケータ（▼マーク点滅） */
-    .msg-indicator {
-      color: #ffffff;
-      font-size: 13px;
-      line-height: 1;
-      margin-left: 6px;
-      flex-shrink: 0;
-      user-select: none;
-      text-shadow: 1px 1px 0 #000, -1px -1px 0 #000;
-    }
-
-    .msg-indicator.blinking {
-      animation: msgCursorBlink 0.6s infinite steps(2, start);
-    }
-
-    .msg-indicator.hidden {
-      display: none !important;
-    }
-
-    @keyframes msgCursorBlink {
-      0%, 100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      50% {
-        opacity: 0;
-        transform: translateY(2px);
-      }
-    }
-
-    /* コントロールパネル（左コマンド ＋ 中央8方向移動キー ＋ 右コマンド） */
-    #controls-panel {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0 4px 4px 4px;
-      gap: clamp(6px, 2vw, 12px);
-      width: 100%;
-      box-sizing: border-box;
-    }
-
-    /* 左右のコマンド列（縦2ボタン） */
-    .dq-cmd-col {
-      display: flex;
-      flex-direction: column;
-      gap: clamp(6px, 1.8vw, 10px);
-      justify-content: center;
-      align-items: center;
-    }
-
-    .dq-side-btn {
-      width: clamp(62px, 16vw, 76px);
-      height: clamp(58px, 15vw, 72px);
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 6px;
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      padding: 5px 3px;
-      touch-action: manipulation;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.85);
-      transition: background 0.1s, color 0.1s, transform 0.05s;
-    }
-
-    .dq-side-btn:active {
-      background: #ffffff;
-      color: #000000;
-      transform: scale(0.95);
-    }
-    .dq-side-btn:active .dq-cmd-text {
-      color: #000000;
-    }
-
-    .dq-side-btn.btn-main-attack {
-      border: 2px solid #ffffff;
-      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.15), 0 4px 10px rgba(0, 0, 0, 0.85);
-    }
-
-    .dq-cmd-icon {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      margin-bottom: 2px;
-    }
-
-    .dq-cmd-text {
-      font-size: 13px;
-      font-weight: bold;
-      line-height: 15px;
-    }
-
-    /* スーパーファミコン風 十字キー（D-Pad）コンテナ（中央配置） */
-    .dpad-container {
-      background: #1c1e24;
-      border: 2px solid #ffffff;
-      border-radius: 8px;
-      padding: 3px;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.9);
-      flex-shrink: 0;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .dpad-grid {
-      display: grid;
-      grid-template-columns: repeat(3, clamp(48px, 13.5vw, 62px));
-      grid-template-rows: repeat(3, clamp(48px, 13.5vw, 62px));
-      gap: 3px;
-    }
-
-    /* スーパーファミコン十字キースタイル */
-    .dpad-btn {
-      background: #2b2e38;
-      border: 1px solid #1a1c22;
-      color: #e2e4ea;
-      font-size: 20px;
-      font-weight: 900;
-      border-radius: 4px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-      touch-action: manipulation;
-      box-shadow: inset 1px 1px 0 rgba(255,255,255,0.16), inset -1px -1px 0 rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,0.5);
-      text-shadow: 0 -1px 0 #111216, 0 1px 0 rgba(255,255,255,0.12);
-      transition: background 0.08s, transform 0.05s, border-color 0.1s;
-    }
-
-    .dpad-btn.dpad-cardinal {
-      font-size: 22px;
-      color: #f8fafc;
-      background: #30333e;
-    }
-
-    .dpad-btn.dpad-diagonal {
-      font-size: 14px;
-      color: #94a3b8;
-      background: #252730;
-      opacity: 0.85;
-    }
-
-    .dpad-btn:active {
-      background: #1c1d22;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.9);
-      transform: translateY(1px);
-      color: #ffffff;
-      border-color: #111216;
-    }
-
-    /* 移動キー中央の「向き」ボタン */
-    .dpad-btn.dpad-turn {
-      background: #20232c;
-      border: 1.5px solid #383c48;
-      font-size: 13px;
-      font-weight: bold;
-      color: #ffd700;
-      border-radius: 50%;
-      margin: 2px;
-      box-shadow: inset 0 2px 5px rgba(0,0,0,0.9), 0 1px 1px rgba(255,255,255,0.1);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      transition: all 0.15s ease;
-    }
-
-    .dpad-btn.dpad-turn .turn-btn-label {
-      font-size: 12.5px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
-    }
-
-    .dpad-btn.dpad-turn:active,
-    .dpad-btn.dpad-turn.active {
-      background: #ffd700 !important;
-      color: #000000 !important;
-      border-color: #ffffff !important;
-      box-shadow: 0 0 10px #ffd700, inset 0 1px 2px rgba(255,255,255,0.8) !important;
-      transform: scale(0.95);
-    }
-
-    /* 向き変更モード時の移動キーハイライト表示 */
-    .dpad-container.turn-mode {
-      border-color: #ffd700;
-      box-shadow: 0 0 14px rgba(255, 215, 0, 0.45);
-    }
-
-    .dpad-container.turn-mode .dpad-btn.current-facing {
-      background: #d97706 !important;
-      color: #ffffff !important;
-      border-color: #ffd700 !important;
-      box-shadow: 0 0 8px #ffd700, inset 0 1px 2px rgba(255,255,255,0.6) !important;
-      animation: facingPulse 0.8s infinite alternate ease-in-out;
-    }
-
-    @keyframes facingPulse {
-      0% { transform: scale(1); filter: brightness(1); }
-      100% { transform: scale(1.05); filter: brightness(1.25); }
-    }
-
-    /* どうぐメニューモーダル（トルネコ風・1画面全16スロット一覧） */
-    #inventory-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.75);
-      z-index: 50;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 8px;
-    }
-
-    #inventory-modal.hidden {
-      display: none;
-    }
-
-    .dq-inv-dialog {
-      background: #000000;
-      border: 3px solid #ffffff;
-      border-radius: 6px;
-      width: 100%;
-      max-width: 390px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.95);
-      color: #ffffff;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .dialog-header {
-      padding: 6px 10px;
-      background: #000000;
-      border-bottom: 2px solid #ffffff;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 14px;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    .inv-close-btn {
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      border-radius: 4px;
-      color: #ffffff;
-      padding: 3px 12px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
       align-items: center;
       justify-content: center;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-      flex-shrink: 0;
-      margin-left: 6px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.8);
-    }
-
-    .inv-close-btn:hover, .inv-close-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    /* 足元アイテム枠（ドラクエ風点線区切り） */
-    #inv-ground-container {
-      border-bottom: 1px dashed rgba(255,255,255,0.4);
-      background: #000000;
-    }
-
-    .ground-slot {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: #000000;
-      border-left: 3px solid #ffffff;
-      font-size: 13px;
-      color: #ffffff;
-      cursor: pointer;
-      touch-action: manipulation;
-    }
-
-    .ground-slot.selected {
-      background: #1c1c1c;
-      border-left-color: #ffffff;
-      color: #ffffff;
-    }
-
-    .ground-tag {
-      color: #ffffff;
-      font-weight: bold;
-      font-size: 12px;
-    }
-
-    .ground-tag.stairs-tag {
-      color: #ffffff;
-      opacity: 0.9;
-    }
-
-    .ground-hint {
-      color: #aaaaaa;
-      font-size: 11px;
-      margin-left: auto;
-    }
-
-    /* 16スロット 2列×8行 グリッド（大型スロット・誤タップ防止設計） */
-    .inv-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: repeat(8, 36px);
-      gap: 4px 6px;
-      padding: 6px 8px;
-      background: #000000;
-    }
-
-    .inv-slot {
-      height: 36px;
-      padding: 4px 6px;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      background: #000000;
-      border: 1.5px solid #333333;
-      border-radius: 4px;
-      font-size: 13px;
-      color: #ffffff;
-      cursor: pointer;
-      overflow: hidden;
-      white-space: nowrap;
-      box-sizing: border-box;
-      touch-action: manipulation;
-      transition: background 0.08s, border-color 0.08s;
-    }
-
-    .inv-slot:hover, .inv-slot.selected {
-      background: #1a1a1a;
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
-    .inv-slot.empty {
-      color: #666666;
-      background: #000000;
-      border: 1px dashed #282828;
-      cursor: default;
-    }
-
-    .inv-cursor {
-      color: #ffffff;
-      font-size: 11px;
-      margin-right: -1px;
-      flex-shrink: 0;
-    }
-
-    .inv-cursor-space {
-      display: inline-block;
-      width: 11px;
-      flex-shrink: 0;
-    }
-
-    .inv-slot-icon {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-      image-rendering: pixelated;
-      flex-shrink: 0;
-    }
-
-    .inv-slot-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-      font-weight: 500;
-    }
-
-    /* トルネコ原作仕様：未識別アイテムは黄色文字（#ffd700） */
-    .inv-slot.unidentified .inv-slot-name,
-    .ground-slot.unidentified .inv-slot-name {
-      color: #ffd700;
-      font-weight: bold;
-    }
-
-    .inv-slot.unidentified .inv-cursor,
-    .ground-slot.unidentified .inv-cursor {
-      color: #ffd700;
-    }
-
-    .inv-equip-badge {
-      color: #ffffff;
-      font-weight: bold;
-      font-size: 11px;
-      margin-right: 2px;
-      flex-shrink: 0;
-    }
-
-    .empty-slot-label {
-      opacity: 0.45;
-      font-size: 11.5px;
-    }
-
-    /* アイテム説明枠 */
-    #inventory-detail {
-      padding: 6px 10px;
-      background: #000000;
-      border-top: 1px solid #334155;
-      font-size: 12.5px;
-      line-height: 18px;
-      min-height: 38px;
-      color: #e2e8f0;
-    }
-
-    #inventory-detail.unidentified {
-      color: #ffd700;
-    }
-
-    /* アクションコマンド枠 */
-    #inventory-actions {
-      padding: 6px 10px;
-      background: #000000;
-      border-top: 2px solid #ffffff;
-      display: flex;
-      gap: 8px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-
-    .dq-action-btn {
-      padding: 6px 14px;
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      border-radius: 4px;
-      color: #ffffff;
-      font-weight: bold;
-      font-size: 13.5px;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-      min-height: 34px;
-    }
-
-    .dq-action-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    .dq-action-btn.primary {
-      border-color: #ffffff;
-      color: #ffffff;
-    }
-
-    .dq-action-btn.danger {
-      color: #ffffff;
-      border-color: #ffffff;
-    }
-
-    /* リザルト / ゲームオーバー / クリアモーダル */
-    #end-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 100;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    #end-modal.hidden {
-      display: none;
-    }
-
-    .end-content {
-      background: #000000;
-      border: 3px solid #ffffff;
-      border-radius: 6px;
-      padding: 20px;
-      width: 100%;
-      max-width: 360px;
-      text-align: center;
-      color: #fff;
-      box-shadow: 0 10px 35px rgba(0,0,0,0.95);
-    }
-
-    .end-title {
-      font-size: 22px;
-      font-weight: bold;
-      margin-bottom: 12px;
-    }
-
-    .game-clear {
-      color: #ffffff;
-    }
-
-    .game-over {
-      color: #ffffff;
-    }
-
-    .end-stats {
-      margin: 14px 0;
-      text-align: left;
-      background: #000000;
-      border: 1px solid #444444;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 13px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .restart-btn {
-      margin-top: 12px;
-      width: 100%;
-      padding: 10px;
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 4px;
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-    }
-
-    .restart-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    /* 中断セーブボタン */
-    .dq-save-btn {
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: bold;
-      padding: 1px 7px;
-      border-radius: 3px;
-      cursor: pointer;
-      margin-left: auto;
-      white-space: nowrap;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-    }
-    .dq-save-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    /* ヒゲボールゲームズ ポータル画面 */
-    #portal-screen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 250;
-      background: #000000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-start;
-      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px) 16px;
+      overflow-x: hidden;
       overflow-y: auto;
-      box-sizing: border-box;
+      background-image: 
+        radial-gradient(circle at 50% 20%, rgba(30, 41, 59, 0.4) 0%, transparent 60%),
+        linear-gradient(180deg, #050508 0%, #0d1117 100%);
     }
 
     .portal-container {
       width: 100%;
-      max-width: 440px;
+      max-width: 480px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -859,40 +44,59 @@
       margin: auto 0;
     }
 
+    /* ポータルヘッダー */
     .portal-header {
       width: 100%;
-      background: #000000;
-      border: 3px double #ffffff;
-      border-radius: 8px;
-      padding: 16px 20px;
+      background: rgba(13, 17, 23, 0.95);
+      border: 2px solid #30363d;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 18px 20px;
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portal-header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #ffd700, #ff8c00, #ffd700);
     }
 
     .portal-brand-badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 800;
       letter-spacing: 2px;
       color: #ffd700;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
     }
 
     .portal-title {
-      font-size: clamp(24px, 6.5vw, 32px);
+      font-size: clamp(24px, 6.8vw, 32px);
       font-weight: 900;
       color: #ffffff;
       letter-spacing: 3px;
-      text-shadow: 2px 2px 0 #000;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      line-height: 1.2;
     }
 
     .portal-subtitle {
-      font-size: 11px;
-      color: #aaaaaa;
+      font-size: 11.5px;
+      color: #8b949e;
       letter-spacing: 1px;
-      margin-top: 4px;
+      margin-top: 6px;
+      font-weight: 500;
     }
 
+    /* ゲーム一覧リスト */
     .portal-games-list {
       width: 100%;
       display: flex;
@@ -900,22 +104,31 @@
       gap: 14px;
     }
 
+    /* ゲームカード */
     .portal-card {
       width: 100%;
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 6px;
-      padding: 14px 16px;
+      background: #0d1117;
+      border: 1.5px solid #30363d;
+      border-radius: 10px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
-      transition: transform 0.15s, border-color 0.15s, background 0.15s;
+      gap: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+      transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+      text-decoration: none;
+      color: inherit;
     }
 
     .portal-card:hover {
       border-color: #ffd700;
-      background: #0d0d0d;
+      background: #161b22;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.8), 0 0 16px rgba(255, 215, 0, 0.15);
+    }
+
+    .portal-card:active {
+      transform: translateY(0);
     }
 
     .portal-card-header {
@@ -925,895 +138,142 @@
       gap: 8px;
     }
 
-    .portal-card-tag {
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 3px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-    }
-
-    .portal-card-tag.live {
-      background: #000000;
-      border: 1px solid #4ade80;
-      color: #4ade80;
-    }
-
-    .portal-card-tag.coming {
-      background: #000000;
-      border: 1px solid #ffd700;
-      color: #ffd700;
-    }
-
     .portal-card-title {
-      font-size: 18px;
-      font-weight: bold;
+      font-size: 19px;
+      font-weight: 800;
       color: #ffffff;
       display: flex;
       align-items: center;
       gap: 8px;
+      letter-spacing: 0.5px;
     }
 
     .portal-card-icon {
-      font-size: 24px;
+      font-size: 26px;
       line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    }
+
+    .portal-card-tag {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .portal-card-tag.live {
+      background: rgba(46, 160, 67, 0.15);
+      border: 1px solid #3fb950;
+      color: #3fb950;
+    }
+
+    .portal-card-genre {
+      font-size: 11px;
+      color: #58a6ff;
+      font-weight: 600;
+      margin-top: -4px;
     }
 
     .portal-card-desc {
-      font-size: 12px;
-      color: #cccccc;
-      line-height: 18px;
+      font-size: 12.5px;
+      color: #c9d1d9;
+      line-height: 1.55;
     }
 
     .portal-play-btn {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
       width: 100%;
-      padding: 10px;
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 4px;
+      padding: 12px;
+      background: #21262d;
+      border: 1.5px solid #30363d;
+      border-radius: 6px;
       color: #ffffff;
       font-size: 14px;
       font-weight: bold;
       text-decoration: none;
       cursor: pointer;
       touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
+      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
     }
 
-    .portal-play-btn:hover, .portal-play-btn:active {
-      background: #ffffff;
+    .portal-card:hover .portal-play-btn {
+      background: #ffd700;
+      border-color: #ffd700;
       color: #000000;
     }
 
+    .portal-play-btn:active {
+      filter: brightness(0.9);
+    }
+
+    /* フッター */
     .portal-footer {
       font-size: 11px;
-      color: #777777;
+      color: #6e7681;
       text-align: center;
       line-height: 1.5;
-      margin-top: 4px;
-    }
-
-    /* タイトル画面（レトロSFC/ドラクエ風フルスクリーンオーバーレイ） */
-    #title-screen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 200;
-      background: #000000;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .title-box {
-      width: 100%;
-      max-width: 360px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .title-logo-container {
-      text-align: center;
-      background: #000000;
-      border: 3px double #ffffff;
-      border-radius: 6px;
-      padding: 16px 20px;
-      width: 100%;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
-    }
-
-    .title-subtitle {
-      font-size: 11px;
-      color: #ffffff;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-    }
-
-    .title-main-text {
-      font-size: 38px;
-      font-weight: 900;
-      color: #ffffff;
-      text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;
-      letter-spacing: 4px;
-      line-height: 48px;
-    }
-
-    .title-badge {
-      display: inline-block;
-      margin-top: 6px;
-      padding: 2px 8px;
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      border-radius: 4px;
-      font-size: 11px;
-      color: #ffffff;
-    }
-
-    /* タイトルメニュー（ドラクエ風選択ウィンドウ） */
-    .title-menu-container {
-      width: 100%;
-      background: #000000;
-      border: 2px solid #ffffff;
-      border-radius: 6px;
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
-    }
-
-    .title-menu-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 17px;
-      color: #ffffff;
-      cursor: pointer;
-      padding: 8px 12px;
-      border-radius: 4px;
-      transition: background 0.1s, color 0.1s;
-    }
-
-    .title-menu-item:hover, .title-menu-item.selected {
-      background: #1c1c1c;
-      color: #ffffff;
-    }
-
-    .title-menu-item.disabled {
-      color: #555555;
-      cursor: not-allowed;
-      pointer-events: none;
-    }
-
-    .title-menu-item .menu-cursor {
-      color: #ffffff;
-      opacity: 0;
-      font-size: 13px;
-    }
-
-    .title-menu-item:hover .menu-cursor, .title-menu-item.selected .menu-cursor {
-      opacity: 1;
-    }
-
-    .save-badge {
-      font-size: 11px;
-      color: #aaaaaa;
-      margin-left: auto;
-    }
-
-    .title-footer {
-      font-size: 11px;
-      color: #888888;
-      text-align: center;
-      line-height: 1.5;
-    }
-
-    /* オープニングストーリーモーダル */
-    #story-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 210;
-      background: rgba(0, 0, 0, 0.94);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 12px;
-    }
-
-    .story-dialog {
-      width: 100%;
-      max-width: 440px;
-      height: clamp(480px, 86vh, 560px);
-      background: #000000;
-      border: 3px solid #ffffff;
-      border-radius: 6px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
-      padding: 12px 16px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 10px;
-      box-sizing: border-box;
-      scrollbar-width: thin;
-    }
-
-    .story-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
-      padding-bottom: 5px;
-      flex-shrink: 0;
-    }
-
-    .story-header-title {
-      font-size: 13px;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    .story-header-time {
-      font-size: 12px;
-      color: #ffffff;
-    }
-
-    .story-image-wrap {
-      position: relative;
-      width: 100%;
-      height: clamp(140px, 25vh, 180px);
-      flex-shrink: 0;
-      border: 1.5px solid #ffffff;
-      border-radius: 4px;
-      overflow: hidden;
-      background: #000000;
-    }
-
-    .story-image-wrap img.story-slide {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: none;
-    }
-
-    .story-image-wrap img.story-slide.active {
-      display: block;
-    }
-
-    .story-body {
-      height: 148px;
-      flex-shrink: 0;
-      overflow-y: auto;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      font-size: 12.5px;
-      line-height: 19px;
-      color: #ffffff;
-      word-break: keep-all;
-      overflow-wrap: anywhere;
-      line-break: strict;
-    }
-
-    .story-body::-webkit-scrollbar {
-      display: none;
-    }
-
-    .story-line {
-      display: inline-block;
-      width: 100%;
-      animation: fadeIn 0.2s ease-in;
-    }
-
-    .story-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px dashed rgba(255, 255, 255, 0.4);
-      padding-top: 8px;
-      flex-shrink: 0;
-      margin-top: auto;
-    }
-
-    .story-page-indicator {
-      font-size: 11px;
-      color: #aaaaaa;
-    }
-
-    .story-btns {
-      display: flex;
-      gap: 8px;
-    }
-
-    .story-btn {
-      padding: 6px 14px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-    }
-
-    .btn-skip {
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      color: #ffffff;
-    }
-
-    .btn-skip:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    .btn-next {
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      color: #ffffff;
-    }
-
-    .btn-next:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    /* 階段確認モーダル（インゲーム・ドラクエ調） */
-    #stairs-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 180;
-      background: rgba(0, 0, 0, 0.75);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 16px;
-    }
-
-    .stairs-dialog {
-      background: #000000;
-      border: 3px solid #ffffff;
-      border-radius: 6px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
-      padding: 18px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      width: 100%;
-      max-width: 320px;
-      text-align: center;
-    }
-
-    .stairs-dialog-title {
-      font-size: 15px;
-      font-weight: bold;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .stairs-dialog-msg {
-      font-size: 13px;
-      line-height: 20px;
-      color: #ffffff;
-    }
-
-    .stairs-dialog-options {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    .stairs-btn {
-      flex: 1;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      border: 1.5px solid #ffffff;
-      background: #000000;
-      color: #ffffff;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-    }
-
-    .stairs-btn.selected, .stairs-btn:hover {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    /* 難易度選択モーダル */
-    #difficulty-modal {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 205;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 16px;
-    }
-
-    .diff-dialog {
-      background: #000000;
-      border: 3px solid #ffffff;
-      border-radius: 6px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.95);
-      padding: 16px 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      width: 100%;
-      max-width: 360px;
-    }
-
-    .diff-title {
-      font-size: 15px;
-      font-weight: bold;
-      color: #ffffff;
-      text-align: center;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.4);
-      padding-bottom: 6px;
-    }
-
-    .diff-options {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .diff-card {
-      background: #000000;
-      border: 1.5px solid #555555;
-      border-radius: 4px;
-      padding: 10px 12px;
-      cursor: pointer;
-      touch-action: manipulation;
-      transition: background 0.1s, border-color 0.1s;
-    }
-
-    .diff-card:hover, .diff-card.selected {
-      background: #1c1c1c;
-      border-color: #ffffff;
-    }
-
-    .diff-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 15px;
-      font-weight: bold;
-      color: #ffffff;
-      margin-bottom: 4px;
-    }
-
-    .diff-card.selected .diff-card-header {
-      color: #ffffff;
-    }
-
-    .diff-card-desc {
-      font-size: 11px;
-      color: #aaaaaa;
-      line-height: 16px;
-    }
-
-    .diff-cancel-btn {
-      background: #000000;
-      border: 1.5px solid #ffffff;
-      color: #ffffff;
-      padding: 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      cursor: pointer;
-      text-align: center;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-    }
-    .diff-cancel-btn:active {
-      background: #ffffff;
-      color: #000000;
-    }
-
-    /* インベントリソート用タブ */
-    .inv-sort-tabs {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-left: auto;
-    }
-
-    .inv-sort-btn {
-      background: #000000;
-      border: 1.5px solid #555555;
-      color: #888888;
-      font-size: 11px;
-      padding: 2px 7px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-weight: bold;
-      touch-action: manipulation;
-      transition: background 0.1s, color 0.1s;
-    }
-
-    .inv-sort-btn:hover, .inv-sort-btn.active {
-      background: #ffffff;
-      border-color: #ffffff;
-      color: #000000;
-    }
-
-    .btn-next:active {
-      background: #2563eb;
+      padding-top: 6px;
     }
   </style>
 </head>
 <body>
-  <!-- ヒゲボールゲームズ ポータル画面 -->
-  <div id="portal-screen" class="interactive">
-    <div class="portal-container">
-      <div class="portal-header">
-        <div class="portal-brand-badge">★ HIGEBALL GAMES ★</div>
-        <div class="portal-title">ヒゲボールゲームズ</div>
-        <div class="portal-subtitle">〜 レトロブラウザゲームポータル 〜</div>
-      </div>
+  <div class="portal-container">
+    <!-- ヘッダー -->
+    <header class="portal-header">
+      <div class="portal-brand-badge">★ HIGEBALL GAMES ★</div>
+      <h1 class="portal-title">ヒゲボールゲームズ</h1>
+      <p class="portal-subtitle">〜 レトロブラウザゲームポータル 〜</p>
+    </header>
 
-      <div class="portal-games-list">
-        <!-- ゲーム1: もじダン -->
-        <div class="portal-card" id="portal-card-mojidan">
-          <div class="portal-card-header">
-            <div class="portal-card-title">
-              <span class="portal-card-icon">🏃</span>
-              <span>もじダン</span>
-            </div>
-            <span class="portal-card-tag live">NOW PLAYING</span>
+    <!-- ゲーム一覧 -->
+    <main class="portal-games-list">
+      <!-- ゲーム1: もじダン -->
+      <a href="./mojidan/" class="portal-card" id="portal-card-mojidan">
+        <div class="portal-card-header">
+          <div class="portal-card-title">
+            <span class="portal-card-icon">🏃</span>
+            <span>もじダン</span>
           </div>
-          <div class="portal-card-desc">
-            〜 午後の始業と消えたトイレ 〜<br>
-            昼休み残り20分！ 配管破裂で閉鎖されたトイレを求め、オフィスタワー50Fから40Fへ非常階段を駆け降りる本格ローグライクRPG！
-          </div>
-          <button class="portal-play-btn" id="btn-portal-play-mojidan">
-            <span>プレイする ▶</span>
-          </button>
+          <span class="portal-card-tag live">NOW PLAYING</span>
         </div>
-
-        <!-- ゲーム2: ネコナイン -->
-        <div class="portal-card" id="portal-card-nekonine">
-          <div class="portal-card-header">
-            <div class="portal-card-title">
-              <span class="portal-card-icon">🐱</span>
-              <span>ネコナイン</span>
-            </div>
-            <span class="portal-card-tag live">NOW PLAYING</span>
-          </div>
-          <div class="portal-card-desc">
-            〜 ヤス監督の挑戦 〜<br>
-            個性豊かな猫選手9匹をドラフト＆育成！ ヤス監督の絶妙な采配でリーグ優勝を目指す、本格短編野球シミュレーション！
-          </div>
-          <a href="./neko-nine/" class="portal-play-btn" id="btn-portal-play-nekonine">
-            <span>あそぶ ▶</span>
-          </a>
+        <div class="portal-card-genre">本格ローグライクRPG（トルネコ風）</div>
+        <div class="portal-card-desc">
+          〜 午後の始業と消えたトイレ 〜<br>
+          昼休み残り20分！ 配管破裂で閉鎖されたトイレを求め、オフィスタワー50Fから40Fへ非常階段を駆け降りろ！
         </div>
-      </div>
+        <div class="portal-play-btn">
+          <span>プレイする ▶</span>
+        </div>
+      </a>
 
-      <div class="portal-footer">
-        © 2026 株式会社ヒゲボール / ヒゲボール制作委員会
-      </div>
-    </div>
+      <!-- ゲーム2: ネコナイン -->
+      <a href="./neko-nine/" class="portal-card" id="portal-card-nekonine">
+        <div class="portal-card-header">
+          <div class="portal-card-title">
+            <span class="portal-card-icon">🐱</span>
+            <span>ネコナイン</span>
+          </div>
+          <span class="portal-card-tag live">NOW PLAYING</span>
+        </div>
+        <div class="portal-card-genre">本格野球シミュレーション（Three.js 3D）</div>
+        <div class="portal-card-desc">
+          〜 ヤス監督の挑戦 〜<br>
+          個性豊かな猫選手9匹をドラフト＆育成！ 3Dスタジアムとヤス監督の絶妙な采配でリーグ優勝を目指せ！
+        </div>
+        <div class="portal-play-btn">
+          <span>あそぶ ▶</span>
+        </div>
+      </a>
+    </main>
+
+    <!-- フッター -->
+    <footer class="portal-footer">
+      © 2026 株式会社ヒゲボール / ヒゲボール制作委員会
+    </footer>
   </div>
-
-  <!-- タイトル画面（SFC風ドラクエ調） -->
-  <div id="title-screen" class="hidden interactive">
-    <div class="title-box">
-      <div class="title-logo-container">
-        <div class="title-subtitle">〜 午後の始業と消えたトイレ 〜</div>
-        <div class="title-main-text">もじダン</div>
-        <div class="title-badge">オフィスタワー 50F ➔ 40F</div>
-      </div>
-
-      <div class="title-menu-container">
-        <div class="title-menu-item selected" id="btn-title-new">
-          <span class="menu-cursor">▶</span>
-          <span>はじめから</span>
-        </div>
-        <div class="title-menu-item disabled" id="btn-title-continue">
-          <span class="menu-cursor">▶</span>
-          <span>つづきから</span>
-          <span class="save-badge" id="save-info-text"></span>
-        </div>
-        <div class="title-menu-item" id="btn-title-portal">
-          <span class="menu-cursor">▶</span>
-          <span>◀ ゲーム一覧へもどる</span>
-        </div>
-      </div>
-
-      <div class="title-footer">
-        昼休み残り20分！ 階段を駆け降りて40Fのトイレを目指せ！<br>
-        © 2026 株式会社ヒゲボール / ヒゲボール制作委員会
-      </div>
-    </div>
-  </div>
-
-  <!-- 難易度選択モーダル -->
-  <div id="difficulty-modal" class="hidden interactive">
-    <div class="diff-dialog">
-      <div class="diff-title">★ 難易度を選択してください ★</div>
-      <div class="diff-options">
-        <div class="diff-card selected" id="diff-choice-normal">
-          <div class="diff-card-header">
-            <span>ノーマル (Normal)</span>
-            <span class="diff-badge normal">標準</span>
-          </div>
-          <div class="diff-card-desc">
-            オフィスタワーの通常冒険。<br>
-            昼休みのプレッシャーに立ち向かう標準バランス。
-          </div>
-        </div>
-        <div class="diff-card" id="diff-choice-hard">
-          <div class="diff-card-header">
-            <span>ハード (Hard)</span>
-            <span class="diff-badge hard">高難度</span>
-          </div>
-          <div class="diff-card-desc">
-            極限の焦燥感！<br>
-            敵の攻撃力・HPが強化され、空腹の進行が1.5倍に加速！
-          </div>
-        </div>
-      </div>
-      <button class="diff-cancel-btn" id="btn-diff-cancel">タイトルへもどる</button>
-    </div>
-  </div>
-
-  <!-- オープニングストーリーモーダル -->
-  <div id="story-modal" class="hidden interactive">
-    <div class="story-dialog">
-      <div class="story-header">
-        <span class="story-header-title" id="story-header-title">【緊急事態発生】</span>
-        <span class="story-header-time" id="story-header-time">🕒 12:40 PM</span>
-      </div>
-      <div class="story-image-wrap" id="story-image-wrap">
-        <img id="story-img-0" class="story-slide active" src="./character/opening/01-stomach-emergency.webp" alt="ストーリー挿絵1" />
-        <img id="story-img-1" class="story-slide" src="./character/opening/02-restroom-closed.webp" alt="ストーリー挿絵2" loading="eager" />
-        <img id="story-img-2" class="story-slide" src="./character/opening/03-elevators-stopped.webp" alt="ストーリー挿絵3" loading="eager" />
-        <img id="story-img-3" class="story-slide" src="./character/opening/04-fortieth-floor-announcement.webp" alt="ストーリー挿絵4" loading="eager" />
-        <img id="story-img-4" class="story-slide" src="./character/opening/05-emergency-stairs.webp" alt="ストーリー挿絵5" loading="eager" />
-      </div>
-      <div class="story-body" id="story-body-text"></div>
-      <div class="story-footer">
-        <span class="story-page-indicator" id="story-page-indicator">1 / 5</span>
-        <div class="story-btns">
-          <button class="story-btn btn-skip" id="btn-story-skip">スキップ</button>
-          <button class="story-btn btn-next" id="btn-story-next">次へ ▶</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 階段確認ダイアログ（インゲームウィンドウ） -->
-  <div id="stairs-modal" class="hidden interactive">
-    <div class="stairs-dialog">
-      <div class="stairs-dialog-title">
-        <span>🏃 非常階段</span>
-      </div>
-      <div class="stairs-dialog-msg" id="stairs-dialog-msg">
-        非常階段を駆け降りて、下の階へ降りますか？
-      </div>
-      <div class="stairs-dialog-options">
-        <button class="stairs-btn selected" id="btn-stairs-yes">▶ はい</button>
-        <button class="stairs-btn" id="btn-stairs-no">いいえ</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- メインゲームキャンバス -->
-  <canvas id="game-canvas"></canvas>
-
-  <!-- UIオーバーレイ -->
-  <div id="ui-container">
-    <!-- 上部ステータスウィンドウ（ドラクエ風・3行固定配置・文字切れ完全防止） -->
-    <div id="status-window" class="interactive">
-      <!-- 1行目: 進行・LV・HP・満腹度・地図・中断 -->
-      <div class="status-row">
-        <div class="status-cell">
-          <span class="dq-label">階</span>
-          <span class="dq-val" id="hud-floor">50F</span>
-          <span class="diff-badge normal" id="hud-diff">Normal</span>
-        </div>
-        <div class="status-cell">
-          <span class="dq-label">LV</span>
-          <span class="dq-val" id="hud-level">1</span>
-        </div>
-        <div class="status-cell status-cell-hp">
-          <span class="dq-label">HP</span>
-          <span class="dq-val"><span id="hud-hp">15</span>/<span id="hud-maxhp">15</span></span>
-        </div>
-        <div class="status-cell">
-          <img src="./assets/items/bread.png" class="hud-mini-icon" alt="満腹度" />
-          <span class="dq-val" id="hud-satiety">100%</span>
-        </div>
-        <button id="btn-map" class="dq-save-btn" title="ミニマップ表示切替" style="margin-left: auto; margin-right: 4px;">地図</button>
-        <button id="btn-save-quit" class="dq-save-btn" title="冒険をセーブしてタイトル画面へ戻る">中断</button>
-      </div>
-
-      <!-- 2行目: ちから・攻・防・G・持ち物数 -->
-      <div class="status-row">
-        <div class="status-cell status-cell-str">
-          <span class="dq-label">力</span>
-          <span class="dq-val"><span id="hud-str">8</span>/<span id="hud-maxstr">8</span></span>
-        </div>
-        <div class="status-cell">
-          <span class="dq-label">攻</span>
-          <span class="dq-val" id="hud-atk">4</span>
-        </div>
-        <div class="status-cell">
-          <span class="dq-label">防</span>
-          <span class="dq-val" id="hud-def">0</span>
-        </div>
-        <div class="status-cell">
-          <img src="./assets/props/gold.png" class="hud-mini-icon" alt="G" />
-          <span class="dq-val"><span id="hud-gold">0</span>G</span>
-        </div>
-        <div class="status-cell status-cell-bag">
-          <img src="./assets/items/miracle_box.png" class="hud-mini-icon" alt="道具" />
-          <span class="dq-label">道具</span>
-          <span class="dq-val" id="hud-inv-count">0/16</span>
-        </div>
-      </div>
-
-      <!-- 3行目: 装備品スロット専用行（武・盾・矢）文字切れ完全解消 -->
-      <div class="status-row status-equip-row">
-        <div class="equip-cell">
-          <span class="equip-tag">[武]</span>
-          <img id="hud-weapon-icon" class="hud-mini-icon" src="./assets/items/club.png" alt="武器" style="display:none;" />
-          <span class="equip-name" id="hud-weapon">素手</span>
-        </div>
-        <div class="equip-cell">
-          <span class="equip-tag">[盾]</span>
-          <img id="hud-shield-icon" class="hud-mini-icon" src="./assets/items/leather_shield.png" alt="盾" style="display:none;" />
-          <span class="equip-name" id="hud-shield">なし</span>
-        </div>
-        <div class="equip-cell">
-          <span class="equip-tag">[矢]</span>
-          <img id="hud-arrow-icon" class="hud-mini-icon" src="./assets/items/arrow.png" alt="矢" style="display:none;" />
-          <span class="equip-name" id="hud-arrow">なし</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 下部メッセージウィンドウ ＆ バーチャル操作パネル -->
-    <div id="bottom-container">
-      <div id="message-window" class="interactive"></div>
-
-      <div id="controls-panel" class="interactive">
-        <!-- 左側コマンド（上：道具、下：足踏） -->
-        <div class="dq-cmd-col dq-col-left">
-          <button class="dq-side-btn" id="btn-inventory">
-            <img src="./assets/items/miracle_box.png" class="dq-cmd-icon" alt="道具" />
-            <span class="dq-cmd-text">道具</span>
-          </button>
-          <button class="dq-side-btn" id="btn-wait">
-            <img src="./assets/ui/wait.png" class="dq-cmd-icon" alt="足踏" />
-            <span class="dq-cmd-text">足踏</span>
-          </button>
-        </div>
-
-        <!-- 中央：8方向移動キー（中央に向きボタンを設置） -->
-        <div class="dpad-container" id="dpad-container">
-          <div class="dpad-grid">
-            <button class="dpad-btn dpad-diagonal" data-dx="-1" data-dy="-1">↖</button>
-            <button class="dpad-btn dpad-cardinal" data-dx="0" data-dy="-1">▲</button>
-            <button class="dpad-btn dpad-diagonal" data-dx="1" data-dy="-1">↗</button>
-            <button class="dpad-btn dpad-cardinal" data-dx="-1" data-dy="0">◀</button>
-            <button class="dpad-btn dpad-turn" id="btn-turn" title="向き変更">
-              <span class="turn-btn-label">向き</span>
-            </button>
-            <button class="dpad-btn dpad-cardinal" data-dx="1" data-dy="0">▶</button>
-            <button class="dpad-btn dpad-diagonal" data-dx="-1" data-dy="1">↙</button>
-            <button class="dpad-btn dpad-cardinal" data-dx="0" data-dy="1">▼</button>
-            <button class="dpad-btn dpad-diagonal" data-dx="1" data-dy="1">↘</button>
-          </div>
-        </div>
-
-        <!-- 右側コマンド（上：攻撃、下：矢） -->
-        <div class="dq-cmd-col dq-col-right">
-          <button class="dq-side-btn btn-main-attack" id="btn-attack">
-            <img src="./assets/items/bronze_sword.png" class="dq-cmd-icon" alt="攻撃" />
-            <span class="dq-cmd-text">攻撃</span>
-          </button>
-          <button class="dq-side-btn" id="btn-shoot">
-            <img src="./assets/items/arrow.png" class="dq-cmd-icon" alt="矢" />
-            <span class="dq-cmd-text">矢</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- どうぐモーダル（トルネコ風・1画面全16スロット一覧） -->
-  <div id="inventory-modal" class="hidden interactive">
-    <div class="dq-inv-dialog">
-      <div class="dialog-header">
-        <span>▶ どうぐ (<span id="inv-count">0</span>/16)</span>
-        <div class="inv-sort-tabs">
-          <button class="inv-sort-btn active" id="btn-sort-obtained" title="拾った順序で整理">入手順</button>
-          <button class="inv-sort-btn" id="btn-sort-type" title="種類別（武器・盾・矢・草など）に整理">種類順</button>
-        </div>
-        <button class="inv-close-btn" id="inventory-close-btn">閉じる</button>
-      </div>
-
-      <!-- 足元枠 -->
-      <div id="inv-ground-container"></div>
-
-      <!-- 16スロット 2列×8行 グリッド -->
-      <div id="inventory-grid" class="inv-grid"></div>
-
-      <!-- 詳細説明枠 -->
-      <div id="inventory-detail"></div>
-
-      <!-- アクションコマンド枠 -->
-      <div id="inventory-actions"></div>
-    </div>
-  </div>
-
-  <!-- リザルト / ゲームオーバー / クリアモーダル -->
-  <div id="end-modal" class="hidden interactive">
-    <div class="end-content">
-      <div class="end-title" id="end-title">冒険の記録</div>
-      <p id="end-desc"></p>
-      <div class="end-stats">
-        <div>到達フロア: <span id="end-floor">1F</span></div>
-        <div>もじさんレベル: <span id="end-level">1</span></div>
-        <div>獲得ゴールド: <span id="end-gold">0G</span></div>
-      </div>
-      <button class="restart-btn" id="btn-restart">タイトル画面へ戻る</button>
-    </div>
-  </div>
-
-  <script>
-    // ダブルタップによる意図しない拡大ズームを完全に防止
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (event) {
-      const now = Date.now();
-      if (now - lastTouchEnd <= 320) {
-        event.preventDefault();
-      }
-      lastTouchEnd = now;
-    }, { passive: false });
-
-    // iOS Safari 等のピンチズーム・ジェスチャー拡大を抑止
-    document.addEventListener('gesturestart', function (event) {
-      event.preventDefault();
-    });
-    document.addEventListener('gesturechange', function (event) {
-      event.preventDefault();
-    });
-    document.addEventListener('gestureend', function (event) {
-      event.preventDefault();
-    });
-  </script>
-  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

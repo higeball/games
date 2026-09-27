@@ -15,14 +15,15 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-function serveNekoNinePlugin() {
+function serveSubprojectsPlugin() {
   return {
-    name: 'serve-neko-nine',
+    name: 'serve-subprojects',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const rawUrl = req.url || '';
         const pathname = rawUrl.split('?')[0];
 
+        // --- neko-nine ---
         if (pathname === '/neko-nine' || pathname === '/neko-nine/') {
           const indexPath = resolve(__dirname, 'neko-nine/dist/index.html');
           if (fs.existsSync(indexPath)) {
@@ -41,6 +42,43 @@ function serveNekoNinePlugin() {
             return;
           }
         }
+
+        // --- mojidan ---
+        if (pathname === '/mojidan' || pathname === '/mojidan/') {
+          const distIndex = resolve(__dirname, 'mojidan/dist/index.html');
+          if (fs.existsSync(distIndex)) {
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            res.end(fs.readFileSync(distIndex));
+            return;
+          }
+        } else if (pathname.startsWith('/mojidan/')) {
+          const relPath = pathname.replace(/^\/mojidan\//, '');
+          const distPath = resolve(__dirname, 'mojidan/dist', relPath);
+          if (fs.existsSync(distPath) && fs.statSync(distPath).isFile()) {
+            const ext = distPath.substring(distPath.lastIndexOf('.')).toLowerCase();
+            const mime = MIME_TYPES[ext] || 'application/octet-stream';
+            res.setHeader('Content-Type', mime);
+            res.end(fs.readFileSync(distPath));
+            return;
+          }
+          const pubPath = resolve(__dirname, 'mojidan/public', relPath);
+          if (fs.existsSync(pubPath) && fs.statSync(pubPath).isFile()) {
+            const ext = pubPath.substring(pubPath.lastIndexOf('.')).toLowerCase();
+            const mime = MIME_TYPES[ext] || 'application/octet-stream';
+            res.setHeader('Content-Type', mime);
+            res.end(fs.readFileSync(pubPath));
+            return;
+          }
+          const srcPath = resolve(__dirname, 'mojidan', relPath);
+          if (fs.existsSync(srcPath) && fs.statSync(srcPath).isFile()) {
+            const ext = srcPath.substring(srcPath.lastIndexOf('.')).toLowerCase();
+            const mime = MIME_TYPES[ext] || 'application/octet-stream';
+            res.setHeader('Content-Type', mime);
+            res.end(fs.readFileSync(srcPath));
+            return;
+          }
+        }
+
         next();
       });
     }
@@ -49,7 +87,7 @@ function serveNekoNinePlugin() {
 
 export default defineConfig({
   base: './',
-  plugins: [serveNekoNinePlugin()],
+  plugins: [serveSubprojectsPlugin()],
   server: {
     host: true,
     port: 3000

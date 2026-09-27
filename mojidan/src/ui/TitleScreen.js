@@ -9,9 +9,6 @@ import { soundManager } from '../audio/SoundManager.js';
 export class TitleScreen {
   constructor(game) {
     this.game = game;
-    this.portalEl = document.getElementById('portal-screen');
-    this.btnPortalPlayMojidan = document.getElementById('btn-portal-play-mojidan');
-
     this.titleEl = document.getElementById('title-screen');
     this.btnTitlePortal = document.getElementById('btn-title-portal');
     this.storyModal = document.getElementById('story-modal');
@@ -118,19 +115,10 @@ export class TitleScreen {
   }
 
   initEvents() {
-    // ポータル画面「もじダンをプレイ」
-    this.btnPortalPlayMojidan?.addEventListener('click', () => {
-      soundManager.playConfirm();
-      this.hidePortal();
-      this.show();
-      window.location.hash = '#mojidan';
-    });
-
-    // タイトル画面「ゲーム一覧へもどる」
+    // タイトル画面「◀ ヒゲボールゲームズへ」
     this.btnTitlePortal?.addEventListener('click', () => {
       soundManager.playCursor?.();
-      this.hide();
-      this.showPortal();
+      window.location.href = '../';
     });
 
     // はじめから（難易度選択モーダルを開く）
@@ -248,7 +236,6 @@ export class TitleScreen {
           }
         } else if (this.currentMenuIndex === 2) {
           soundManager.playCursor?.();
-          this.hide();
           this.showPortal();
         }
       }
@@ -269,24 +256,17 @@ export class TitleScreen {
    * ポータル画面（ヒゲボールゲームズ）を表示
    */
   showPortal() {
-    this.portalEl?.classList.remove('hidden');
-    this.titleEl?.classList.add('hidden');
-    this.diffModal?.classList.add('hidden');
-    this.storyModal?.classList.add('hidden');
-    if (window.location.hash === '#mojidan') {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
+    window.location.href = '../';
   }
 
   hidePortal() {
-    this.portalEl?.classList.add('hidden');
+    // no-op
   }
 
   /**
    * タイトル画面を表示
    */
   show() {
-    this.hidePortal();
     this.titleEl?.classList.remove('hidden');
     this.diffModal?.classList.add('hidden');
     this.storyModal?.classList.add('hidden');

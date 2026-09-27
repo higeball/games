@@ -1,18 +1,16 @@
 {
-  "name": "top-road-moji-gary",
+  "name": "higeball-games",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:moji": "vite build",
-    "build:neko": "cd neko-nine && (npm ci || npm install) && npm run build",
-    "build": "vite build && npm run build:neko && mkdir -p dist/neko-nine && cp -r neko-nine/dist/* dist/neko-nine/",
+    "build:portal": "vite build",
+    "build:mojidan": "cd mojidan && (npm ci || npm install) && npm run build",
+    "build:nekonine": "cd neko-nine && (npm ci || npm install) && npm run build",
+    "build": "vite build && npm run build:mojidan && npm run build:nekonine && mkdir -p dist/mojidan dist/neko-nine && cp -r mojidan/dist/* dist/mojidan/ && cp -r neko-nine/dist/* dist/neko-nine/",
     "preview": "vite preview",
     "test:neko": "npm --prefix neko-nine test"
-  },
-  "dependencies": {
-    "three": "^0.174.0"
   },
   "devDependencies": {
     "vite": "^6.2.0"
