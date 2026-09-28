@@ -42,6 +42,8 @@ import { RecentResults } from "./RecentResults";
 import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
 import { ScoutingStatus } from "./ScoutingStatus";
 import { normalizeSalaryScale } from "./salary";
+import { SaveSlotsPanel } from "./SaveSlotsPanel";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ";
 const tabs: Tab[] = ["ホーム", "選手", "編成", "経営"];
@@ -64,6 +66,21 @@ export default function OwnerApp() {
     [settings, setSettings] = useState(false),
     [update, setUpdate] = useState(false),
     [detail, setDetail] = useState<string | null>(null);
+  const [atTitle, setAtTitle] = useState(() => {
+    try {
+      return sessionStorage.getItem("neko-owner-title") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [newGameConfirm, setNewGameConfirm] = useState(false);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("neko-owner-title", atTitle ? "1" : "0");
+    } catch {
+      /* Game persistence uses IndexedDB. */
+    }
+  }, [atTitle]);
   const [eventVisit, setEventVisit] = useState(0);
   const worker = useRef<Worker | null>(null),
     job = useRef(0),
@@ -159,6 +176,10 @@ export default function OwnerApp() {
     setBusy("2026年の12球団を準備しています…");
     try {
       await commit(await compute("create"));
+      setAtTitle(false);
+      setSettings(false);
+      setDetail(null);
+      setTab("ホーム");
     } catch (e) {
       setError(String(e));
     } finally {
@@ -185,6 +206,7 @@ export default function OwnerApp() {
       setSettings(false);
       setDetail(null);
       setTab("ホーム");
+      setAtTitle(false);
     } catch (e) {
       setError(String(e));
     }
@@ -218,7 +240,7 @@ export default function OwnerApp() {
         )}
         {!loaded ? (
           <div className="empty">セーブデータを読んでいます…</div>
-        ) : !w ? (
+        ) : !w || atTitle ? (
           <section className="welcome">
             <div className="eyebrow">OWNER'S EDITION / 2026</div>
             <h1>
@@ -241,8 +263,27 @@ export default function OwnerApp() {
               <br />
               あなたの決断が、次の一年をつくる。
             </p>
-            <button className="primary" disabled={!!busy} onClick={start}>
-              2026年オフから就任する →
+            {w && (
+              <button
+                className="primary"
+                onClick={() => {
+                  setAtTitle(false);
+                  setTab(eventTab(w));
+                  setEventVisit((n) => n + 1);
+                }}
+              >
+                続きから再開する
+              </button>
+            )}
+            <button
+              className={w ? "secondary" : "primary"}
+              disabled={!!busy}
+              onClick={() => (w ? setNewGameConfirm(true) : void start())}
+            >
+              {w ? "2026年から最初からプレイ" : "2026年オフから就任する"} →
+            </button>
+            <button onClick={() => setSettings(true)}>
+              セーブ枠からロードする
             </button>
             <small>
               セ・パ12球団 ／ 支配下70人・一軍31人
@@ -311,6 +352,24 @@ export default function OwnerApp() {
               <p>
                 セーブはこのブラウザに保存されます。端末を変える前に書き出してください。
               </p>
+              <SaveSlotsPanel
+                w={w}
+                onLoad={async (next) => {
+                  if (lock.current)
+                    throw Error("保存処理が終わるまでお待ちください。");
+                  lock.current = true;
+                  try {
+                    await commit(next);
+                    setDetail(null);
+                    setAtTitle(false);
+                    setTab(eventTab(next));
+                    setEventVisit((n) => n + 1);
+                    setSettings(false);
+                  } finally {
+                    lock.current = false;
+                  }
+                }}
+              />
               {w && (
                 <button onClick={() => exportWorld(w)}>セーブを書き出す</button>
               )}
@@ -328,20 +387,13 @@ export default function OwnerApp() {
               {w && (
                 <button
                   disabled={!!busy}
-                  onClick={async () => {
-                    if (
-                      confirm(
-                        "2026年から新しいゲームを始めますか？現在のデータを残すには先に書き出してください。直前の状態はバックアップに保存されます。",
-                      )
-                    ) {
-                      await start();
-                      setSettings(false);
-                      setDetail(null);
-                      setTab("ホーム");
-                    }
+                  onClick={() => {
+                    setSettings(false);
+                    setDetail(null);
+                    setAtTitle(true);
                   }}
                 >
-                  2026年から新しく始める
+                  タイトル画面に戻る
                 </button>
               )}
               {update && (
@@ -362,6 +414,29 @@ export default function OwnerApp() {
             act={act}
           />
         )}{" "}
+        {newGameConfirm && (
+          <ConfirmDialog
+            title="最初からプレイしますか？"
+            confirmLabel="最初から始める"
+            onClose={() => setNewGameConfirm(false)}
+            onConfirm={() => {
+              setNewGameConfirm(false);
+              void start();
+            }}
+          >
+            <p>
+              現在の自動セーブは新しいゲームに置き換わります。残したいプレイは先にセーブ枠へ保存してください。3つの手動セーブ枠は変更しません。
+            </p>
+            <button
+              onClick={() => {
+                setNewGameConfirm(false);
+                setSettings(true);
+              }}
+            >
+              先にセーブ枠へ保存する
+            </button>
+          </ConfirmDialog>
+        )}
         {busy && (
           <div className="busy" role="status">
             <span className="spinner" />

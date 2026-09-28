@@ -69,6 +69,59 @@ export function validateWorld(value: unknown): asserts value is WorldState {
     )
   )
     throw Error("選手・球団情報が壊れています。");
+  if (
+    w.campPlan.location !== undefined &&
+    (!Number.isInteger(w.campPlan.location) ||
+      w.campPlan.location < 0 ||
+      w.campPlan.location > 3)
+  )
+    throw Error("キャンプ開催地が不正です。");
+  const report = w.campReport;
+  if (
+    report &&
+    (!["autumn", "spring"].includes(report.phase) ||
+      !Number.isInteger(report.year) ||
+      report.year < 2026 ||
+      !Number.isInteger(report.location) ||
+      report.location < 0 ||
+      report.location > 3 ||
+      !Number.isFinite(report.cost) ||
+      report.cost < 0 ||
+      !Array.isArray(report.players) ||
+      report.players.some(
+        (p) =>
+          !p ||
+          typeof p.id !== "string" ||
+          typeof p.name !== "string" ||
+          !POSITIONS.includes(p.positionBefore) ||
+          !POSITIONS.includes(p.positionAfter) ||
+          !Array.isArray(p.changes) ||
+          !Array.isArray(p.pitches) ||
+          p.changes.some(
+            (c) =>
+              !c ||
+              !Object.hasOwn(SKILLS, c.skill) ||
+              !Number.isInteger(c.before) ||
+              c.before < 1 ||
+              c.before > 100 ||
+              !Number.isInteger(c.after) ||
+              c.after < 1 ||
+              c.after > 100,
+          ) ||
+          p.pitches.some(
+            (pitch) =>
+              !pitch ||
+              typeof pitch.name !== "string" ||
+              !Number.isInteger(pitch.before) ||
+              pitch.before < 0 ||
+              pitch.before > 7 ||
+              !Number.isInteger(pitch.after) ||
+              pitch.after < 1 ||
+              pitch.after > 7,
+          ),
+      ))
+  )
+    throw Error("キャンプ結果が壊れています。");
 }
 async function readWorld(backup = false): Promise<WorldState | null> {
   const db = await openDB();
@@ -161,4 +214,115 @@ export function exportWorld(w: WorldState) {
   a.download = `neko-owner-${w.year}-${w.phase}.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export const SAVE_SLOTS = [1, 2, 3] as const;
+export type SaveSlotInfo = {
+  slot: number;
+  savedAt: number;
+  year: number;
+  phase: WorldState["phase"];
+  cash: number;
+  damaged?: boolean;
+};
+function checkSlot(slot: number) {
+  if (!SAVE_SLOTS.includes(slot as 1 | 2 | 3))
+    throw Error("セーブ枠は1〜3を選んでください。");
+}
+async function readSlots() {
+  const db = await openDB();
+  return new Promise<Array<{ world: WorldState; savedAt: number } | null>>(
+    (resolve, reject) => {
+      const tx = db.transaction("saves", "readonly"),
+        values: Array<{ world: WorldState; savedAt: number } | null> = [];
+      SAVE_SLOTS.forEach((slot, index) => {
+        const r = tx.objectStore("saves").get(`slot-${slot}`);
+        r.onsuccess = () => {
+          values[index] = r.result ?? null;
+        };
+      });
+      tx.oncomplete = () => {
+        db.close();
+        resolve(values);
+      };
+      tx.onabort = tx.onerror = () => {
+        db.close();
+        reject(tx.error ?? Error("セーブ枠を読み込めませんでした。"));
+      };
+    },
+  );
+}
+export async function listSaveSlots(): Promise<Array<SaveSlotInfo | null>> {
+  const values = await readSlots();
+  return values.map((value, index) => {
+    if (!value) return null;
+    try {
+      validateWorld(value.world);
+      const w = value.world;
+      return {
+        slot: index + 1,
+        savedAt: value.savedAt,
+        year:
+          w.year +
+          (["budget", "staff", "spring", "preseason", "registration"].includes(
+            w.phase,
+          )
+            ? 1
+            : 0),
+        phase: w.phase,
+        cash: w.teams[0].finance.cash,
+      };
+    } catch {
+      return {
+        slot: index + 1,
+        savedAt: 0,
+        year: 0,
+        phase: "review",
+        cash: 0,
+        damaged: true,
+      };
+    }
+  });
+}
+export async function saveWorldSlot(
+  slot: number,
+  w: WorldState,
+  overwrite = false,
+) {
+  checkSlot(slot);
+  validateWorld(w);
+  const db = await openDB();
+  return new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("saves", "readwrite"),
+      store = tx.objectStore("saves");
+    let failure: Error | null = null;
+    const r = store.get(`slot-${slot}`);
+    r.onsuccess = () => {
+      if (r.result && !overwrite) {
+        failure = Error("セーブ枠は使用中です。上書きを確認してください。");
+        tx.abort();
+        return;
+      }
+      store.put({ world: w, savedAt: Date.now() }, `slot-${slot}`);
+    };
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onabort = tx.onerror = () => {
+      db.close();
+      reject(failure ?? tx.error ?? Error("セーブできませんでした。"));
+    };
+  });
+}
+export async function loadWorldSlot(slot: number): Promise<WorldState> {
+  checkSlot(slot);
+  const value = (await readSlots())[slot - 1];
+  if (!value) throw Error("このセーブ枠は空いています。");
+  validateWorld(value.world);
+  const w = value.world;
+  normalizePlayerNames(w);
+  backfillCareerHistory(w);
+  normalizeSalaryScale(w);
+  return w;
 }

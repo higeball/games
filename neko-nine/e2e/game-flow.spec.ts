@@ -33,7 +33,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     )
       await click(/今すぐイベントへ進む/);
   };
-  const camp = async () => click("保存した計画でキャンプを実施");
+  const camp = async () => click("この内容でキャンプを実施");
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
   await expect(
@@ -126,7 +126,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await click(/春季キャンプへ進む/);
   await event();
   const pitcher = await page
-    .getByLabel("特別指定選手")
+    .getByLabel("集中指導1の選手")
     .locator("option")
     .evaluateAll((options) =>
       options
@@ -134,10 +134,10 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
         ?.getAttribute("value"),
     );
   expect(pitcher).toBeTruthy();
-  await page.getByLabel("特別指定選手").selectOption(pitcher!);
-  await page.getByLabel("指導内容").selectOption("pitch");
-  await click("集中指導に追加");
-  await click("このキャンプ計画を保存");
+  await page.getByLabel("集中指導1の選手").selectOption(pitcher!);
+  await expect(page.getByRole("status")).toHaveCount(0);
+  await page.getByLabel("集中指導1の内容").selectOption("pitch");
+  await expect(page.getByRole("status")).toHaveCount(0);
   await page.screenshot({
     path: "test-results/fukuoka-camp.png",
     fullPage: true,

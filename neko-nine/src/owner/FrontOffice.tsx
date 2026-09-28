@@ -8,7 +8,6 @@ import {
   protectionCandidates,
 } from "./operations";
 import {
-  CAMPS,
   CLUBS,
   PHASE_FLOW,
   PHASE_NAMES,
@@ -22,7 +21,6 @@ import {
   type OwnerAction,
   type Player,
   type Skill,
-  type CampPlan,
 } from "./model";
 import { PlayerList, StaffCard, Annual } from "./OwnerApp";
 import { YasuPortrait } from "../ui/Sprites";
@@ -31,6 +29,7 @@ import { phaseFinishLabel } from "./Secretary";
 import { AbilityBadge } from "./AbilityBadge";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { ScoutingStatus } from "./ScoutingStatus";
+import { CampPanel } from "./CampPanel";
 type Props = {
   w: WorldState;
   act: (a: OwnerAction) => void;
@@ -1022,195 +1021,6 @@ export function StaffPanel({ w, act }: Omit<Props, "open">) {
             ))}
         </section>
       ))}
-    </>
-  );
-}
-function CampPanel({ w, act }: Omit<Props, "open">) {
-  const [plan, setPlan] = useState<CampPlan>(structuredClone(w.campPlan)),
-    [location, setLocation] = useState(0),
-    [special, setSpecial] = useState(""),
-    [kind, setKind] = useState<"breakout" | "convert" | "pitch">("breakout"),
-    [position, setPosition] = useState<Player["position"]>("左"),
-    [pitch, setPitch] = useState("シュート");
-  return (
-    <>
-      <h2>{w.phase === "spring" ? "春季" : "秋季"}キャンプ計画</h2>
-      <p>
-        全体方針は2枠まで。2枠に分けると1能力への効果は薄まります。OB招聘は4,000万円、特別指定は5人まで。
-      </p>
-      <label className="field">
-        開催地
-        <select
-          aria-label="キャンプ開催地"
-          value={location}
-          onChange={(e) => setLocation(Number(e.target.value))}
-        >
-          {CAMPS.map((c, i) => (
-            <option key={c.name} value={i}>
-              {c.name} / {money(c.cost)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
-        追加練習予算
-        <select
-          value={plan.budget}
-          onChange={(e) => setPlan({ ...plan, budget: Number(e.target.value) })}
-        >
-          {[0, 2500, 6000, 10000].map((n) => (
-            <option key={n} value={n}>
-              {money(n)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <h3>重点育成スロット ({plan.focuses.length}/2)</h3>
-      <div className="focus-options">
-        {Object.entries(SKILLS).map(([k, label]) => (
-          <button
-            className={plan.focuses.includes(k as Skill) ? "selected" : ""}
-            key={k}
-            onClick={() =>
-              setPlan({
-                ...plan,
-                focuses: plan.focuses.includes(k as Skill)
-                  ? plan.focuses.filter((x) => x !== k)
-                  : plan.focuses.length < 2
-                    ? [...plan.focuses, k as Skill]
-                    : plan.focuses,
-              })
-            }
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      <label className="field">
-        レジェンドOB招聘
-        <select
-          value={plan.legend}
-          onChange={(e) =>
-            setPlan({ ...plan, legend: e.target.value as CampPlan["legend"] })
-          }
-        >
-          <option value="none">招聘なし</option>
-          <option value="batting">打撃の名猫：野手 ×1.6</option>
-          <option value="pitching">伝説のエース：投手 ×1.6</option>
-          <option value="defense">守備の職人：守備・捕球・肩・走力 ×1.6</option>
-        </select>
-      </label>
-      <h3>集中指導 ({plan.special.length}/5)</h3>
-      <PlayerSelect
-        label="特別指定選手"
-        list={roster(w).filter((p) => !plan.special.some((s) => s.id === p.id))}
-        value={special}
-        onChange={setSpecial}
-      />
-      <label className="field">
-        指導内容
-        <select
-          value={kind}
-          onChange={(e) => setKind(e.target.value as typeof kind)}
-        >
-          <option value="breakout">ブレイク育成 ×1.8</option>
-          <option value="convert">ポジションコンバート</option>
-          <option value="pitch">新球種習得</option>
-        </select>
-      </label>
-      {kind === "convert" && (
-        <label className="field">
-          新しい守備位置
-          <select
-            value={position}
-            onChange={(e) => setPosition(e.target.value as Player["position"])}
-          >
-            {POSITIONS.slice(1).map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </label>
-      )}
-      {kind === "pitch" && (
-        <label className="field">
-          習得球種
-          <select value={pitch} onChange={(e) => setPitch(e.target.value)}>
-            {[
-              "シュート",
-              "フォーク",
-              "カーブ",
-              "スライダー",
-              "チェンジアップ",
-            ].map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </label>
-      )}
-      <button
-        disabled={!special || plan.special.length >= 5}
-        onClick={() => {
-          setPlan({
-            ...plan,
-            special: [...plan.special, { id: special, kind, position, pitch }],
-          });
-          setSpecial("");
-        }}
-      >
-        集中指導に追加
-      </button>
-      <div className="special-list">
-        {plan.special.map((s) => (
-          <p key={s.id}>
-            {w.players.find((p) => p.id === s.id)?.name} /{" "}
-            {s.kind === "breakout"
-              ? "ブレイク"
-              : s.kind === "convert"
-                ? `→${s.position}`
-                : s.pitch}
-            <button
-              onClick={() =>
-                setPlan({
-                  ...plan,
-                  special: plan.special.filter((x) => x.id !== s.id),
-                })
-              }
-            >
-              外す
-            </button>
-          </p>
-        ))}
-      </div>
-      <div className="budget-preview">
-        <span>開催費＋追加予算＋OB</span>
-        <strong>
-          {money(
-            CAMPS[location].cost +
-              plan.budget +
-              (plan.legend !== "none" ? 4000 : 0),
-          )}
-        </strong>
-      </div>
-      <button
-        disabled={w.campDone}
-        onClick={() => act({ type: "campPlan", plan })}
-      >
-        このキャンプ計画を保存
-      </button>
-      <button
-        className="primary"
-        disabled={
-          w.campDone || JSON.stringify(plan) !== JSON.stringify(w.campPlan)
-        }
-        onClick={() =>
-          act({ type: "camp", location, focus: plan.focuses[0] ?? "contact" })
-        }
-      >
-        {w.campDone ? "キャンプ実施済み" : "保存した計画でキャンプを実施"}
-      </button>
-      <p className="muted">
-        計画を保存してから実施してください。成果は選手詳細の成長履歴で確認できます。
-      </p>
     </>
   );
 }

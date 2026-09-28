@@ -544,6 +544,10 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       if (w.campDone) throw Error("キャンプは実施済みです。");
       const p = a.plan;
       if (
+        (p.location !== undefined &&
+          (!Number.isInteger(p.location) ||
+            p.location < 0 ||
+            p.location > 3)) ||
         ![0, 2500, 6000, 10000].includes(p.budget) ||
         !p.focuses.length ||
         p.focuses.length > 2 ||

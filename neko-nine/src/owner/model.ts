@@ -295,11 +295,27 @@ export type WorldState = {
   activeDraftPool: string[];
   compensations: { player: string; from: number; protected: string[] }[];
   campPlan: CampPlan;
+  campReport?: {
+    year: number;
+    phase: "autumn" | "spring";
+    location: number;
+    cost: number;
+    players: {
+      id: string;
+      name: string;
+      special: boolean;
+      positionBefore: Position;
+      positionAfter: Position;
+      changes: { skill: Skill; before: number; after: number }[];
+      pitches: { name: string; before: number; after: number }[];
+    }[];
+  };
   preseasonDone: boolean;
   preseasonRecord?: { wins: number; losses: number; draws: number };
   preseasonReport: { player: string; rating: number; note: string }[];
 };
 export type CampPlan = {
+  location?: number;
   budget: number;
   focuses: Skill[];
   legend: "none" | "batting" | "pitching" | "defense";

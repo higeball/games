@@ -1695,6 +1695,12 @@ export function applyOwnerAction(
     case "camp": {
       requirePhase(["autumn", "spring"]);
       if (w.campDone) throw Error("キャンプは実施済みです。");
+      const beforeTraining = roster(w).map((p) => ({
+        id: p.id,
+        skills: { ...p.skills },
+        position: p.position,
+        pitches: structuredClone(p.pitches),
+      }));
       const camp = CAMPS[action.location];
       if (
         !camp ||
@@ -1703,12 +1709,51 @@ export function applyOwnerAction(
         throw Error("キャンプ設定が不正です。");
       spend(w, 0, "キャンプ", camp.cost);
       campTraining(w, action.location, action.focus);
+      w.campPlan.location = action.location;
+      w.campReport = {
+        year: w.phase === "spring" ? w.year + 1 : w.year,
+        phase: w.phase as "autumn" | "spring",
+        location: action.location,
+        cost:
+          camp.cost +
+          w.campPlan.budget +
+          (w.campPlan.legend === "none" ? 0 : 4000),
+        players: beforeTraining.map((before) => {
+          const p = w.players.find((p) => p.id === before.id)!;
+          return {
+            id: p.id,
+            name: p.name,
+            special: w.campPlan.special.some((s) => s.id === p.id),
+            positionBefore: before.position,
+            positionAfter: p.position,
+            changes: (Object.keys(p.skills) as Skill[])
+              .filter((skill) => before.skills[skill] !== p.skills[skill])
+              .map((skill) => ({
+                skill,
+                before: before.skills[skill],
+                after: p.skills[skill],
+              })),
+            pitches: p.pitches
+              .filter(
+                (pitch) =>
+                  (before.pitches.find((b) => b.name === pitch.name)?.level ??
+                    0) !== pitch.level,
+              )
+              .map((pitch) => ({
+                name: pitch.name,
+                before:
+                  before.pitches.find((b) => b.name === pitch.name)?.level ?? 0,
+                after: pitch.level,
+              })),
+          };
+        }),
+      };
       f.popularity = clamp(f.popularity + camp.fan);
       w.campDone = true;
       news(
         w,
         "キャンプ成果報告",
-        `${camp.name}を完了。選手詳細で能力の成長履歴を確認できます。`,
+        `${camp.name}を完了。キャンプ結果で実施前後の能力を比較できます。`,
       );
       break;
     }

@@ -14,6 +14,121 @@
   --ability-negative: #ad4549;
   --ability-surface: #f8f7ef;
 }
+.camp-step,
+.camp-execution,
+.camp-result-summary,
+.save-slot {
+  border: 1px solid var(--line);
+  background: var(--ability-surface);
+  border-radius: 5px;
+  padding: 12px;
+  margin: 12px 0;
+  min-width: 0;
+}
+.camp-step h3,
+.camp-execution h3 {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.camp-step p,
+.camp-execution p,
+.camp-planner > p,
+.camp-results > p {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.camp-special-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.camp-special-slots article {
+  border: 1px solid var(--line);
+  padding: 8px;
+  min-width: 0;
+}
+.camp-special-slots h4 {
+  margin: 0;
+  font-size: 11px;
+  color: var(--green);
+}
+.camp-special-slots .field {
+  margin: 8px 0;
+}
+.camp-planner select {
+  max-width: 100%;
+}
+.camp-execution .primary {
+  width: 100%;
+}
+.camp-result-summary b,
+.camp-result-summary span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.camp-result-list article {
+  padding: 10px;
+  border: 1px solid var(--line);
+  margin: 8px 0;
+  background: var(--ability-surface);
+}
+.camp-result-list h3 {
+  font-size: 12px;
+  margin: 0 0 8px;
+}
+.camp-result-list h3 small {
+  margin-left: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.camp-result-list p {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.camp-change {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 56px 15px 56px 32px;
+  gap: 4px;
+  align-items: baseline;
+  font-size: 11px;
+  padding: 5px 0;
+}
+.camp-change > span:not(:first-child) {
+  text-align: center;
+}
+.camp-change > b {
+  text-align: right;
+}
+.camp-change .grade {
+  font-size: 13px;
+}
+.positive-text {
+  color: var(--ability-positive);
+}
+.negative-text {
+  color: var(--ability-negative);
+}
+.save-slots-panel p {
+  font-size: 11px;
+  line-height: 1.6;
+}
+.save-slot h4 {
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+.save-slot h4 small {
+  font-size: 10px;
+  margin-left: 8px;
+  color: var(--muted);
+}
+.save-slot .inline-actions {
+  flex-wrap: wrap;
+}
+.save-slot button {
+  font-size: 11px;
+}
 [hidden] {
   display: none !important;
 }
