@@ -3,6 +3,7 @@ import { completedSeasonYear } from "./history";
 import { SKILLS, type Player, type Skill, type WorldState } from "./model";
 import { AbilityBadge } from "./AbilityBadge";
 import { ProfileAbilities } from "./ProfileAbilities";
+import { BatterAbilityPanel } from "./BatterAbilityPanel";
 
 const direction = (name: string) =>
   /スライダー|カット/.test(name)
@@ -111,6 +112,7 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
 }
 
 export function PlayerAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
+  if (p.position !== "投") return <BatterAbilityPanel p={p} w={w} />;
   const pitching = p.position === "投";
   const known = p.team === 0 || p.scouting >= 100;
   const keys: Skill[] = pitching

@@ -162,18 +162,32 @@ test("old saves gain career history and compact individually colored ranks", asy
     modal.getByRole("table", { name: /一軍直近3年成績/ }).locator("tbody tr"),
   ).toHaveCount(3);
   await expect(modal.locator(".ability-chip")).toHaveCount(6);
-  const left = modal.locator(".ability-panel-left");
-  const right = modal.locator(".ability-panel-right");
+  const panel = modal.getByRole("region", { name: "野手能力画面" });
+  await expect(panel.locator(".batter-primary .ability-chip")).toHaveCount(3);
   expect(
-    (await left.boundingBox())!.x + (await left.boundingBox())!.width,
-  ).toBeLessThan((await right.boundingBox())!.x);
-  const tops = await left
-    .locator(".ability-chip")
-    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().y));
-  expect(tops.every((top, i) => i === 0 || top > tops[i - 1])).toBe(true);
-  expect(
-    (await right.locator(".ability-season").boundingBox())!.y,
-  ).toBeLessThan((await right.locator(".ability-special").boundingBox())!.y);
+    await panel
+      .locator(".batter-primary .ability-chip small")
+      .allTextContents(),
+  ).toEqual(["ミート", "パワー", "走力"]);
+  await expect(panel.locator(".batter-fielding .ability-chip")).toHaveCount(3);
+  await expect(panel.locator(".main-position")).toHaveCount(1);
+  await expect(panel.locator(".batter-position")).toContainText(
+    "その他は未評価",
+  );
+  for (const width of [360, 390, 430, 1100]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    );
+    const primary = await panel
+      .locator(".batter-primary .ability-chip")
+      .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().y));
+    expect(primary.every((top) => top === primary[0])).toBe(true);
+    expect(await modal.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    );
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await modal
     .locator(".player-ability-panel")
     .screenshot({ path: "test-results/compact-player-detail.png" });

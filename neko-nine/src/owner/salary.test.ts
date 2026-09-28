@@ -172,7 +172,10 @@ it("renders separate pitcher and batter ability layouts with real traits, stats 
   );
   expect(batter).toContain("野手能力画面");
   expect(batter).toContain("弾道");
-  expect(batter.indexOf("ability-season")).toBeLessThan(
-    batter.indexOf("ability-special"),
+  expect(batter).toContain("守備適性");
+  expect(batter).toContain("その他は未評価");
+  expect(batter).not.toContain("スローイング");
+  expect(batter.indexOf("ability-special")).toBeLessThan(
+    batter.indexOf("ability-season"),
   );
 });
