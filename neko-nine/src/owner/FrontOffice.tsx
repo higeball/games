@@ -36,7 +36,13 @@ type Props = {
 };
 export const phaseDate = (w: WorldState) =>
   `${w.year + (["budget", "staff", "spring", "preseason", "registration"].includes(w.phase) ? 1 : 0)}年 ${w.phase === "season" ? `${w.month}月` : PHASE_DATES[w.phase]}`;
-export function OwnerStatus({ w }: { w: WorldState }) {
+export function OwnerStatus({
+  w,
+  onAdvance,
+}: {
+  w: WorldState;
+  onAdvance?: () => void;
+}) {
   const t = w.teams[0],
     f = t.finance,
     n = seniorRoster(w).length;
@@ -65,7 +71,7 @@ export function OwnerStatus({ w }: { w: WorldState }) {
           <strong>{money(f.cash)}</strong>
         </div>
         <div>
-          <small>来季想定総年俸</small>
+          <small>想定年俸</small>
           <strong
             className={projectedPayroll(w) > f.salaryBudget ? "negative" : ""}
           >
@@ -73,20 +79,24 @@ export function OwnerStatus({ w }: { w: WorldState }) {
           </strong>
         </div>
         <div>
-          <small>支配下登録</small>
+          <small>支配下</small>
           <strong className={n >= 70 ? "negative" : ""}>
             {n}
-            <em> / 70人</em>
-            <span className="slot-count">空き{70 - n}</span>
+            <em>/70</em>
           </strong>
         </div>
         <div>
-          <small>{w.phase === "season" ? "現在の順位" : "直近シーズン"}</small>
-          <strong>
+          <small>{w.phase === "season" ? "順位" : "前季順位"}</small>
+          <strong title={outcome}>
             {rank}位 <em>({outcome})</em>
           </strong>
         </div>
       </div>
+      {w.phase === "release" && onAdvance && (
+        <button className="primary status-advance" onClick={onAdvance}>
+          第1次戦力外通告を終了しドラフト会議へ進む
+        </button>
+      )}
     </div>
   );
 }
@@ -189,18 +199,20 @@ export function Dashboard({
           </small>
         </section>
       )}
-      <div className="club-heading">
-        <div>
-          <small>FUKUOKA / OWNER'S DESK</small>
-          <h1>
-            福岡から、
-            <br />
-            次の黄金期へ。
-          </h1>
-          <p>福岡ソフトにゃんくホークス</p>
+      {w.phase !== "review" && (
+        <div className="club-heading">
+          <div>
+            <small>FUKUOKA / OWNER'S DESK</small>
+            <h1>
+              福岡から、
+              <br />
+              次の黄金期へ。
+            </h1>
+            <p>福岡ソフトにゃんくホークス</p>
+          </div>
+          <YasuPortrait />
         </div>
-        <YasuPortrait />
-      </div>
+      )}
       <section className="strength-panel">
         <div className="section-title">
           <h2>どこを補強する？</h2>
@@ -240,76 +252,104 @@ export function Dashboard({
           ))}
         </div>
       </section>
-      <section className="todo-panel">
-        <h2>要対応タスク</h2>
-        {blockers.length ? (
-          blockers.map((s) => (
-            <button key={s} onClick={() => go("編成")}>
-              ! {s} ›
-            </button>
-          ))
-        ) : (
-          <p>必須タスクは完了。補強や予算を確認して日程を進められます。</p>
-        )}
-        {w.phase === "contracts" && (
+      {w.phase === "review" && (
+        <button
+          className="primary review-advance"
+          onClick={() => act({ type: "advance" })}
+        >
+          第1次戦力外通告へ進む →
+        </button>
+      )}
+      {w.phase === "review" && w.archives.at(-1)?.year === w.year && (
+        <section className="season-outcome">
+          <h2>{w.year}年 ポストシーズン結果</h2>
           <p>
-            FA市場 {w.players.filter((p) => p.market === "fa").length}人 ／ 育成
-            {list.filter((p) => p.registration === "development").length}人
+            日本一：<b>{w.teams[w.archives.at(-1)!.champion].name}</b>
           </p>
-        )}
-        {seniorRoster(w).length >= 66 &&
-          ["review", "release", "release2"].includes(w.phase) && (
-            <p className="warning">
-              空き枠{70 - seniorRoster(w).length}
-              人。6人指名したい場合は、先に枠を空けましょう。
-            </p>
-          )}
-      </section>
-      <div className="section-title">
-        <h2>オーナー方針</h2>
-        <span>起用は監督に委任</span>
-      </div>
-      <div className="segmented">
-        {(["若手育成", "バランス", "勝利優先"] as const).map((value) => (
-          <button
-            key={value}
-            className={w.teams[0].policy === value ? "selected" : ""}
-            onClick={() => act({ type: "policy", value })}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
-      {w.archives.at(-1)?.year === w.year && (
-        <>
-          <section className="season-outcome">
-            <h2>{w.year}年 ポストシーズン結果</h2>
-            <p>
-              日本一：<b>{w.teams[w.archives.at(-1)!.champion].name}</b>
-            </p>
-            <details>
-              <summary>CS・日本シリーズの対戦結果</summary>
-              {w.seriesLog.map((s, i) => (
-                <p key={i}>{s}</p>
-              ))}
-            </details>
-          </section>
+          <details>
+            <summary>CS・日本シリーズの対戦結果</summary>
+            {w.seriesLog.map((s, i) => (
+              <p key={i}>{s}</p>
+            ))}
+          </details>
           <Annual w={w} />
+        </section>
+      )}
+      {w.phase !== "review" && (
+        <>
+          <section className="todo-panel">
+            <h2>要対応タスク</h2>
+            {blockers.length ? (
+              blockers.map((s) => (
+                <button key={s} onClick={() => go("編成")}>
+                  ! {s} ›
+                </button>
+              ))
+            ) : (
+              <p>必須タスクは完了。補強や予算を確認して日程を進められます。</p>
+            )}
+            {w.phase === "contracts" && (
+              <p>
+                FA市場 {w.players.filter((p) => p.market === "fa").length}人 ／
+                育成
+                {list.filter((p) => p.registration === "development").length}人
+              </p>
+            )}
+            {seniorRoster(w).length >= 66 &&
+              ["review", "release", "release2"].includes(w.phase) && (
+                <p className="warning">
+                  空き枠{70 - seniorRoster(w).length}
+                  人。6人指名したい場合は、先に枠を空けましょう。
+                </p>
+              )}
+          </section>
+          <div className="section-title">
+            <h2>オーナー方針</h2>
+            <span>起用は監督に委任</span>
+          </div>
+          <div className="segmented">
+            {(["若手育成", "バランス", "勝利優先"] as const).map((value) => (
+              <button
+                key={value}
+                className={w.teams[0].policy === value ? "selected" : ""}
+                onClick={() => act({ type: "policy", value })}
+              >
+                {value}
+              </button>
+            ))}
+          </div>
+          {w.archives.at(-1)?.year === w.year && (
+            <>
+              <section className="season-outcome">
+                <h2>{w.year}年 ポストシーズン結果</h2>
+                <p>
+                  日本一：<b>{w.teams[w.archives.at(-1)!.champion].name}</b>
+                </p>
+                <details>
+                  <summary>CS・日本シリーズの対戦結果</summary>
+                  {w.seriesLog.map((s, i) => (
+                    <p key={i}>{s}</p>
+                  ))}
+                </details>
+              </section>
+              <Annual w={w} />
+            </>
+          )}
+          <button className="wide-select" onClick={() => go("リーグ")}>
+            セ・パ順位と個人成績・歴代日本一 ›
+          </button>
+          <h2>球団ニュース</h2>
+          <div className="news-feed">
+            {w.news.slice(0, 6).map((n) => (
+              <article key={n.id}>
+                <small>{n.year} / CLUB REPORT</small>
+                <h3>{n.title}</h3>
+                <p>{n.body}</p>
+              </article>
+            ))}
+          </div>
         </>
       )}
-      <button className="wide-select" onClick={() => go("リーグ")}>
-        セ・パ順位と個人成績・歴代日本一 ›
-      </button>
-      <h2>球団ニュース</h2>
-      <div className="news-feed">
-        {w.news.slice(0, 6).map((n) => (
-          <article key={n.id}>
-            <small>{n.year} / CLUB REPORT</small>
-            <h3>{n.title}</h3>
-            <p>{n.body}</p>
-          </article>
-        ))}
-      </div>
     </>
   );
 }
@@ -357,7 +397,7 @@ export function FrontOffice({ w, act, open }: Props) {
           <b>支配下 {seniorRoster(w).length}/70</b>
         </div>
       )}
-      {!["review", "season"].includes(w.phase) && (
+      {!["review", "season", "release"].includes(w.phase) && (
         <div className={`event-progression${releasing ? " compact" : ""}`}>
           <p>
             {phaseBlockers(w).length

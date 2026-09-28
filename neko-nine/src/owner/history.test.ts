@@ -129,7 +129,8 @@ it("uses completed seasons in the shared history view and distinguishes pre-pro 
     createElement(RecentResults, { p: rookie, w: initial }),
   );
   expect(young.match(/プロ入り前/g)).toHaveLength(2);
-  expect(young).toContain("一軍出場なし");
+  expect(young).toContain('data-level="first"');
+  expect(young).not.toContain('data-level="farm"');
 });
 it("renders cats and dogs as crisp grid sprites with no smooth curves", () => {
   for (const species of ["cat", "dog"] as const) {
@@ -168,8 +169,23 @@ it("adds meaningful reserve history without replacing a zero-appearance first-te
   }
   expect(p.reports).toEqual(official);
   const html = renderToStaticMarkup(createElement(RecentResults, { p, w }));
-  expect(html).toContain("二軍参考（一軍0）");
+  expect(html).toContain("二軍成績（参考）");
+  expect(html).toContain("一軍成績");
+  expect(html).not.toContain("二軍参考（一軍0）");
+  expect(html).not.toContain("history-backfill");
   expect(backfillCareerHistory(w)).toBe(false);
+});
+it("always renders three first-team rows but hides a reserve table without appearances", () => {
+  const w = structuredClone(initial);
+  const p = { ...w.players[0], reports: {}, farmReports: {} };
+  const html = renderToStaticMarkup(createElement(RecentResults, { p, w }));
+  expect(html.match(/<table /g)).toHaveLength(1);
+  expect(html.match(/<th scope="row">/g)).toHaveLength(3);
+  expect(html).toContain("一軍成績");
+  expect(html).not.toContain("二軍成績");
+  p.farmReports = { 2026: { ...initial.players[0].reports[2026], games: 0 } };
+  const zeroFarm = renderToStaticMarkup(createElement(RecentResults, { p, w }));
+  expect(zeroFarm.match(/<table /g)).toHaveLength(1);
 });
 it("renders every letter rank separately and retains unscouted bounds", () => {
   for (const [value, rank] of [

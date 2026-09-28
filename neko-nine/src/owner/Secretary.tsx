@@ -20,7 +20,8 @@ export function secretaryAdvice(w: WorldState) {
   const completed = phaseBlockers(w).length === 0;
   const instructions: Record<string, { message: string; steps: string[] }> = {
     review: {
-      message: `ヤスオーナー、シーズンお疲れ様でした。早速ですが、来季の編成を見直す時期になります。下のボタンから候補選手を確認してください。空き枠は${room}人。6人指名するには、あと${Math.max(0, 6 - room)}人分の整理が必要です。`,
+      message:
+        "ヤスオーナー、シーズンお疲れ様でした。まずは来季までの流れをご説明します。このあと補強ポイントを確認し、戦力外通告から球団づくりを始めましょう。",
       steps: ["今季の成績を確認", "戦力外候補を選ぶ", "ドラフトへ"],
     },
     release: {
@@ -153,27 +154,73 @@ export function FoomyGuide({
           {nextEventLabel(w)} →
         </button>
       )}
-      <ol className="year-journey" aria-label="年間の進行">
-        {["構想", "補強・契約", "調整・開幕準備", "シーズン"].map((s, i) => (
-          <li
-            key={s}
-            className={i === group ? "current" : i < group ? "done" : ""}
-            aria-current={i === group ? "step" : undefined}
-          >
-            {s}
-          </li>
-        ))}
-      </ol>
-      <ol className="secretary-steps">
-        {advice.steps.map((s, i) => (
-          <li key={s}>
-            <span>{i + 1}</span>
-            {s}
-          </li>
-        ))}
-      </ol>
-      {blockers.length > 0 && (
-        <p className="secretary-task">先に必要な手続き：{blockers[0]}</p>
+      {w.phase === "review" ? (
+        <section className="season-overview" aria-label="球団運営の年間の流れ">
+          <h3>来季までの全体の流れ</h3>
+          <ol>
+            {[
+              ["10月", "戦力外通告 → ドラフト", "枠を空けて、新人を迎えます。"],
+              [
+                "10〜11月",
+                "秋季キャンプ → FA公示",
+                "若手を育て、第2次戦力外も検討します。",
+              ],
+              [
+                "11月",
+                "トライアウト → 現役ドラフト",
+                "再生候補と他球団の選手を探します。",
+              ],
+              [
+                "11〜12月",
+                "契約更改・FA・外国人・トレード",
+                "年俸を決め、不足する戦力を補います。",
+              ],
+              [
+                "1〜2月",
+                "施設・スタッフ → 春季キャンプ",
+                "球団の土台と新戦力を整えます。",
+              ],
+              [
+                "3〜9月",
+                "オープン戦 → 一軍登録 → ペナント",
+                "開幕の編成を決め、年間成績を見届けます。",
+              ],
+            ].map(([date, name, detail]) => (
+              <li key={name}>
+                <small>{date}</small>
+                <b>{name}</b>
+                <span>{detail}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
+        <>
+          <ol className="year-journey" aria-label="年間の進行">
+            {["構想", "補強・契約", "調整・開幕準備", "シーズン"].map(
+              (s, i) => (
+                <li
+                  key={s}
+                  className={i === group ? "current" : i < group ? "done" : ""}
+                  aria-current={i === group ? "step" : undefined}
+                >
+                  {s}
+                </li>
+              ),
+            )}
+          </ol>
+          <ol className="secretary-steps">
+            {advice.steps.map((s, i) => (
+              <li key={s}>
+                <span>{i + 1}</span>
+                {s}
+              </li>
+            ))}
+          </ol>
+          {blockers.length > 0 && (
+            <p className="secretary-task">先に必要な手続き：{blockers[0]}</p>
+          )}
+        </>
       )}
     </aside>
   );

@@ -18,7 +18,9 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   const image = guide.getByRole("img");
   await expect(image).toBeVisible();
   await expect(image).toHaveAttribute("src", /foomy-secretary-pixel\.png$/);
-  expect(await image.evaluate((el) => getComputedStyle(el).imageRendering)).toBe("pixelated");
+  expect(
+    await image.evaluate((el) => getComputedStyle(el).imageRendering),
+  ).toBe("pixelated");
   expect(
     await image.evaluate(
       (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
@@ -27,14 +29,28 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   const startButton = page.getByRole("button", {
     name: /第1次戦力外通告へ進む/,
   });
-  const bounds = await startButton.boundingBox();
-  expect(bounds).not.toBeNull();
-  expect(bounds!.y + bounds!.height).toBeLessThan(
-    page.viewportSize()!.height - 70,
+  const flow = page.getByRole("region", { name: "球団運営の年間の流れ" });
+  await expect(flow).toContainText("戦力外通告 → ドラフト");
+  await expect(flow).toContainText("春季キャンプ");
+  const strength = page.getByRole("heading", { name: "どこを補強する？" });
+  expect((await flow.boundingBox())!.y).toBeLessThan(
+    (await strength.boundingBox())!.y,
   );
+  expect((await strength.boundingBox())!.y).toBeLessThan(
+    (await startButton.boundingBox())!.y,
+  );
+  await expect(page.getByRole("heading", { name: "要対応タスク" })).toHaveCount(
+    0,
+  );
+  await expect(page.getByRole("heading", { name: "オーナー方針" })).toHaveCount(
+    0,
+  );
+  expect(
+    (await page.locator(".owner-status").boundingBox())!.height,
+  ).toBeLessThanOrEqual(85);
   await page.screenshot({
     path: "test-results/foomy-home.png",
-    fullPage: false,
+    fullPage: true,
   });
   await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
   await settle();
@@ -48,6 +64,38 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     core = page.getByLabel("主力選手を除外");
   await expect(young).toBeChecked();
   await expect(core).toBeChecked();
+  const finish = page.getByRole("button", {
+    name: "第1次戦力外通告を終了しドラフト会議へ進む",
+    exact: true,
+  });
+  await expect(finish).toHaveCount(1);
+  expect(await finish.evaluate((el) => !!el.closest(".owner-status"))).toBe(
+    true,
+  );
+  expect(
+    (await page.locator(".owner-status").boundingBox())!.height,
+  ).toBeLessThanOrEqual(130);
+  await page.getByRole("tab", { name: /^投手/ }).click();
+  await expect(page.getByRole("tab", { name: /^投手/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  expect(
+    await page
+      .locator(".release-candidate")
+      .evaluateAll((cards) =>
+        cards.every((c) => c.getAttribute("data-position") === "投"),
+      ),
+  ).toBe(true);
+  await page.getByRole("tab", { name: /^捕手/ }).click();
+  expect(
+    await page
+      .locator(".release-candidate")
+      .evaluateAll((cards) =>
+        cards.every((c) => c.getAttribute("data-position") === "捕"),
+      ),
+  ).toBe(true);
+  await page.getByRole("tab", { name: /^全員/ }).click();
   expect(
     await page
       .locator(".release-candidate")
@@ -60,17 +108,20 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
       ),
   ).toBe(true);
   const first = page.locator(".release-candidate").first();
-  await expect(first.getByRole("table")).toBeVisible();
-  await expect(first.getByRole("table").locator("tbody tr")).toHaveCount(3);
-  await expect(first.getByRole("table")).toContainText("2026");
-  await expect(first.getByRole("table")).toContainText("2025");
-  await expect(first.getByRole("table")).toContainText("2024");
-  await expect(first.getByRole("table")).not.toContainText("記録なし");
+  const firstTable = first.getByRole("table", { name: /一軍直近3年成績/ });
+  await expect(firstTable).toBeVisible();
+  await expect(firstTable.locator("tbody tr")).toHaveCount(3);
+  await expect(firstTable).toContainText("2026");
+  await expect(firstTable).toContainText("2025");
+  await expect(firstTable).toContainText("2024");
+  await expect(firstTable).not.toContainText("記録なし");
   await expect(first).toContainText("年俸");
   await expect(first).toContainText("契約");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await first.screenshot({ path: "test-results/release-inline-card.png" });
-  await expect(first).toContainText("二軍参考");
+  await expect(
+    first.getByRole("table", { name: /二軍直近3年成績/ }),
+  ).toBeVisible();
   await first
     .getByRole("img")
     .evaluate((el) =>
@@ -138,6 +189,15 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true);
+    const resourceTops = await page
+      .locator(".status-resources > div")
+      .evaluateAll((els) =>
+        els.map((el) => Math.round(el.getBoundingClientRect().top)),
+      );
+    expect(new Set(resourceTops).size).toBe(1);
+    expect(
+      (await page.locator(".owner-status").boundingBox())!.height,
+    ).toBeLessThanOrEqual(130);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => scrollTo(0, 0));
@@ -145,6 +205,12 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     path: "test-results/foomy-release.png",
     fullPage: false,
   });
+  await page.locator(".release-candidate").last().scrollIntoViewIfNeeded();
+  const finishBounds = await finish.boundingBox();
+  expect(finishBounds!.y).toBeGreaterThanOrEqual(0);
+  expect(finishBounds!.y + finishBounds!.height).toBeLessThan(
+    page.viewportSize()!.height,
+  );
   await page.getByRole("button", { name: /ドラフト会議へ進む/ }).click();
   await settle();
   await expect(

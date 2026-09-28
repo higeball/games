@@ -27,7 +27,9 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   const camp = async () => click("保存した計画でキャンプを実施");
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
-  await expect(page.getByRole("heading", { name: /福岡から/ })).toBeVisible({
+  await expect(
+    page.getByRole("heading", { name: "来季までの全体の流れ" }),
+  ).toBeVisible({
     timeout: 30_000,
   });
   await page.screenshot({

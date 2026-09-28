@@ -29,8 +29,8 @@
   gap: 8px;
   justify-content: space-between;
   align-items: center;
-  padding: 11px 20px;
-  font-size: 12px;
+  padding: 7px 10px;
+  font-size: 11px;
 }
 .status-date span {
   font-size: 10px;
@@ -38,22 +38,26 @@
 }
 .status-resources {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px 12px;
-  padding: 12px 20px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 7px 10px;
+}
+.status-resources > div {
+  min-width: 0;
 }
 .status-resources small {
   display: block;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
 }
 .status-resources strong {
   display: block;
-  font-size: 17px;
+  font-size: 12px;
   margin-top: 2px;
+  white-space: nowrap;
 }
 .status-resources em {
-  font-size: 10px;
+  font-size: 9px;
   font-style: normal;
   font-weight: 400;
 }
@@ -341,13 +345,16 @@ summary {
 }
 @media (max-width: 380px) {
   .status-resources {
-    padding: 10px 14px;
+    padding: 7px 8px;
   }
   .status-date {
-    padding-inline: 14px;
+    padding-inline: 8px;
   }
   .status-resources strong {
-    font-size: 15px;
+    font-size: 11px;
+  }
+  .status-resources > div:last-child em {
+    display: none;
   }
   .club-heading .yasu-sprite {
     flex-basis: 85px;
@@ -1110,6 +1117,9 @@ b {
   font-size: 9px;
   white-space: nowrap;
 }
+.recent-results table + table {
+  margin-top: 9px;
+}
 .recent-results caption {
   text-align: left;
   font-size: 11px;
@@ -1650,6 +1660,85 @@ b {
 }
 .player-row > .recent-results {
   margin: 0 0 9px;
+}
+.status-advance {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 0 8px 7px;
+  min-height: 36px;
+  padding: 8px 4px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.season-overview {
+  padding: 0 14px 14px;
+}
+.season-overview h3 {
+  font-size: 13px;
+  margin: 6px 0 10px;
+}
+.season-overview ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: route;
+}
+.season-overview li {
+  counter-increment: route;
+  border-left: 2px solid var(--gold);
+  background: #eeeade;
+  padding: 7px 8px;
+}
+.season-overview li small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+}
+.season-overview li small::before {
+  content: counter(route) ". ";
+}
+.season-overview li b {
+  display: block;
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 3px 0;
+}
+.season-overview li span {
+  display: block;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.review-advance {
+  width: 100%;
+  margin: 16px 0 24px;
+}
+.position-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 5px;
+  margin: 14px 0;
+}
+.position-tabs button {
+  min-height: 36px;
+  padding: 7px 3px;
+  font-size: 11px;
+}
+.position-tabs button small {
+  font-size: 9px;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+.position-tabs [aria-selected="true"] {
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+}
+.secretary-guide.compact .secretary-steps {
+  display: none;
 }
 .contract-facts {
   display: grid;

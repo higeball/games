@@ -248,20 +248,17 @@ export default function OwnerApp() {
           </section>
         ) : (
           <>
-            <OwnerStatus w={w} />
+            <OwnerStatus
+              w={w}
+              onAdvance={
+                tab === "編成" ? () => act({ type: "advance" }) : undefined
+              }
+            />
             <main className="workspace" key={tab}>
               {(tab === "ホーム" ||
                 tab === "編成" ||
                 (tab === "経営" && w.phase === "budget")) && (
-                <FoomyGuide
-                  w={w}
-                  compact={tab !== "ホーム"}
-                  onAdvance={
-                    tab === "ホーム" && w.phase === "review"
-                      ? () => act({ type: "advance" })
-                      : undefined
-                  }
-                />
+                <FoomyGuide w={w} compact={tab !== "ホーム"} />
               )}
               {tab === "ホーム" && <Dashboard w={w} act={act} go={setTab} />}
               {tab === "選手" && <Players w={w} open={setDetail} />}

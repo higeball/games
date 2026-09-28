@@ -78,11 +78,13 @@ test("old saves gain career history and compact individually colored ranks", asy
   await page.getByLabel("戦力外候補を検索").fill(original.name);
   const card = page.locator(`[data-player-id="${original.id}"]`);
   await expect(card).toHaveCount(1);
-  const rows = card.getByRole("table").locator("tbody tr");
+  const firstTable = card.getByRole("table", { name: /一軍直近3年成績/ });
+  const rows = firstTable.locator("tbody tr");
   await expect(rows).toHaveCount(3);
-  await expect(card.getByRole("table")).not.toContainText("記録なし");
-  await expect(rows.nth(1)).toContainText("補完");
-  await expect(rows.nth(2)).toContainText("補完");
+  await expect(firstTable).not.toContainText("記録なし");
+  await expect(rows.nth(1).locator("th")).toHaveText("2025");
+  await expect(rows.nth(2).locator("th")).toHaveText("2024");
+  await expect(firstTable).not.toContainText("補完");
   const grades = await card
     .locator(".candidate-skills [data-grade]")
     .evaluateAll((nodes) =>
@@ -101,7 +103,7 @@ test("old saves gain career history and compact individually colored ranks", asy
   await skills.screenshot({
     path: "test-results/compact-colored-abilities.png",
   });
-  const table = card.getByRole("table");
+  const table = firstTable;
   await table.evaluate((el) =>
     el.scrollIntoView({ block: "center", behavior: "instant" }),
   );
@@ -132,17 +134,33 @@ test("old saves gain career history and compact individually colored ranks", asy
     .getByRole("button", { name: /選手名鑑/ })
     .click();
   await page.getByLabel("選手名・種類・役割で検索").fill(original.name);
-  const catalogue = page.locator(`.player-row[data-player-id="${original.id}"]`);
-  await expect(catalogue.getByRole("table")).toContainText("2024〜2026年");
-  await expect(catalogue.getByRole("table").locator("tbody tr")).toHaveCount(3);
-  await expect(catalogue.getByRole("table")).not.toContainText("プロ入り前");
+  const catalogue = page.locator(
+    `.player-row[data-player-id="${original.id}"]`,
+  );
+  const catalogueFirst = catalogue.getByRole("table", {
+    name: /一軍直近3年成績/,
+  });
+  await expect(catalogueFirst).toContainText("2024〜2026年");
+  await expect(catalogueFirst.locator("tbody tr")).toHaveCount(3);
+  await expect(catalogueFirst).not.toContainText("プロ入り前");
   await expect(catalogue.locator("[data-style='pixel']")).toHaveCount(1);
-  expect(await catalogue.locator("svg").getAttribute("shape-rendering")).toBe("crispEdges");
-  await catalogue.screenshot({ path: "test-results/pixel-player-three-years.png" });
-  await expect(catalogue).toContainText("二軍参考（一軍0）");
+  expect(await catalogue.locator("svg").getAttribute("shape-rendering")).toBe(
+    "crispEdges",
+  );
+  await catalogue.screenshot({
+    path: "test-results/pixel-player-three-years.png",
+  });
+  await expect(
+    catalogue.getByRole("table", { name: /二軍直近3年成績/ }),
+  ).toHaveCount(1);
+  await expect(
+    catalogueFirst.locator("tbody tr").first().locator("td").first(),
+  ).toHaveText("0");
   await page.locator(".player-summary").click();
   const modal = page.getByRole("dialog");
-  await expect(modal.getByRole("table").locator("tbody tr")).toHaveCount(3);
+  await expect(
+    modal.getByRole("table", { name: /一軍直近3年成績/ }).locator("tbody tr"),
+  ).toHaveCount(3);
   await expect(modal.locator(".ability-chip")).toHaveCount(6);
   expect(
     (await modal.locator(".ability-grid").boundingBox())!.height,

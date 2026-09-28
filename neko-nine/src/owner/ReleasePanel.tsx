@@ -41,6 +41,31 @@ export function ReleasePanel({
     change();
     setPage(0);
   };
+  const positions = ["全守備", ...POSITIONS];
+  const positionNames: Record<string, string> = {
+    全守備: "全員",
+    投: "投手",
+    捕: "捕手",
+    一: "一塁",
+    二: "二塁",
+    三: "三塁",
+    遊: "遊撃",
+    左: "左翼",
+    中: "中堅",
+    右: "右翼",
+  };
+  const tabCounts = Object.fromEntries(
+    positions.map((pos) => [
+      pos,
+      releaseCandidates(w, {
+        excludeYoung,
+        excludeCore,
+        mode,
+        position: pos,
+        search,
+      }).length,
+    ]),
+  );
   return (
     <section className="release-panel" aria-label="戦力外候補の選択">
       <h2>戦力外候補を比較する</h2>
@@ -48,6 +73,43 @@ export function ReleasePanel({
         現在の空き枠は<strong>{70 - seniorRoster(w).length}人</strong>
         。候補は出場機会・年齢・戦力評価から並べています。自動的に通告はしません。
       </p>
+      <div
+        className="position-tabs"
+        role="tablist"
+        aria-label="戦力外候補のポジション"
+      >
+        {positions.map((pos, index) => (
+          <button
+            key={pos}
+            id={`release-tab-${index}`}
+            role="tab"
+            type="button"
+            aria-selected={position === pos}
+            aria-controls="release-position-panel"
+            tabIndex={position === pos ? 0 : -1}
+            onClick={() => changeFilter(() => setPosition(pos))}
+            onKeyDown={(e) => {
+              const next =
+                e.key === "ArrowRight"
+                  ? (index + 1) % positions.length
+                  : e.key === "ArrowLeft"
+                    ? (index + positions.length - 1) % positions.length
+                    : e.key === "Home"
+                      ? 0
+                      : e.key === "End"
+                        ? positions.length - 1
+                        : -1;
+              if (next < 0) return;
+              e.preventDefault();
+              changeFilter(() => setPosition(positions[next]));
+              document.getElementById(`release-tab-${next}`)?.focus();
+            }}
+          >
+            {positionNames[pos]}
+            <small>{tabCounts[pos]}</small>
+          </button>
+        ))}
+      </div>
       <div className="release-filters">
         <label>
           <input
@@ -75,16 +137,6 @@ export function ReleasePanel({
             value={search}
             onChange={(e) => changeFilter(() => setSearch(e.target.value))}
           />
-          <select
-            aria-label="戦力外候補の守備位置"
-            value={position}
-            onChange={(e) => changeFilter(() => setPosition(e.target.value))}
-          >
-            <option>全守備</option>
-            {POSITIONS.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
         </div>
       </div>
       <div className="segmented">
@@ -102,7 +154,12 @@ export function ReleasePanel({
         表示 {list.length}人 / 所属 {roster(w).length}人 ·
         来季の契約が残る選手は通告不可。育成打診は拒否されると退団します。
       </p>
-      <div className="release-candidates">
+      <div
+        className="release-candidates"
+        role="tabpanel"
+        id="release-position-panel"
+        aria-labelledby={`release-tab-${positions.indexOf(position)}`}
+      >
         {list.slice(current * 10, current * 10 + 10).map((p) => {
           const locked = p.contractYear > w.year;
           const depth = roster(w).filter(
@@ -128,6 +185,7 @@ export function ReleasePanel({
               key={p.id}
               data-player-id={p.id}
               data-pro={p.pro}
+              data-position={p.position}
               data-core={isCorePlayer(p, w.year)}
             >
               <div className="candidate-heading">
