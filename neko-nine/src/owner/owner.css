@@ -143,7 +143,7 @@
 }
 .age-chart > div {
   display: grid;
-  grid-template-columns: 75px 1fr 40px;
+  grid-template-columns: 94px 1fr 40px;
   align-items: center;
   gap: 8px;
   font-size: 11px;
@@ -1687,15 +1687,22 @@ b {
 }
 .season-overview li small {
   display: block;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--green);
 }
 .season-overview li b {
   display: block;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.6;
   margin: 3px 0;
+  white-space: nowrap;
+}
+.status-draft-stop {
+  display: block;
+  margin: 0 8px 8px auto;
+  font-size: 11px;
+  padding: 6px 12px;
 }
 .season-overview li > span {
   display: block;
@@ -1878,19 +1885,6 @@ b {
 }
 .ability-plate.condition {
   color: var(--ability-positive);
-}
-.season-overview li b .route-line {
-  display: block;
-  color: var(--ink);
-  font-size: inherit;
-  line-height: inherit;
-}
-.season-overview li b .route-token {
-  display: inline-block;
-  white-space: nowrap;
-  color: inherit;
-  font-size: inherit;
-  line-height: inherit;
 }
 .release-candidate.release-selected {
   background: #fff0ea;

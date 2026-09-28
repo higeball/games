@@ -30,13 +30,44 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     name: /第1次戦力外通告へ進む/,
   });
   const flow = page.getByRole("region", { name: "球団運営の年間の流れ" });
-  await expect(flow.locator(".route-line").first()).toHaveText("戦力外通告");
-  await expect(flow.locator(".route-line").nth(1)).toHaveText("→ ドラフト");
-  expect(
-    (await flow.locator(".route-line").nth(1).boundingBox())!.y,
-  ).toBeGreaterThan(
-    (await flow.locator(".route-line").first().boundingBox())!.y,
+  await expect(flow.locator("li > b").first()).toHaveText(
+    "戦力外通告 → ドラフト",
   );
+  await expect(flow.locator(".route-line")).toHaveCount(0);
+  expect(
+    await flow
+      .locator("li > b")
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(
+    await flow
+      .locator("li > small")
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  );
+  await expect(page.locator(".age-chart > div > span")).toHaveText([
+    "22歳以下",
+    "23歳〜27歳",
+    "28歳〜32歳",
+    "33歳〜37歳",
+    "38歳以上",
+  ]);
+  for (const width of [360, 390, 430, 1100]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await flow
+        .locator("li > b")
+        .evaluateAll((els) =>
+          els.every((el) => el.scrollWidth <= el.clientWidth),
+        ),
+    ).toBe(true);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await expect(flow).toContainText("春季キャンプ");
   const flowCards = await flow.locator("li").evaluateAll((els) =>
     els.map((el) => ({
@@ -71,6 +102,8 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   });
   await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
   await settle();
+  await expect(page.getByText("他の編成メニューを見る")).toHaveCount(0);
+  await expect(page.locator(".market-tabs")).toHaveCount(0);
   await expect(
     page.getByRole("heading", { name: "戦力外候補を比較する" }),
   ).toBeVisible();

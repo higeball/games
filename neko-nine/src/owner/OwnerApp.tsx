@@ -34,7 +34,7 @@ import {
 } from "./FrontOffice";
 import { upgradeLegacy } from "./operations";
 import { AnimalPortrait } from "./AnimalPortrait";
-import { FoomyGuide, eventTab, nextEventLabel } from "./Secretary";
+import { FoomyGuide, eventTab } from "./Secretary";
 import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { AbilityBadge } from "./AbilityBadge";
@@ -254,9 +254,8 @@ export default function OwnerApp() {
           <>
             <OwnerStatus
               w={w}
-              onAdvance={
-                tab === "編成" ? () => act({ type: "advance" }) : undefined
-              }
+              onAdvance={() => act({ type: "advance" })}
+              onStopDraft={() => act({ type: "passDraft" })}
             />
             <main className="workspace" key={tab}>
               {(tab === "ホーム" ||
@@ -866,9 +865,6 @@ function Business({
           <p>
             施設への投資は任意です。監督・コーチ6職種の契約を確定したら進めます。
           </p>
-          <button className="primary" onClick={() => act({ type: "advance" })}>
-            {nextEventLabel(w)} →
-          </button>
         </div>
       )}
       <p className="intro">

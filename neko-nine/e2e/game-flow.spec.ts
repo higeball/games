@@ -7,9 +7,18 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   const click = async (name: string | RegExp) => {
-    await page
-      .getByRole("button", { name, exact: typeof name === "string" })
-      .click();
+    const button = page.getByRole("button", {
+      name,
+      exact: typeof name === "string",
+    });
+    const text = await button.innerText();
+    if (text.includes("を終了し") || /^\d+月を進める/.test(text)) {
+      expect(await button.evaluate((el) => !!el.closest(".owner-status"))).toBe(
+        true,
+      );
+      await expect(page.locator(".status-advance")).toHaveCount(1);
+    }
+    await button.click();
     await expect(page.getByRole("status")).toHaveCount(0);
     await expect(page.getByRole("alert")).toHaveCount(0);
   };
@@ -61,7 +70,10 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await home();
   await click(/秋季キャンプへ進む/);
   await event();
+  await expect(page.locator(".status-advance")).toBeDisabled();
+  await expect(page.locator(".market-tabs")).toHaveCount(0);
   await camp();
+  await expect(page.locator(".status-advance")).toBeEnabled();
   await home();
   await click(/FA公示・第2次戦力外へ進む/);
   await home();
@@ -171,7 +183,10 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await home();
   await page.reload();
   await expect(page.locator(".status-date")).toContainText("2027年 5月");
-  await click("残りのシーズンを高速ダイジェスト");
+  await expect(
+    page.getByRole("button", { name: "残りのシーズンを高速ダイジェスト" }),
+  ).toHaveCount(0);
+  for (let month = 5; month <= 9; month++) await click(`${month}月を進める →`);
   await expect(page.locator(".status-date")).toContainText("2027年 10月上旬");
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;

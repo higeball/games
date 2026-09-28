@@ -127,7 +127,7 @@ export function phaseBlockers(w: WorldState) {
   const tasks: string[] = [];
   if (seniorRoster(w).length > SENIOR_LIMIT)
     tasks.push("支配下70人枠を超えています。");
-  if (w.phase === "draft" && w.draftRound < 6)
+  if (w.phase === "draft" && (w.draftRound < 6 || w.draftPending))
     tasks.push(
       w.draftPending?.stage === "lottery"
         ? "くじを引いて交渉権の抽選を行ってください。"

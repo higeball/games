@@ -6,6 +6,10 @@ export function nextEventLabel(w: WorldState) {
   const next = PHASE_FLOW[PHASE_FLOW.indexOf(w.phase) + 1];
   return next ? `${PHASE_NAMES[next]}へ進む` : "レギュラーシーズン開幕";
 }
+export function phaseFinishLabel(w: WorldState) {
+  if (w.phase === "season") return `${nextEventLabel(w)} →`;
+  return `${PHASE_NAMES[w.phase]}を終了し${nextEventLabel(w)}`;
+}
 export function eventTab(
   w: Pick<WorldState, "phase">,
 ): "ホーム" | "編成" | "経営" {
@@ -101,8 +105,8 @@ export function secretaryAdvice(w: WorldState) {
       ],
     },
     season: {
-      message: `${w.month}月のペナントになります。試合は監督に任せ、月送りまたは高速ダイジェストで結果を確認してください。来秋のドラフト候補へのスカウト派遣もお忘れなく。`,
-      steps: ["来秋の候補を調査", "月送り／高速進行", "成績・営業報告を確認"],
+      message: `${w.month}月のペナントになります。試合は監督に任せ、ヘッダーの月送りボタンで順番に結果を確認してください。来秋のドラフト候補へのスカウト派遣もお忘れなく。`,
+      steps: ["来秋の候補を調査", "ヘッダーから月送り", "成績・営業報告を確認"],
     },
   };
   return (
@@ -198,19 +202,7 @@ export function FoomyGuide({
             ].map(([date, name, detail]) => (
               <li key={name}>
                 <small>{date}</small>
-                <b>
-                  {name.split(" → ").map((step, i) => (
-                    <span className="route-line" key={step}>
-                      {i > 0 && "→ "}
-                      {step.split("・").map((token, j) => (
-                        <span className="route-token" key={token}>
-                          {j > 0 && "・"}
-                          {token}
-                        </span>
-                      ))}
-                    </span>
-                  ))}
-                </b>
+                <b>{name}</b>
                 <span>{detail}</span>
               </li>
             ))}

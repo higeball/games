@@ -27,7 +27,7 @@ import {
 import { PlayerList, StaffCard, Annual } from "./OwnerApp";
 import { YasuPortrait } from "../ui/Sprites";
 import { ReleasePanel } from "./ReleasePanel";
-import { nextEventLabel } from "./Secretary";
+import { phaseFinishLabel } from "./Secretary";
 import { AbilityBadge } from "./AbilityBadge";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { ScoutingStatus } from "./ScoutingStatus";
@@ -41,9 +41,11 @@ export const phaseDate = (w: WorldState) =>
 export function OwnerStatus({
   w,
   onAdvance,
+  onStopDraft,
 }: {
   w: WorldState;
   onAdvance?: () => void;
+  onStopDraft?: () => void;
 }) {
   const t = w.teams[0],
     f = t.finance,
@@ -94,11 +96,25 @@ export function OwnerStatus({
           </strong>
         </div>
       </div>
-      {w.phase === "release" && onAdvance && (
-        <button className="primary status-advance" onClick={onAdvance}>
-          第1次戦力外通告を終了しドラフト会議へ進む
+      {w.phase !== "review" && onAdvance && (
+        <button
+          className="primary status-advance"
+          onClick={onAdvance}
+          disabled={phaseBlockers(w).length > 0}
+          title={phaseBlockers(w).join(" / ")}
+          data-phase={w.phase}
+        >
+          {phaseFinishLabel(w)}
         </button>
       )}
+      {w.phase === "draft" &&
+        w.draftRound < 6 &&
+        w.draftPending?.stage !== "lottery" &&
+        onStopDraft && (
+          <button className="status-draft-stop" onClick={onStopDraft}>
+            指名を終了
+          </button>
+        )}
     </div>
   );
 }
@@ -152,12 +168,20 @@ export function Dashboard({
           ? `${PHASE_DATES[next]} ${PHASE_NAMES[next]}`
           : "10月 シーズン総括";
   const ageGroups = [
-    { name: "25歳以下", count: list.filter((p) => p.age <= 25).length },
+    { name: "22歳以下", count: list.filter((p) => p.age <= 22).length },
     {
-      name: "26〜31歳",
-      count: list.filter((p) => p.age >= 26 && p.age <= 31).length,
+      name: "23歳〜27歳",
+      count: list.filter((p) => p.age >= 23 && p.age <= 27).length,
     },
-    { name: "32歳以上", count: list.filter((p) => p.age >= 32).length },
+    {
+      name: "28歳〜32歳",
+      count: list.filter((p) => p.age >= 28 && p.age <= 32).length,
+    },
+    {
+      name: "33歳〜37歳",
+      count: list.filter((p) => p.age >= 33 && p.age <= 37).length,
+    },
+    { name: "38歳以上", count: list.filter((p) => p.age >= 38).length },
   ];
   return (
     <>
@@ -174,22 +198,8 @@ export function Dashboard({
               今すぐイベントへ進む →
             </button>
           )}
-          <button
-            className="secondary"
-            onClick={() => act({ type: "advance" })}
-          >
-            {w.phase === "season"
-              ? `${w.month}月を進める`
-              : next
-                ? `${PHASE_NAMES[next]}へ進む`
-                : "レギュラーシーズン開幕"}{" "}
-            →
-          </button>
           {w.phase === "season" && (
             <>
-              <button onClick={() => act({ type: "skipSeason" })}>
-                残りのシーズンを高速ダイジェスト
-              </button>
               <button onClick={() => go("編成")}>
                 来秋のドラフト候補を調査
               </button>
@@ -359,16 +369,9 @@ export function Dashboard({
 export function FrontOffice({ w, act, open }: Props) {
   const [view, setView] = useState("イベント");
   if (w.phase === "draft") return <DraftBoard w={w} act={act} open={open} />;
-  const releasing =
-    view === "イベント" && ["release", "release2"].includes(w.phase);
-  const choices = [
-    "イベント",
-    "ドラフト・調査",
-    "FA市場",
-    "外国人",
-    "トレード",
-    "トライアウト",
-  ];
+  const releasing = ["release", "release2"].includes(w.phase);
+  const choices =
+    w.phase === "contracts" ? ["イベント", "FA市場", "外国人", "トレード"] : [];
   const marketTabs = (
     <div className="market-tabs">
       {choices.map((v) => (
@@ -386,14 +389,7 @@ export function FrontOffice({ w, act, open }: Props) {
     <>
       <div className="eyebrow">BASEBALL OPERATIONS</div>
       <h1>{releasing ? PHASE_NAMES[w.phase] : "編成・補強"}</h1>
-      {releasing ? (
-        <details className="release-other-menu">
-          <summary>他の編成メニューを見る</summary>
-          {marketTabs}
-        </details>
-      ) : (
-        marketTabs
-      )}
+      {choices.length > 0 && marketTabs}
       {!releasing && (
         <div className="phase-heading">
           <span>{PHASE_NAMES[w.phase]}</span>
@@ -407,12 +403,9 @@ export function FrontOffice({ w, act, open }: Props) {
               ? `未完了：${phaseBlockers(w).join(" / ")}`
               : "検討・手続きが済んだら、次のイベントへ進めます。"}
           </p>
-          <button className="primary" onClick={() => act({ type: "advance" })}>
-            {nextEventLabel(w)} →
-          </button>
         </div>
       )}
-      {view === "ドラフト・調査" ? (
+      {w.phase === "season" ? (
         <DraftBoard w={w} act={act} open={open} />
       ) : view === "FA市場" ? (
         <Market w={w} act={act} open={open} kind="fa" />
@@ -420,8 +413,6 @@ export function FrontOffice({ w, act, open }: Props) {
         <Market w={w} act={act} open={open} kind="foreign" />
       ) : view === "トレード" ? (
         <TradePanel w={w} act={act} />
-      ) : view === "トライアウト" ? (
-        <Market w={w} act={act} open={open} kind="tryout" />
       ) : ["release", "release2"].includes(w.phase) ? (
         <ReleasePanel w={w} act={act} />
       ) : ["autumn", "spring"].includes(w.phase) ? (
@@ -471,10 +462,8 @@ export function FrontOffice({ w, act, open }: Props) {
         </>
       ) : w.phase === "registration" ? (
         <Registration w={w} act={act} open={open} />
-      ) : w.phase === "season" ? (
-        <DraftBoard w={w} act={act} open={open} />
       ) : (
-        <p>{hints[w.phase]} ホームから次のイベントに進めます。</p>
+        <p>{hints[w.phase]} ヘッダーから次のイベントに進めます。</p>
       )}
     </>
   );
@@ -617,9 +606,9 @@ function DraftBoard({ w, act, open }: Props) {
             獲得 {w.draftLog.filter((p) => p.team === 0).length}
             人。次は秋季キャンプで、新戦力を育てましょう。
           </p>
-          <button className="primary" onClick={() => act({ type: "advance" })}>
-            秋季キャンプへ進む
-          </button>
+          <p>
+            指名結果を確認したら、ヘッダーの終了ボタンで秋季キャンプへ進んでください。
+          </p>
         </section>
       )}
       {!pending && !finished && (
@@ -695,14 +684,6 @@ function DraftBoard({ w, act, open }: Props) {
             </details>
           )}
         </>
-      )}
-      {inDraft && !finished && pending?.stage !== "lottery" && (
-        <button
-          className="draft-stop"
-          onClick={() => act({ type: "passDraft" })}
-        >
-          指名を終了
-        </button>
       )}
       {!!w.draftLog.length && (
         <details>

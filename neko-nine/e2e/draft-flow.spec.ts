@@ -164,7 +164,15 @@ test("mobile draft advances only after each result, including lottery and reload
       ),
     ).toBe(true);
   }
-  await click("秋季キャンプへ進む");
+  const finish = page.getByRole("button", {
+    name: "ドラフト会議を終了し秋季キャンプへ進む",
+    exact: true,
+  });
+  await expect(finish).toBeEnabled();
+  expect(await finish.evaluate((el) => !!el.closest(".owner-status"))).toBe(
+    true,
+  );
+  await click("ドラフト会議を終了し秋季キャンプへ進む");
   await expect(guide).toContainText("秋季キャンプになります");
   expect(errors).toEqual([]);
 });
