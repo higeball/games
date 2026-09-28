@@ -2,7 +2,12 @@ import { beforeAll, expect, it } from "vitest";
 import { createWorld, newPlayer, applyOwnerAction, roster } from "./engine";
 import { playerName, normalizePlayerNames } from "./identity";
 import { portraitPattern } from "./AnimalPortrait";
-import { releaseCandidates, isCorePlayer, isPendingRelease } from "./release";
+import {
+  releaseCandidates,
+  isCorePlayer,
+  isPendingRelease,
+  recommendedReleaseIds,
+} from "./release";
 import { secretaryAdvice, eventTab, nextEventLabel } from "./Secretary";
 import { PHASE_FLOW, type WorldState } from "./model";
 
@@ -103,6 +108,43 @@ it("excludes young and core players by default but lets the owner select them", 
       (p) => p.id === core.id,
     )?.team,
   ).toBe(null);
+});
+
+it("preselects ten eligible recommendations without releasing anyone and allows individual selection", () => {
+  const w = structuredClone(world);
+  w.phase = "release";
+  const ids = recommendedReleaseIds(w);
+  const options = {
+    excludeYoung: true,
+    excludeCore: true,
+    mode: "戦力外",
+    position: "全守備",
+    search: "",
+    recommendedIds: ids,
+  };
+  const list = releaseCandidates(w, options);
+  expect(list).toHaveLength(10);
+  expect(new Set(ids).size).toBe(10);
+  expect(
+    list.every(
+      (p) =>
+        p.team === 0 &&
+        p.pro > 3 &&
+        !isCorePlayer(p, w.year) &&
+        p.contractYear <= w.year,
+    ),
+  ).toBe(true);
+  expect(roster(w)).toHaveLength(roster(world).length);
+  expect(
+    releaseCandidates(w, {
+      ...options,
+      recommendedIds: undefined,
+      excludeYoung: false,
+      excludeCore: false,
+    }),
+  ).toHaveLength(roster(w).length);
+  const released = applyOwnerAction(w, { type: "release", id: ids[0] });
+  expect(releaseCandidates(released, options)).toHaveLength(10);
 });
 it("keeps multi-year contracts visible but protected and filters development eligibility", () => {
   const w = structuredClone(world);

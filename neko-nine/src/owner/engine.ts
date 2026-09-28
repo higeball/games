@@ -1412,6 +1412,23 @@ function cpuPick(w: WorldState, id: number) {
     (w.draftPicked ??= []).push(id);
   }
 }
+function resolveDraftSelection(w: WorldState, winner: number) {
+  const pending = w.draftPending!;
+  const p = w.players.find((p) => p.id === pending.player)!;
+  acquire(w, p, winner, 600, 1000);
+  w.draftLog.push({ team: winner, player: p.id, round: pending.round });
+  (w.draftPicked ??= []).push(winner);
+  if (winner === 0) w.draftCursor++;
+  pending.stage = "result";
+  pending.winner = winner;
+  if (pending.round === 1)
+    w.lottery = { player: p.id, rivals: pending.rivals, winner };
+  news(
+    w,
+    winner === 0 ? `${pending.round}巡目・交渉権獲得` : "1位指名・抽選落選",
+    `${p.name}は${w.teams[winner].short}が交渉権を獲得。${winner === 0 ? "結果を確認し、次の巡へ進んでください。" : "結果を確認し、1巡目を再指名してください。"}`,
+  );
+}
 function advanceDraftCpu(w: WorldState) {
   while (w.draftRound < 6) {
     if (!w.draftOrder.length) {
@@ -1616,8 +1633,15 @@ export function applyOwnerAction(
     }
     case "draft": {
       requirePhase(["draft"]);
+      if (w.draftPending)
+        throw Error("抽選・指名結果を確認してから次の指名へ進んでください。");
       const p = player(action.id);
-      if (p.market !== "draft" || w.draftRound >= 6)
+      if (
+        p.market !== "draft" ||
+        p.draftYear !== w.year + 1 ||
+        w.draftRound >= 6 ||
+        w.draftPassed.includes(0)
+      )
         throw Error("指名できない候補です。");
       if (seniorRoster(w).length >= SENIOR_LIMIT)
         throw Error("支配下70人枠に空きがありません。");
@@ -1634,34 +1658,49 @@ export function applyOwnerAction(
               !x.finance.debt &&
               random(w) < clamp((ability(p) - 45) / 100, 0.05, 0.3),
           );
-        const winner = pick(w, [0, ...rivals.map((x) => x.id)]);
-        w.lottery = { player: p.id, rivals: rivals.map((x) => x.id), winner };
-        if (winner !== 0) {
-          acquire(w, p, winner, 600, 1000);
-          w.draftLog.push({ team: winner, player: p.id, round: 1 });
-          (w.draftPicked ??= []).push(winner);
-          news(
-            w,
-            "1位指名・抽選結果",
-            `${p.name}は${w.teams[winner].short}が交渉権を獲得。再指名してください。`,
-          );
-          break;
-        }
-        news(
-          w,
-          "1位指名・交渉権獲得",
-          `${p.name}を獲得！ ${rivals.length ? "競合抽選を突破。" : "単独指名。"}`,
-        );
+        w.draftPending = {
+          round: 1,
+          player: p.id,
+          rivals: rivals.map((x) => x.id),
+          stage: "lottery",
+        };
+        w.lottery = null;
+        if (rivals.length) break;
+      } else {
+        w.draftPending = {
+          round: w.draftRound + 1,
+          player: p.id,
+          rivals: [],
+          stage: "lottery",
+        };
       }
-      acquire(w, p, 0, 600, 1000);
-      w.draftLog.push({ team: 0, player: p.id, round: w.draftRound + 1 });
-      w.draftCursor++;
-      advanceDraftCpu(w);
+      resolveDraftSelection(w, 0);
+      break;
+    }
+    case "drawDraftLottery": {
+      requirePhase(["draft"]);
+      if (!w.draftPending || w.draftPending.stage !== "lottery")
+        throw Error("抽選待ちの指名はありません。");
+      resolveDraftSelection(w, pick(w, [0, ...w.draftPending.rivals]));
+      break;
+    }
+    case "nextDraftRound": {
+      requirePhase(["draft"]);
+      if (!w.draftPending || w.draftPending.stage !== "result")
+        throw Error("指名結果を先に確認してください。");
+      const won = w.draftPending.winner === 0;
+      delete w.draftPending;
+      w.lottery = null;
+      if (won) advanceDraftCpu(w);
       break;
     }
     case "passDraft":
       requirePhase(["draft"]);
-      w.draftPassed.push(0);
+      if (w.draftPending?.stage === "lottery")
+        throw Error("くじを引いて結果を確認してください。");
+      if (w.draftRound >= 6) throw Error("ドラフトは終了済みです。");
+      delete w.draftPending;
+      if (!w.draftPassed.includes(0)) w.draftPassed.push(0);
       advanceDraftCpu(w);
       break;
     case "camp": {

@@ -47,6 +47,11 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     .first()
     .click();
   await expect(page.getByRole("status")).toHaveCount(0);
+  if (
+    await page.getByRole("button", { name: "くじを引く", exact: true }).count()
+  ) {
+    await click("くじを引く");
+  }
   await expect(page.locator(".lottery-result")).toBeVisible();
   await page.screenshot({
     path: "test-results/fukuoka-draft.png",

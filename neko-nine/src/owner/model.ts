@@ -271,6 +271,13 @@ export type WorldState = {
   draftCursor: number;
   draftPassed: number[];
   draftPicked?: number[];
+  draftPending?: {
+    round: number;
+    player: string;
+    rivals: number[];
+    stage: "lottery" | "result";
+    winner?: number;
+  };
   campDone: boolean;
   finalists: number[];
   champion: number | null;
@@ -305,6 +312,8 @@ export type OwnerAction =
   | { type: "cancelRelease"; id: string }
   | { type: "hire"; id: string }
   | { type: "draft"; id: string }
+  | { type: "drawDraftLottery" }
+  | { type: "nextDraftRound" }
   | { type: "passDraft" }
   | { type: "camp"; location: number; focus: Skill }
   | { type: "offer"; id: string; salary: number }

@@ -35,11 +35,15 @@ export function releaseCandidates(
     mode: string;
     position: string;
     search: string;
+    recommendedIds?: readonly string[];
   },
 ) {
   return [...roster(w), ...w.players.filter((p) => isPendingRelease(p, w))]
     .filter(
       (p) =>
+        (!options.recommendedIds ||
+          options.recommendedIds.includes(p.id) ||
+          isPendingRelease(p, w)) &&
         (isPendingRelease(p, w) || !options.excludeYoung || p.pro > 3) &&
         (isPendingRelease(p, w) ||
           !options.excludeCore ||
@@ -58,4 +62,17 @@ export function releaseCandidates(
         ability(a) - ability(b) ||
         a.id.localeCompare(b.id),
     );
+}
+
+export function recommendedReleaseIds(w: WorldState, limit = 10) {
+  return releaseCandidates(w, {
+    excludeYoung: true,
+    excludeCore: true,
+    mode: "戦力外",
+    position: "全守備",
+    search: "",
+  })
+    .filter((p) => p.contractYear <= w.year)
+    .slice(0, limit)
+    .map((p) => p.id);
 }

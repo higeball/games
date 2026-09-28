@@ -127,7 +127,13 @@ export function phaseBlockers(w: WorldState) {
   if (seniorRoster(w).length > SENIOR_LIMIT)
     tasks.push("支配下70人枠を超えています。");
   if (w.phase === "draft" && w.draftRound < 6)
-    tasks.push("ドラフト指名、または指名終了を選んでください。");
+    tasks.push(
+      w.draftPending?.stage === "lottery"
+        ? "くじを引いて交渉権の抽選を行ってください。"
+        : w.draftPending?.stage === "result"
+          ? "指名結果を確認し、次の指名へ進んでください。"
+          : "ドラフト指名、または指名終了を選んでください。",
+    );
   if (["autumn", "spring"].includes(w.phase) && !w.campDone)
     tasks.push("キャンプ計画を実施してください。");
   if (w.phase === "activeDraft" && !w.activeDraftDone)
@@ -802,6 +808,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
 }
 
 export function resetOperations(w: WorldState) {
+  delete w.draftPending;
   w.draftLog = [];
   w.lottery = null;
   w.activeDraftDone = false;

@@ -1670,7 +1670,7 @@ b {
 }
 .season-overview ol {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   list-style: none;
   margin: 0;
@@ -1680,7 +1680,9 @@ b {
 .season-overview li {
   counter-increment: route;
   background: #eeeade;
-  padding: 7px 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
 }
 .season-overview li small {
   display: block;
@@ -1952,4 +1954,51 @@ b {
   min-height: 44px;
   font-size: 12px;
   justify-content: center;
+}
+.draft-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 18px;
+  font-size: 10px;
+}
+.draft-steps li {
+  padding: 8px 4px;
+  text-align: center;
+  background: #eeecdf;
+  border-radius: 4px;
+}
+.draft-steps .current {
+  background: var(--green);
+  color: #fffaf0;
+}
+.draft-outcome {
+  padding: 18px;
+  background: #fffaf0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.draft-selected-player {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.draft-selected-player h3 {
+  margin: 4px 0;
+}
+.draft-selected-player small {
+  font-size: 10px;
+}
+.draft-stop {
+  margin: 18px 0;
+  width: 100%;
+  min-height: 44px;
+}
+.draft-heading {
+  scroll-margin-top: 105px;
 }

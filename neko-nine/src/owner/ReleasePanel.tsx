@@ -18,6 +18,7 @@ import {
   releaseReasons,
   isCorePlayer,
   isPendingRelease,
+  recommendedReleaseIds,
 } from "./release";
 import { RecentResults } from "./RecentResults";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -35,6 +36,8 @@ export function ReleasePanel({
     [position, setPosition] = useState("全守備"),
     [search, setSearch] = useState(""),
     [page, setPage] = useState(0),
+    [scope, setScope] = useState("おすすめ"),
+    [recommendedIds] = useState(() => recommendedReleaseIds(w)),
     [confirmation, setConfirmation] = useState<{
       id: string;
       type: "release" | "development";
@@ -46,6 +49,7 @@ export function ReleasePanel({
     mode,
     position,
     search,
+    recommendedIds: scope === "おすすめ" ? recommendedIds : undefined,
   });
   const pages = Math.max(1, Math.ceil(list.length / 10)),
     current = Math.min(page, pages - 1);
@@ -75,6 +79,7 @@ export function ReleasePanel({
         mode,
         position: pos,
         search,
+        recommendedIds: scope === "おすすめ" ? recommendedIds : undefined,
       }).length,
     ]),
   );
@@ -84,6 +89,37 @@ export function ReleasePanel({
       <p>
         現在の空き枠は<strong>{70 - seniorRoster(w).length}人</strong>
         。通告した選手は一覧に残り、この通告期間を終了するまではキャンセルできます。
+      </p>
+      <div className="segmented" aria-label="候補の選び方">
+        <button
+          className={scope === "おすすめ" ? "selected" : ""}
+          onClick={() =>
+            changeFilter(() => {
+              setScope("おすすめ");
+              setYoung(true);
+              setCore(true);
+              setSearch("");
+              setPosition("全守備");
+            })
+          }
+        >
+          おすすめ候補（約10人）
+        </button>
+        <button
+          className={scope === "個別" ? "selected" : ""}
+          onClick={() =>
+            changeFilter(() => {
+              setScope("個別");
+              setYoung(false);
+              setCore(false);
+            })
+          }
+        >
+          全選手から選ぶ
+        </button>
+      </div>
+      <p className="muted">
+        おすすめは若手・主力・契約継続中の選手を除き、出場機会・年齢・戦力評価・年俸から約10人に絞っています。通告は自動では行いません。
       </p>
       <div
         className="position-tabs"
@@ -127,7 +163,12 @@ export function ReleasePanel({
           <input
             type="checkbox"
             checked={excludeYoung}
-            onChange={(e) => changeFilter(() => setYoung(e.target.checked))}
+            onChange={(e) =>
+              changeFilter(() => {
+                setScope("個別");
+                setYoung(e.target.checked);
+              })
+            }
           />
           3年目までの選手を除外
         </label>
@@ -135,7 +176,12 @@ export function ReleasePanel({
           <input
             type="checkbox"
             checked={excludeCore}
-            onChange={(e) => changeFilter(() => setCore(e.target.checked))}
+            onChange={(e) =>
+              changeFilter(() => {
+                setScope("個別");
+                setCore(e.target.checked);
+              })
+            }
           />
           主力選手を除外
         </label>
@@ -147,7 +193,12 @@ export function ReleasePanel({
             aria-label="戦力外候補を検索"
             placeholder="名前・特殊能力で検索"
             value={search}
-            onChange={(e) => changeFilter(() => setSearch(e.target.value))}
+            onChange={(e) =>
+              changeFilter(() => {
+                setScope("個別");
+                setSearch(e.target.value);
+              })
+            }
           />
         </div>
       </div>
@@ -310,6 +361,7 @@ export function ReleasePanel({
           onClose={() => setConfirmation(null)}
           onConfirm={() => {
             act({ type: confirmation.type, id: confirmation.id });
+            setPage(0);
             setConfirmation(null);
           }}
         >

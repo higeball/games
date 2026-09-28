@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { roster, standings, estimate } from "./engine";
 import {
   seniorRoster,
@@ -29,6 +29,7 @@ import { YasuPortrait } from "../ui/Sprites";
 import { ReleasePanel } from "./ReleasePanel";
 import { nextEventLabel } from "./Secretary";
 import { AbilityBadge } from "./AbilityBadge";
+import { AnimalPortrait } from "./AnimalPortrait";
 type Props = {
   w: WorldState;
   act: (a: OwnerAction) => void;
@@ -356,6 +357,7 @@ export function Dashboard({
 
 export function FrontOffice({ w, act, open }: Props) {
   const [view, setView] = useState("イベント");
+  if (w.phase === "draft") return <DraftBoard w={w} act={act} open={open} />;
   const releasing =
     view === "イベント" && ["release", "release2"].includes(w.phase);
   const choices = [
@@ -421,8 +423,6 @@ export function FrontOffice({ w, act, open }: Props) {
         <Market w={w} act={act} open={open} kind="tryout" />
       ) : ["release", "release2"].includes(w.phase) ? (
         <ReleasePanel w={w} act={act} />
-      ) : w.phase === "draft" ? (
-        <DraftBoard w={w} act={act} open={open} />
       ) : ["autumn", "spring"].includes(w.phase) ? (
         <CampPanel w={w} act={act} />
       ) : w.phase === "tryout" ? (
@@ -479,8 +479,19 @@ export function FrontOffice({ w, act, open }: Props) {
   );
 }
 function DraftBoard({ w, act, open }: Props) {
-  const picking = w.phase === "draft" && w.draftRound < 6,
-    scouting = ["season", "draft"].includes(w.phase);
+  const inDraft = w.phase === "draft";
+  const pending = inDraft ? w.draftPending : undefined;
+  const picking = inDraft && w.draftRound < 6 && !pending,
+    scouting = w.phase === "season" || picking;
+  const selected = pending && w.players.find((p) => p.id === pending.player);
+  const finished = inDraft && w.draftRound >= 6;
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!inDraft) return;
+    if (pending || w.draftRound > 0)
+      heading.current?.scrollIntoView({ block: "start", behavior: "instant" });
+    else window.scrollTo({ top: 0, behavior: "instant" });
+  }, [inDraft, pending?.stage, pending?.player, w.draftRound]);
   const pool = w.players.filter(
     (p) => p.market === "draft" && p.draftYear === w.year + 1,
   );
@@ -495,104 +506,203 @@ function DraftBoard({ w, act, open }: Props) {
     );
   return (
     <>
-      <h2>
-        {w.phase === "season"
-          ? `${w.year + 1}年ドラフトの事前調査`
-          : `ドラフト 第${Math.min(6, w.draftRound + 1)}巡`}
+      <h2 ref={heading} className="draft-heading">
+        {finished
+          ? "ドラフト指名終了"
+          : w.phase === "season"
+            ? `${w.year + 1}年ドラフトの事前調査`
+            : `ドラフト 第${Math.min(6, w.draftRound + 1)}巡`}
       </h2>
-      <p>
-        調査度0〜100%。低調査では能力評価に大きな幅が残ります。1位は重複抽選、下位は逆順位を交互に反転。契約金1,000万円・年俸600万円。
-      </p>
-      {w.phase === "draft" && (
-        <button disabled={!picking} onClick={() => act({ type: "passDraft" })}>
+      {inDraft && (
+        <ol className="draft-steps" aria-label="ドラフトの進行">
+          {["候補を指名", "競合・くじ引き", "結果を確認", "次の巡へ"].map(
+            (s, i) => (
+              <li
+                key={s}
+                className={
+                  i ===
+                  (finished
+                    ? 3
+                    : pending?.stage === "lottery"
+                      ? 1
+                      : pending
+                        ? 2
+                        : 0)
+                    ? "current"
+                    : ""
+                }
+              >
+                {s}
+              </li>
+            ),
+          )}
+        </ol>
+      )}
+      {!pending && !finished && (
+        <p>
+          調査度0〜100%。低調査では能力評価に大きな幅が残ります。1位は重複抽選、下位は逆順位を交互に反転。契約金1,000万円・年俸600万円。
+        </p>
+      )}
+      {pending && selected && (
+        <section
+          className="draft-outcome"
+          aria-label={
+            pending.stage === "lottery"
+              ? "競合指名・抽選待ち"
+              : "ドラフト指名結果"
+          }
+        >
+          <div className="draft-selected-player">
+            <AnimalPortrait p={selected} />
+            <div>
+              <small>
+                {pending.round}巡目指名 · {selected.position} / {selected.age}歳
+              </small>
+              <h3>{selected.name}</h3>
+            </div>
+          </div>
+          <p>
+            {pending.rivals.length
+              ? `${[0, ...pending.rivals].map((id) => w.teams[id].short).join("・")}の${pending.rivals.length + 1}球団が競合指名。`
+              : pending.round === 1
+                ? "単独指名です。"
+                : "指名が確定しました。"}
+          </p>
+          {pending.stage === "lottery" ? (
+            <>
+              <h3>交渉権をかけて、くじ引きです。</h3>
+              <p>フーミー：ヤスオーナー、くじを引いてください！</p>
+              <button
+                className="primary"
+                onClick={() => act({ type: "drawDraftLottery" })}
+              >
+                くじを引く
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="lottery-result" aria-live="polite">
+                <strong>
+                  {pending.winner === 0 ? "交渉権獲得！" : "抽選落選"}
+                </strong>
+                <p>{w.teams[pending.winner!].short}が交渉権を獲得しました。</p>
+              </div>
+              <p>
+                {pending.winner === 0
+                  ? "契約金1,000万円・年俸600万円で入団。指名結果を確認したら次へ進みましょう。"
+                  : "まだ1巡目の指名は終わっていません。別の候補を再指名しましょう。"}
+              </p>
+              <button onClick={() => open(selected.id)}>
+                指名選手のプロフィール
+              </button>
+              <button
+                className="primary"
+                onClick={() => act({ type: "nextDraftRound" })}
+              >
+                {pending.winner !== 0
+                  ? "1巡目を再指名する"
+                  : pending.round === 6
+                    ? "ドラフトの結果を確定する"
+                    : `${pending.round + 1}巡目の指名へ進む`}
+              </button>
+            </>
+          )}
+        </section>
+      )}
+      {finished && (
+        <section className="draft-outcome">
+          <h3>新人の指名が完了しました。</h3>
+          <p>
+            獲得 {w.draftLog.filter((p) => p.team === 0).length}
+            人。次は秋季キャンプで、新戦力を育てましょう。
+          </p>
+          <button className="primary" onClick={() => act({ type: "advance" })}>
+            秋季キャンプへ進む
+          </button>
+        </section>
+      )}
+      {!pending && !finished && (
+        <>
+          <label className="field">
+            補強ポジション
+            <select
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+            >
+              <option>全守備</option>
+              {POSITIONS.map((p) => (
+                <option key={p}>{p}</option>
+              ))}
+            </select>
+          </label>
+          <p className="muted">
+            残り調査 {w.scoutsLeft}件 ／ 空き枠 {70 - seniorRoster(w).length}人
+          </p>
+          <div className="prospect-grid">
+            {candidates.slice(0, 24).map((p) => {
+              const skill = p.position === "投" ? "control" : "contact",
+                e = estimate(w, p, skill);
+              return (
+                <article key={p.id}>
+                  <button className="prospect-name" onClick={() => open(p.id)}>
+                    <small>
+                      {p.position} / {p.age}歳 / 調査{Math.round(p.scouting)}%
+                    </small>
+                    <b>{p.name}</b>
+                  </button>
+                  <div className="ability-grid">
+                    <AbilityBadge
+                      label={SKILLS[skill]}
+                      low={e.low}
+                      high={e.high}
+                    />
+                  </div>
+                  <progress max={100} value={p.scouting} />
+                  <div className="inline-actions">
+                    {scouting && (
+                      <button
+                        disabled={w.scoutsLeft === 0 || p.scouting >= 100}
+                        onClick={() => act({ type: "scout", id: p.id })}
+                      >
+                        調査 200万円
+                      </button>
+                    )}
+                    {picking && (
+                      <button onClick={() => act({ type: "draft", id: p.id })}>
+                        指名する
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {candidates.length > 24 && (
+            <details>
+              <summary>全候補を名鑑で確認（{candidates.length}人）</summary>
+              <PlayerList
+                w={w}
+                list={candidates}
+                open={open}
+                action={
+                  picking ? (p) => act({ type: "draft", id: p.id }) : undefined
+                }
+                label="指名する"
+              />
+            </details>
+          )}
+        </>
+      )}
+      {inDraft && !finished && pending?.stage !== "lottery" && (
+        <button
+          className="draft-stop"
+          onClick={() => act({ type: "passDraft" })}
+        >
           指名を終了
         </button>
       )}
-      {w.phase === "draft" && w.lottery && (
-        <div
-          className="lottery-result"
-          key={`${w.lottery.player}-${w.lottery.winner}`}
-        >
-          <span className="lottery-ticket">
-            交渉権
-            <br />
-            <b>{w.lottery.winner === 0 ? "獲得！" : "抽選落選"}</b>
-          </span>
-          <p>
-            {w.players.find((p) => p.id === w.lottery?.player)?.name}
-            <br />
-            {[0, ...w.lottery.rivals].map((id) => w.teams[id].short).join("・")}
-            が指名 → {w.teams[w.lottery.winner].short}
-            <br />
-            {w.lottery.winner !== 0
-              ? "候補を選び直して再指名できます。"
-              : "新人の能力が所属選手として確認できます。"}
-          </p>
-        </div>
-      )}
-      <label className="field">
-        補強ポジション
-        <select value={position} onChange={(e) => setPosition(e.target.value)}>
-          <option>全守備</option>
-          {POSITIONS.map((p) => (
-            <option key={p}>{p}</option>
-          ))}
-        </select>
-      </label>
-      <p className="muted">
-        残り調査 {w.scoutsLeft}件 ／ 空き枠 {70 - seniorRoster(w).length}人
-      </p>
-      <div className="prospect-grid">
-        {candidates.slice(0, 24).map((p) => {
-          const skill = p.position === "投" ? "control" : "contact",
-            e = estimate(w, p, skill);
-          return (
-            <article key={p.id}>
-              <button className="prospect-name" onClick={() => open(p.id)}>
-                <small>
-                  {p.position} / {p.age}歳 / 調査{Math.round(p.scouting)}%
-                </small>
-                <b>{p.name}</b>
-              </button>
-              <div className="ability-grid">
-                <AbilityBadge label={SKILLS[skill]} low={e.low} high={e.high} />
-              </div>
-              <progress max={100} value={p.scouting} />
-              <div className="inline-actions">
-                {scouting && (
-                  <button
-                    disabled={w.scoutsLeft === 0 || p.scouting >= 100}
-                    onClick={() => act({ type: "scout", id: p.id })}
-                  >
-                    調査 200万円
-                  </button>
-                )}
-                {picking && (
-                  <button onClick={() => act({ type: "draft", id: p.id })}>
-                    指名する
-                  </button>
-                )}
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      {candidates.length > 24 && (
-        <details>
-          <summary>全候補を名鑑で確認（{candidates.length}人）</summary>
-          <PlayerList
-            w={w}
-            list={candidates}
-            open={open}
-            action={
-              picking ? (p) => act({ type: "draft", id: p.id }) : undefined
-            }
-            label="指名する"
-          />
-        </details>
-      )}
       {!!w.draftLog.length && (
-        <details open>
+        <details>
           <summary>リアルタイム指名速報</summary>
           <div className="draft-feed">
             {[...w.draftLog]
