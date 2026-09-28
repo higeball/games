@@ -2338,6 +2338,9 @@ b {
   gap: 5px;
 }
 .batter-fielding .ability-chip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px 3ch;
+  align-items: baseline;
   flex: none;
   min-width: 0;
   padding: 6px 4px;
@@ -2351,12 +2354,24 @@ b {
 }
 .batter-fielding .ability-chip b {
   font-size: 14px;
+  text-align: right;
+}
+.batter-fielding .ability-rank {
+  justify-content: center;
+  align-items: baseline;
 }
 .batter-fielding .grade {
   font-size: 20px;
 }
 .batter-fielding .ability-chip:has(.ability-rank i) {
-  flex-wrap: wrap;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.batter-fielding .ability-chip:has(.ability-rank i) small {
+  grid-row: span 2;
+}
+.batter-fielding .ability-chip:has(.ability-rank i) > b {
+  grid-column: 2;
+  font-size: 11px;
 }
 .batter-special,
 .batter-season {

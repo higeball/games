@@ -4,7 +4,6 @@ import {
   CAT_BREEDS,
   DOG_BREEDS,
   POSITIONS,
-  SKILLS,
   money,
   type Player,
   type OwnerAction,
@@ -12,7 +11,7 @@ import {
 } from "./model";
 import { seniorRoster } from "./operations";
 import { AnimalPortrait } from "./AnimalPortrait";
-import { AbilityBadge, GradeMark } from "./AbilityBadge";
+import { GradeMark } from "./AbilityBadge";
 import {
   releaseCandidates,
   releaseReasons,
@@ -22,7 +21,7 @@ import {
 } from "./release";
 import { RecentResults } from "./RecentResults";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { ProfileAbilities } from "./ProfileAbilities";
+import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
 export function ReleasePanel({
   w,
   act,
@@ -232,17 +231,6 @@ export function ReleasePanel({
               x.position === p.position &&
               x.id !== p.id,
           ).length;
-          const skills =
-            p.position === "投"
-              ? (["control", "stamina", "fielding"] as const)
-              : ([
-                  "contact",
-                  "power",
-                  "speed",
-                  "arm",
-                  "fielding",
-                  "catching",
-                ] as const);
           return (
             <article
               className={`release-candidate${released ? " release-selected" : ""}`}
@@ -299,12 +287,7 @@ export function ReleasePanel({
                   <b>{p.peak}歳</b>
                 </span>
               </div>
-              <div className="candidate-skills">
-                {skills.map((k) => (
-                  <AbilityBadge key={k} label={SKILLS[k]} low={p.skills[k]} />
-                ))}
-              </div>
-              <ProfileAbilities p={p} />
+              <PlayerAbilityPanel p={p} w={w} />
               <RecentResults p={p} w={w} />
               <p className="candidate-reasons">
                 判断材料：{releaseReasons(p, w.year).join(" / ")}

@@ -5,6 +5,31 @@ test("old saves gain career history and compact individually colored ranks", asy
 }) => {
   test.setTimeout(90000);
   const errors: string[] = [];
+  const expectAlignedRanks = async (
+    panel: import("@playwright/test").Locator,
+  ) => {
+    const cells = await panel
+      .locator(".batter-fielding .ability-chip")
+      .evaluateAll((els) =>
+        els.map((el) => {
+          const row = el.getBoundingClientRect();
+          const rank = el
+            .querySelector(".ability-rank")!
+            .getBoundingClientRect();
+          const grade = el.querySelector(".grade")!.getBoundingClientRect();
+          return { column: rank.x + rank.width / 2, offset: grade.y - row.y };
+        }),
+      );
+    expect(cells).toHaveLength(3);
+    expect(
+      Math.max(...cells.map((c) => c.column)) -
+        Math.min(...cells.map((c) => c.column)),
+    ).toBeLessThan(1);
+    expect(
+      Math.max(...cells.map((c) => c.offset)) -
+        Math.min(...cells.map((c) => c.offset)),
+    ).toBeLessThan(1);
+  };
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setViewportSize({ width: 360, height: 844 });
   await page.goto("/games/neko-nine/");
@@ -86,22 +111,31 @@ test("old saves gain career history and compact individually colored ranks", asy
   await expect(rows.nth(2).locator("th")).toHaveText("2024");
   await expect(firstTable).not.toContainText("補完");
   const grades = await card
-    .locator(".candidate-skills [data-grade]")
+    .locator(".batter-ability-panel [data-grade]")
     .evaluateAll((nodes) =>
       nodes.map((n) => ({
         rank: n.getAttribute("data-grade"),
         color: getComputedStyle(n).color,
       })),
     );
-  expect(grades.map((g) => g.rank)).toEqual(["S", "A", "B", "C", "D", "E"]);
+  expect(grades.map((g) => g.rank)).toEqual(["S", "A", "B", "E", "C", "D"]);
   expect(new Set(grades.map((g) => g.color)).size).toBe(6);
-  const skills = card.locator(".candidate-skills");
-  expect((await skills.boundingBox())!.height).toBeLessThanOrEqual(65);
+  const skills = card.getByRole("region", { name: "野手能力画面" });
+  await expect(card.locator(".candidate-skills")).toHaveCount(0);
+  for (const width of [360, 390, 430, 1100]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expectAlignedRanks(skills);
+    expect(
+      await skills.evaluate((el) => el.scrollWidth <= el.clientWidth),
+    ).toBe(true);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  const releaseAbilityMarkup = await skills.innerHTML();
   await skills.evaluate((el) =>
     el.scrollIntoView({ block: "center", behavior: "instant" }),
   );
   await skills.screenshot({
-    path: "test-results/compact-colored-abilities.png",
+    path: "test-results/release-standard-abilities.png",
   });
   const table = firstTable;
   await table.evaluate((el) =>
@@ -163,6 +197,7 @@ test("old saves gain career history and compact individually colored ranks", asy
   ).toHaveCount(3);
   await expect(modal.locator(".ability-chip")).toHaveCount(6);
   const panel = modal.getByRole("region", { name: "野手能力画面" });
+  expect(await panel.innerHTML()).toBe(releaseAbilityMarkup);
   await expect(panel.locator(".batter-primary .ability-chip")).toHaveCount(3);
   expect(
     await panel
@@ -176,6 +211,7 @@ test("old saves gain career history and compact individually colored ranks", asy
   );
   for (const width of [360, 390, 430, 1100]) {
     await page.setViewportSize({ width, height: 844 });
+    await expectAlignedRanks(panel);
     expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
       true,
     );
