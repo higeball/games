@@ -10,6 +10,9 @@
   --muted: #71786f;
   --line: #d9d8ca;
   --gold: #be9340;
+  --ability-positive: #24628c;
+  --ability-negative: #ad4549;
+  --ability-surface: #f8f7ef;
 }
 [hidden] {
   display: none !important;
@@ -1613,28 +1616,28 @@ b {
   text-shadow: 0 1px white;
 }
 .g-S {
-  color: #8058b5;
+  color: #234a85;
 }
 .g-A {
-  color: #bd437b;
+  color: #24628c;
 }
 .g-B {
-  color: #c34440;
+  color: #277899;
 }
 .g-C {
-  color: #ab6312;
+  color: #387c80;
 }
 .g-D {
-  color: #897000;
+  color: #687671;
 }
 .g-E {
-  color: #287a45;
+  color: #a55e52;
 }
 .g-F {
-  color: #277da9;
+  color: #ad4549;
 }
 .g-G {
-  color: #70717c;
+  color: #903849;
 }
 .history-backfill {
   display: block;
@@ -1675,10 +1678,8 @@ b {
   list-style: none;
   margin: 0;
   padding: 0;
-  counter-reset: route;
 }
 .season-overview li {
-  counter-increment: route;
   background: #eeeade;
   padding: 12px 14px;
   border: 1px solid var(--line);
@@ -1686,11 +1687,9 @@ b {
 }
 .season-overview li small {
   display: block;
-  font-size: 9px;
-  color: var(--muted);
-}
-.season-overview li small::before {
-  content: counter(route) ". ";
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--green);
 }
 .season-overview li b {
   display: block;
@@ -1861,31 +1860,24 @@ b {
   gap: 6px;
   min-height: 29px;
   padding: 5px 9px;
-  border: 1px solid;
+  border: 1px solid var(--line);
   border-radius: 4px;
+  background: var(--ability-surface);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
 }
 .ability-plate.positive {
-  background: #dcecff;
-  border-color: #87b6e1;
-  color: #164e83;
+  color: var(--ability-positive);
 }
 .ability-plate.neutral {
-  background: #fff0bd;
-  border-color: #d6bd6a;
-  color: #775616;
+  color: var(--ink);
 }
 .ability-plate.negative {
-  background: #ffe1e4;
-  border-color: #df949b;
-  color: #982d3c;
+  color: var(--ability-negative);
 }
 .ability-plate.condition {
-  background: #e8f1da;
-  border-color: #b4c991;
-  color: #456126;
+  color: var(--ability-positive);
 }
 .season-overview li b .route-line {
   display: block;
@@ -2006,17 +1998,17 @@ b {
   display: inline-flex;
   align-items: baseline;
   gap: 3px;
-  padding: 4px 10px;
+  padding: 2px 6px;
   margin: 2px 0 5px;
-  background: #fff0bd;
-  border: 1px solid #d6bd6a;
-  border-radius: 5px;
-  color: #684d14;
+  background: var(--ability-surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--ink);
   font-size: 11px;
   font-weight: 700;
 }
 .candidate-age b {
-  font-size: 24px;
+  font-size: 15px;
   line-height: 1.2;
 }
 .scouting-status {
@@ -2046,16 +2038,17 @@ b {
   line-height: 1.5;
 }
 .player-ability-panel {
-  border: 2px solid #719ac3;
+  border: 1px solid var(--line);
   border-radius: 7px;
-  background: #f5faff;
+  background: var(--paper);
   overflow: hidden;
   margin: 14px 0;
   font-variant-numeric: tabular-nums;
 }
 .ability-panel-title {
-  background: #397bb4;
-  color: #fff;
+  background: #eeeade;
+  color: var(--green);
+  border-bottom: 1px solid var(--line);
   font-weight: 800;
   padding: 8px 10px;
   display: flex;
@@ -2084,8 +2077,8 @@ b {
   width: 100%;
   min-height: 34px;
   padding: 5px;
-  background: #fff;
-  border: 1px solid #a9c6df;
+  background: var(--ability-surface);
+  border: 1px solid var(--line);
   border-radius: 3px;
   grid-template-columns: minmax(0, 1fr) auto auto;
   font-size: 12px;
@@ -2101,7 +2094,7 @@ b {
   font-size: 10px;
 }
 .ability-panel-left .ability-chip small {
-  color: #2b5480;
+  color: var(--ink);
   font-weight: 800;
   font-size: 11px;
 }
@@ -2116,10 +2109,10 @@ b {
   gap: 3px;
   padding: 6px;
   min-height: 34px;
-  background: #fff;
-  border: 1px solid #a9c6df;
+  background: var(--ability-surface);
+  border: 1px solid var(--line);
   border-radius: 3px;
-  color: #2b5480;
+  color: var(--ink);
   font-size: 11px;
   font-weight: 800;
 }
@@ -2131,16 +2124,16 @@ b {
   font-size: 9px;
 }
 .ability-fact.trajectory {
-  background: #fff6cf;
+  background: var(--ability-surface);
 }
 .ability-panel-right {
   min-width: 0;
 }
 .ability-season,
 .ability-special {
-  border: 1px solid #a9c6df;
+  border: 1px solid var(--line);
   border-radius: 4px;
-  background: #fff;
+  background: var(--ability-surface);
   overflow: hidden;
   margin-bottom: 10px;
 }
@@ -2148,8 +2141,8 @@ b {
   font-size: 12px;
   margin: 0;
   padding: 6px 8px;
-  background: #deedf9;
-  color: #2b5480;
+  background: #eeeade;
+  color: var(--ink);
 }
 .ability-season dl {
   margin: 0;
@@ -2184,8 +2177,8 @@ b {
   font-size: 10px;
 }
 .pitch-chart {
-  background: #fff;
-  border: 1px solid #a9c6df;
+  background: var(--ability-surface);
+  border: 1px solid var(--line);
   border-radius: 4px;
   padding: 5px;
   margin-top: 3px;
@@ -2195,36 +2188,27 @@ b {
   display: block;
   overflow: visible;
 }
-.pitch-chart text {
-  font-size: 9px;
-  fill: #284b73;
+.pitch-straight {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--ability-positive);
+}
+.pitch-labels {
+  list-style: none;
+  margin: 5px 0 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--ability-positive);
   font-weight: 700;
 }
-.pitch-memory {
-  font-size: 9px;
-  color: #284b73;
-  margin-top: 6px;
-}
-.pitch-memory > div {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-  margin-top: 3px;
-}
-.pitch-memory i {
-  flex: 1;
-  height: 7px;
-  background: #e1e8ef;
-  border: 1px solid #9cb3c9;
-  border-radius: 1px;
-}
-.pitch-memory .filled {
-  background: #32b8e8;
-  border-color: #318db8;
-}
-.pitch-memory b {
-  width: 10px;
-  text-align: right;
+.pitch-labels li {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 3px;
+  padding: 3px 0;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 380px) {
   .ability-panel-columns {

@@ -1,6 +1,6 @@
 import type { Player } from "./model";
 
-/** Full-color plates: blue positive traits, red warnings, yellow basic facts. */
+/** Shared neutral plates with blue positive text and red warning text. */
 export function ProfileAbilities({
   p,
   known = true,

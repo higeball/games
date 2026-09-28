@@ -25,8 +25,9 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
   const mirror = p.throws === "左" ? -1 : 1;
   return (
     <div className="pitch-chart" aria-label="球種と変化量">
+      <div className="pitch-straight">↑ ストレート</div>
       <svg
-        viewBox="0 0 220 174"
+        viewBox="0 0 220 156"
         role="img"
         aria-label="変化球の方向と7段階の変化量"
       >
@@ -42,9 +43,6 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
           fill="none"
           strokeWidth="2"
         />
-        <text x="110" y="9" textAnchor="middle">
-          ストレート
-        </text>
         {ends.map(([ex, ey], index) => {
           const pitches = p.pitches.filter(
             (pitch) => direction(pitch.name) === index,
@@ -85,34 +83,29 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
                   />
                 );
               })}
-              {!!pitches.length && (
-                <text
-                  x={x}
-                  y={ey + (index === 0 || index === 4 ? -10 : 16)}
-                  textAnchor={x < 60 ? "start" : x > 160 ? "end" : "middle"}
-                >
-                  {pitches.map((pitch) => pitch.name).join("/")}
-                </text>
-              )}
             </g>
           );
         })}
       </svg>
-      {p.pitches.map((pitch) => (
-        <div
-          className="pitch-memory"
-          key={pitch.name}
-          aria-label={`${pitch.name} 変化量 ${known ? pitch.level : "未調査"}`}
-        >
-          <span>{pitch.name}</span>
-          <div>
-            {Array.from({ length: 7 }, (_, i) => (
-              <i key={i} className={known && i < pitch.level ? "filled" : ""} />
-            ))}
-            <b>{known ? pitch.level : "？"}</b>
-          </div>
-        </div>
-      ))}
+      <ul className="pitch-labels">
+        {p.pitches.map((pitch) => {
+          const index = direction(pitch.name);
+          const arrows =
+            mirror === 1
+              ? ["←", "↙", "↓", "↘", "→"]
+              : ["→", "↘", "↓", "↙", "←"];
+          return (
+            <li
+              key={pitch.name}
+              aria-label={`${pitch.name} 変化量 ${known ? pitch.level : "未調査"}`}
+            >
+              <span aria-hidden="true">{arrows[index]}</span>
+              <span>{pitch.name}</span>
+              <b>{known ? pitch.level : "？"}</b>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

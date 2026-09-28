@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("age is prominent, rookies have entry pay and scouting persists visible counts", async ({
+test("restrained profile styling, entry pay and persistent scouting feedback", async ({
   page,
 }) => {
   test.setTimeout(120000);
@@ -14,6 +14,14 @@ test("age is prominent, rookies have entry pay and scouting persists visible cou
   await page.goto("/games/neko-nine/");
   await page.getByRole("button", { name: /2026年オフから就任/ }).click();
   await settle();
+  const dates = page.locator(".season-overview li small");
+  await expect(dates.first()).toHaveText("2026年10月");
+  await expect(dates.nth(4)).toHaveText("2027年1〜2月");
+  expect(
+    await dates
+      .first()
+      .evaluate((el) => getComputedStyle(el, "::before").content),
+  ).toBe("none");
   await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
   await settle();
   await expect(
@@ -22,11 +30,19 @@ test("age is prominent, rookies have entry pay and scouting persists visible cou
   await expect(page.getByText(/おすすめ候補/)).toHaveCount(0);
   const candidate = page.locator(".release-candidate").first();
   await expect(candidate.locator(".candidate-age")).toContainText("歳");
+  const ageSize = await candidate
+    .locator(".candidate-age b")
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(ageSize).toBeGreaterThanOrEqual(14);
+  expect(ageSize).toBeLessThanOrEqual(16);
+  const plates = candidate.locator(".ability-plate");
   expect(
-    await candidate
-      .locator(".candidate-age b")
-      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
-  ).toBeGreaterThanOrEqual(24);
+    new Set(
+      await plates.evaluateAll((els) =>
+        els.map((el) => getComputedStyle(el).backgroundColor),
+      ),
+    ).size,
+  ).toBe(1);
   await candidate.locator(".candidate-heading").scrollIntoViewIfNeeded();
   await candidate
     .locator(".candidate-heading")
@@ -99,6 +115,13 @@ test("age is prominent, rookies have entry pay and scouting persists visible cou
   await expect(
     panel.getByRole("img", { name: "変化球の方向と7段階の変化量" }),
   ).toBeVisible();
+  await expect(panel.locator(".pitch-memory")).toHaveCount(0);
+  expect(
+    await panel
+      .locator(".pitch-labels")
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(12);
+  await expect(panel.locator(".pitch-labels li").first()).toBeVisible();
   for (const width of [360, 390, 430, 1100]) {
     await page.setViewportSize({ width, height: 844 });
     expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
