@@ -139,7 +139,8 @@ describe("scouting and camp choices", () => {
       estimate(w, p, "contact").high - estimate(w, p, "contact").low,
     ).toBeGreaterThan(20);
     for (let i = 0; i < 4; i++)
-      w = applyOwnerAction(w, { type: "scout", id: p.id });
+      if (w.players.find((x) => x.id === p.id)!.scouting < 100)
+        w = applyOwnerAction(w, { type: "scout", id: p.id });
     const known = w.players.find((x) => x.id === p.id)!;
     expect(known.scouting).toBe(100);
     expect(estimate(w, known, "contact")).toEqual({

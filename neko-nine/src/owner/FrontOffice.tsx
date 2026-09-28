@@ -30,6 +30,7 @@ import { ReleasePanel } from "./ReleasePanel";
 import { nextEventLabel } from "./Secretary";
 import { AbilityBadge } from "./AbilityBadge";
 import { AnimalPortrait } from "./AnimalPortrait";
+import { ScoutingStatus } from "./ScoutingStatus";
 type Props = {
   w: WorldState;
   act: (a: OwnerAction) => void;
@@ -657,14 +658,16 @@ function DraftBoard({ w, act, open }: Props) {
                       high={e.high}
                     />
                   </div>
-                  <progress max={100} value={p.scouting} />
+                  <ScoutingStatus p={p} />
                   <div className="inline-actions">
                     {scouting && (
                       <button
                         disabled={w.scoutsLeft === 0 || p.scouting >= 100}
                         onClick={() => act({ type: "scout", id: p.id })}
                       >
-                        調査 200万円
+                        {p.scouting >= 100
+                          ? "調査完了"
+                          : `調査 200万円（${(p.scoutingCount ?? 0) + 1}回目）`}
                       </button>
                     )}
                     {picking && (

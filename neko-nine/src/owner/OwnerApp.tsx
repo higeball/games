@@ -39,7 +39,9 @@ import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { AbilityBadge } from "./AbilityBadge";
 import { RecentResults } from "./RecentResults";
-import { ProfileAbilities } from "./ProfileAbilities";
+import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
+import { ScoutingStatus } from "./ScoutingStatus";
+import { normalizeSalaryScale } from "./salary";
 
 type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ";
 const tabs: Tab[] = ["ホーム", "選手", "編成", "経営"];
@@ -122,6 +124,7 @@ export default function OwnerApp() {
   }
   async function commit(next: WorldState) {
     backfillCareerHistory(next);
+    normalizeSalaryScale(next);
     await persistWorld(next);
     setW(next);
     setError("");
@@ -462,7 +465,9 @@ export function PlayerList({
                 <strong>{p.name}</strong>
                 <span>
                   {p.team === null ? "未所属" : w.teams[p.team].short} ·{" "}
-                  {money(p.team === 0 ? p.salary : p.ask)}
+                  {p.market === "draft"
+                    ? `未契約 · 入団時年俸 ${money(p.ask)}`
+                    : money(p.team === 0 ? p.salary : p.ask)}
                 </span>
                 <span className="role-tag">
                   {p.trait}
@@ -472,6 +477,7 @@ export function PlayerList({
                     ? " ／ 要面談"
                     : ""}
                 </span>
+                {p.market === "draft" && <ScoutingStatus p={p} />}
               </div>
               <b>›</b>
             </button>
@@ -631,11 +637,7 @@ function PlayerDetail({
       if (active?.isConnected) active.focus();
     };
   }, [p.id]);
-  const ours = p.team === 0,
-    keys: Skill[] =
-      p.position === "投"
-        ? ["control", "stamina", "fielding", "catching"]
-        : ["contact", "power", "speed", "arm", "fielding", "catching"];
+  const ours = p.team === 0;
   return (
     <div className="modal-backdrop">
       <section
@@ -671,20 +673,8 @@ function PlayerDetail({
           ／ 調査度 {Math.round(p.scouting)}%
           {p.market === "fa" ? ` ／ FA ${p.faRank}ランク` : ""}
         </p>
-        <div className="ability-grid">
-          {keys.map((k) => {
-            const e = estimate(w, p, k);
-            return (
-              <AbilityBadge
-                key={k}
-                label={SKILLS[k]}
-                low={ours ? p.skills[k] : e.low}
-                high={ours ? p.skills[k] : e.high}
-              />
-            );
-          })}
-        </div>
-        <ProfileAbilities p={p} known={ours} />
+        <PlayerAbilityPanel p={p} w={w} />
+        {!ours && <ScoutingStatus p={p} />}
         <p className="muted">
           将来性：
           {p.age >= 32 ? "ベテラン調整" : potentialEstimate(w, p)} ／ 人気{" "}
@@ -697,10 +687,10 @@ function PlayerDetail({
         <h3>契約</h3>
         <div className="contract-facts">
           <span>
-            現在 <b>{money(p.salary)}</b>
+            現在 <b>{p.market === "draft" ? "未契約" : money(p.salary)}</b>
           </span>
           <span>
-            希望 <b>{money(p.ask)}</b>
+            {p.market === "draft" ? "入団時年俸" : "希望"} <b>{money(p.ask)}</b>
           </span>
           <span>
             契約年度 <b>{p.contractYear}</b>
@@ -802,10 +792,12 @@ function PlayerDetail({
           ["season", "draft", "fa", "tryout", "contracts"].includes(w.phase) &&
           p.market !== "retired" && (
             <button
-              disabled={w.scoutsLeft <= 0}
+              disabled={w.scoutsLeft <= 0 || p.scouting >= 100}
               onClick={() => act({ type: "scout", id: p.id })}
             >
-              追加調査 200万円（残り{w.scoutsLeft}件）
+              {p.scouting >= 100
+                ? "調査完了"
+                : `追加調査 200万円（${(p.scoutingCount ?? 0) + 1}回目・残り${w.scoutsLeft}件）`}
             </button>
           )}
         <h3>直近3年・年度別成績</h3>

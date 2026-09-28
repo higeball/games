@@ -103,7 +103,7 @@ export function ReleasePanel({
             })
           }
         >
-          おすすめ候補（約10人）
+          戦力外選手候補（約10人）
         </button>
         <button
           className={scope === "個別" ? "selected" : ""}
@@ -119,7 +119,7 @@ export function ReleasePanel({
         </button>
       </div>
       <p className="muted">
-        おすすめは若手・主力・契約継続中の選手を除き、出場機会・年齢・戦力評価・年俸から約10人に絞っています。通告は自動では行いません。
+        戦力外選手候補は若手・主力・契約継続中の選手を除き、出場機会・年齢・戦力評価・年俸から約10人に絞っています。通告は自動では行いません。
       </p>
       <div
         className="position-tabs"
@@ -257,13 +257,19 @@ export function ReleasePanel({
                 <AnimalPortrait p={p} />
                 <div>
                   <h3>{p.name}</h3>
+                  <span
+                    className="candidate-age"
+                    aria-label={`年齢 ${p.age}歳`}
+                  >
+                    年齢 <b>{p.age}</b>歳
+                  </span>
                   {released && (
                     <span className="release-state">戦力外通告済み</span>
                   )}
                   <p>
                     {p.position} /{" "}
                     {(p.species === "cat" ? CAT_BREEDS : DOG_BREEDS)[p.breed]} /{" "}
-                    {p.age}歳 / プロ{Math.max(1, p.pro)}年目
+                    プロ{Math.max(1, p.pro)}年目
                   </p>
                   <p>
                     {p.throws}投{p.bats}打 ·{" "}

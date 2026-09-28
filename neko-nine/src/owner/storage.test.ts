@@ -36,6 +36,42 @@ it("rejects incompatible, corrupted and out-of-range imports", async () => {
   );
 });
 
+it("corrects old generated 2026 salaries and rookie expectations on load, preserving signed pay", async () => {
+  const old = structuredClone(world);
+  delete old.salaryModelVersion;
+  const p = old.players.find(
+    (p) =>
+      p.team === 0 && p.registration === "senior" && !p.reports[2026].games,
+  )!;
+  p.salary = 5400;
+  const rookie = old.players.find((p) => p.market === "draft")!;
+  rookie.salary = 600;
+  rookie.ask = 5400;
+  const signed = old.players.find((x) => x.team === 0 && x.id !== p.id)!;
+  signed.salary = 10500;
+  signed.ask = 11000;
+  signed.contractYear = 2028;
+  signed.negotiation = "accepted";
+  await persistWorld(old);
+  const loaded = (await loadWorld())!;
+  expect(loaded.players.find((x) => x.id === p.id)!.salary).toBeLessThan(3000);
+  expect(loaded.players.find((x) => x.id === p.id)!.reports).toEqual(p.reports);
+  expect(loaded.players.find((x) => x.id === rookie.id)).toMatchObject({
+    salary: 0,
+    ask: 600,
+  });
+  expect(loaded.players.find((x) => x.id === signed.id)).toMatchObject({
+    salary: 10500,
+    ask: 11000,
+  });
+  expect(loaded.seed).toBe(old.seed);
+  expect(loaded.teams).toEqual(old.teams);
+  expect((await loadWorld())?.salaryModelVersion).toBe(1);
+  expect((await loadWorld())?.players.find((x) => x.id === p.id)?.salary).toBe(
+    loaded.players.find((x) => x.id === p.id)?.salary,
+  );
+});
+
 it("renames old numeric player names on load while preserving saved career data", async () => {
   const old = structuredClone(world);
   old.players[0].name = "ダイ斗１";

@@ -35,6 +35,7 @@ import {
   resetOperations,
 } from "./operations";
 
+import { normalizeSalaryScale, performanceSalary } from "./salary";
 const clamp = (n: number, lo = 1, hi = 100) => Math.max(lo, Math.min(hi, n));
 export function random(w: WorldState) {
   const [r, s] = nextRandom(w.seed);
@@ -68,23 +69,7 @@ export function ability(p: Player) {
         p.skills.catching * 0.1;
 }
 export function desiredSalary(p: Player) {
-  const a = ability(p);
-  return (
-    Math.round(
-      Math.max(
-        500,
-        900 +
-          Math.max(0, a - 28) ** 2 * 7 +
-          p.popularity * 22 +
-          (p.reports[
-            Object.keys(p.reports)
-              .map(Number)
-              .sort((a, b) => b - a)[0]
-          ]?.hr ?? 0) *
-            70,
-      ) / 100,
-    ) * 100
-  );
+  return performanceSalary(p);
 }
 function coach(w: WorldState, t: number, role: string) {
   return w.staff.find((s) => s.team === t && s.role === role);
@@ -298,12 +283,13 @@ export function newPlayer(
     reports: {},
     growth: [],
     scouting: 0,
+    scoutingCount: 0,
     preference: pick(w, ["優勝", "出場", "年俸"]),
     offerRound: 0,
     offers: [],
   };
   p.ask = desiredSalary(p);
-  p.salary = young ? 600 : Math.round(p.ask * (team === 0 ? 1.25 : 1));
+  p.salary = young ? 0 : p.ask;
   w.players.push(p);
   return p;
 }
@@ -445,6 +431,7 @@ export function createWorld(seed = 20261026): WorldState {
     t.finance.debt = 0;
   });
   seedCareerHistory(w);
+  normalizeSalaryScale(w);
   prepareOffseason(w);
   w.phase = "review";
   backfillCareerHistory(w);
@@ -1371,11 +1358,13 @@ export function acquire(
       "支配下70人枠が満員です。戦力外・育成打診で空きを作ってください。",
     );
   if (bonus) spend(w, id, "契約金", bonus);
+  const rookie = p.market === "draft";
   p.team = id;
   p.market = "roster";
   p.registration = "senior";
   p.negotiation = "accepted";
   p.salary = salary;
+  if (rookie) p.ask = salary;
   p.contractYear = w.year + 1;
   p.offers = [];
   p.morale = 65;
@@ -1834,7 +1823,9 @@ export function applyOwnerAction(
       if (w.scoutsLeft <= 0) throw Error("今季の追加調査枠を使い切りました。");
       const p = player(action.id);
       if (p.team === 0) throw Error("所属選手は調査不要です。");
+      if (p.scouting >= 100) throw Error("この選手の調査は完了しています。");
       spend(w, 0, "スカウト調査", 200);
+      const before = p.scouting;
       p.scouting = clamp(
         p.scouting +
           25 +
@@ -1843,6 +1834,9 @@ export function applyOwnerAction(
         0,
         100,
       );
+      if (p.scoutingCount === undefined && before > 0) p.scoutingLegacy = true;
+      p.scoutingCount = (p.scoutingCount ?? 0) + 1;
+      p.lastScouting = { before, after: p.scouting, count: p.scoutingCount };
       w.scoutsLeft--;
       break;
     }

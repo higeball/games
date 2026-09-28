@@ -2002,3 +2002,242 @@ b {
 .draft-heading {
   scroll-margin-top: 105px;
 }
+.candidate-age {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 4px 10px;
+  margin: 2px 0 5px;
+  background: #fff0bd;
+  border: 1px solid #d6bd6a;
+  border-radius: 5px;
+  color: #684d14;
+  font-size: 11px;
+  font-weight: 700;
+}
+.candidate-age b {
+  font-size: 24px;
+  line-height: 1.2;
+}
+.scouting-status {
+  margin: 8px 0;
+  font-size: 10px;
+}
+.scouting-status > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px;
+}
+.scouting-status b {
+  color: var(--green);
+}
+.scouting-status progress {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--green);
+}
+.scouting-change {
+  padding: 5px 7px;
+  margin: 4px 0 0;
+  background: #e4efdc;
+  color: #365632;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+.player-ability-panel {
+  border: 2px solid #719ac3;
+  border-radius: 7px;
+  background: #f5faff;
+  overflow: hidden;
+  margin: 14px 0;
+  font-variant-numeric: tabular-nums;
+}
+.ability-panel-title {
+  background: #397bb4;
+  color: #fff;
+  font-weight: 800;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+}
+.ability-panel-title span {
+  font-size: 10px;
+  align-self: center;
+}
+.ability-panel-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+  gap: 10px;
+  padding: 10px;
+}
+.ability-panel-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ability-panel-left .ability-chip {
+  display: grid;
+  flex: none;
+  width: 100%;
+  min-height: 34px;
+  padding: 5px;
+  background: #fff;
+  border: 1px solid #a9c6df;
+  border-radius: 3px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  font-size: 12px;
+}
+.ability-panel-left .ability-chip:has(.ability-rank i) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.ability-panel-left .ability-chip:has(.ability-rank i) small {
+  grid-row: span 2;
+}
+.ability-panel-left .ability-chip:has(.ability-rank i) > b {
+  grid-column: 2;
+  font-size: 10px;
+}
+.ability-panel-left .ability-chip small {
+  color: #2b5480;
+  font-weight: 800;
+  font-size: 11px;
+}
+.ability-panel-left .ability-chip b {
+  font-size: 13px;
+}
+.ability-fact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 3px;
+  padding: 6px;
+  min-height: 34px;
+  background: #fff;
+  border: 1px solid #a9c6df;
+  border-radius: 3px;
+  color: #2b5480;
+  font-size: 11px;
+  font-weight: 800;
+}
+.ability-fact b {
+  font-size: 19px;
+  color: #233f5c;
+}
+.ability-fact small {
+  font-size: 9px;
+}
+.ability-fact.trajectory {
+  background: #fff6cf;
+}
+.ability-panel-right {
+  min-width: 0;
+}
+.ability-season,
+.ability-special {
+  border: 1px solid #a9c6df;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.player-ability-panel h3 {
+  font-size: 12px;
+  margin: 0;
+  padding: 6px 8px;
+  background: #deedf9;
+  color: #2b5480;
+}
+.ability-season dl {
+  margin: 0;
+  padding: 5px 8px;
+  font-size: 11px;
+}
+.ability-season dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 4px 0;
+}
+.ability-season dt {
+  color: #4e657a;
+}
+.ability-season dd {
+  margin: 0;
+  font-weight: 800;
+  color: #233f5c;
+}
+.ability-season p {
+  font-size: 10px;
+  margin: 8px;
+}
+.ability-special .profile-abilities {
+  margin: 8px;
+  gap: 5px;
+}
+.ability-special .ability-plate {
+  min-height: 27px;
+  padding: 4px 6px;
+  font-size: 10px;
+}
+.pitch-chart {
+  background: #fff;
+  border: 1px solid #a9c6df;
+  border-radius: 4px;
+  padding: 5px;
+  margin-top: 3px;
+}
+.pitch-chart svg {
+  width: 100%;
+  display: block;
+  overflow: visible;
+}
+.pitch-chart text {
+  font-size: 9px;
+  fill: #284b73;
+  font-weight: 700;
+}
+.pitch-memory {
+  font-size: 9px;
+  color: #284b73;
+  margin-top: 6px;
+}
+.pitch-memory > div {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  margin-top: 3px;
+}
+.pitch-memory i {
+  flex: 1;
+  height: 7px;
+  background: #e1e8ef;
+  border: 1px solid #9cb3c9;
+  border-radius: 1px;
+}
+.pitch-memory .filled {
+  background: #32b8e8;
+  border-color: #318db8;
+}
+.pitch-memory b {
+  width: 10px;
+  text-align: right;
+}
+@media (max-width: 380px) {
+  .ability-panel-columns {
+    gap: 6px;
+    padding: 6px;
+  }
+  .ability-panel-left .ability-chip small {
+    font-size: 10px;
+  }
+  .ability-panel-left .ability-chip {
+    gap: 3px;
+  }
+  .ability-panel-left .ability-chip b {
+    font-size: 11px;
+  }
+}

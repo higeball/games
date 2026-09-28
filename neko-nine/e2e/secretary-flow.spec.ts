@@ -38,15 +38,13 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     (await flow.locator(".route-line").first().boundingBox())!.y,
   );
   await expect(flow).toContainText("春季キャンプ");
-  const flowCards = await flow
-    .locator("li")
-    .evaluateAll((els) =>
-      els.map((el) => ({
-        x: el.getBoundingClientRect().x,
-        y: el.getBoundingClientRect().y,
-        width: el.getBoundingClientRect().width,
-      })),
-    );
+  const flowCards = await flow.locator("li").evaluateAll((els) =>
+    els.map((el) => ({
+      x: el.getBoundingClientRect().x,
+      y: el.getBoundingClientRect().y,
+      width: el.getBoundingClientRect().width,
+    })),
+  );
   expect(new Set(flowCards.map((c) => c.x)).size).toBe(1);
   expect(flowCards.every((c, i) => i === 0 || c.y > flowCards[i - 1].y)).toBe(
     true,
@@ -85,7 +83,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   await expect(core).toBeChecked();
   await expect(page.locator(".release-candidate")).toHaveCount(10);
   await expect(
-    page.getByRole("button", { name: "おすすめ候補（約10人）", exact: true }),
+    page.getByRole("button", { name: "戦力外選手候補（約10人）", exact: true }),
   ).toHaveClass("selected");
   const finish = page.getByRole("button", {
     name: "第1次戦力外通告を終了しドラフト会議へ進む",

@@ -104,6 +104,9 @@ export type Player = {
   };
   growth: string[];
   scouting: number;
+  scoutingCount?: number;
+  scoutingLegacy?: true;
+  lastScouting?: { before: number; after: number; count: number };
   preference: "優勝" | "出場" | "年俸";
   offerRound: number;
   offers: { team: number; salary: number }[];
@@ -254,6 +257,7 @@ export type YearReport = {
 };
 export type WorldState = {
   version: 3;
+  salaryModelVersion?: 1;
   revision: number;
   seed: number;
   nextId: number;

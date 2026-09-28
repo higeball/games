@@ -1,0 +1,117 @@
+import { expect, test } from "@playwright/test";
+
+test("age is prominent, rookies have entry pay and scouting persists visible counts", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  const settle = async () => {
+    await expect(page.getByRole("status")).toHaveCount(0);
+    await expect(page.getByRole("alert")).toHaveCount(0);
+  };
+  await page.setViewportSize({ width: 360, height: 844 });
+  await page.goto("/games/neko-nine/");
+  await page.getByRole("button", { name: /2026年オフから就任/ }).click();
+  await settle();
+  await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
+  await settle();
+  await expect(
+    page.getByRole("button", { name: "戦力外選手候補（約10人）", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/おすすめ候補/)).toHaveCount(0);
+  const candidate = page.locator(".release-candidate").first();
+  await expect(candidate.locator(".candidate-age")).toContainText("歳");
+  expect(
+    await candidate
+      .locator(".candidate-age b")
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(24);
+  await candidate.locator(".candidate-heading").scrollIntoViewIfNeeded();
+  await candidate
+    .locator(".candidate-heading")
+    .screenshot({ path: "test-results/age-prominent.png" });
+  await page.getByRole("button", { name: /第1次戦力外通告を終了し/ }).click();
+  await settle();
+  const name = await page.locator(".prospect-name b").first().innerText();
+  const prospect = page
+    .locator(".prospect-grid > article")
+    .filter({ hasText: name });
+  await expect(prospect.locator(".scouting-status b")).toHaveText("調査 0回");
+  let count = 0;
+  while (
+    (await prospect.getByRole("button", { name: /調査 200万円/ }).count()) &&
+    count < 6
+  ) {
+    const button = prospect.getByRole("button", { name: /調査 200万円/ });
+    if (await button.isDisabled()) break;
+    await button.click();
+    await settle();
+    count++;
+    await expect(prospect.locator(".scouting-status b")).toHaveText(
+      `調査 ${count}回`,
+    );
+    await expect(prospect.locator(".scouting-change")).toContainText(
+      `${count}回目：`,
+    );
+    await expect(prospect.locator(".scouting-change")).toContainText("→");
+    if (count === 1)
+      await prospect.screenshot({ path: "test-results/scouting-feedback.png" });
+  }
+  expect(count).toBeGreaterThan(0);
+  await expect(
+    prospect.getByRole("button", { name: "調査完了", exact: true }),
+  ).toBeDisabled();
+  await prospect.locator(".prospect-name").click();
+  let modal = page.getByRole("dialog", { name: "選手詳細" });
+  await expect(modal.locator(".contract-facts")).toContainText("未契約");
+  await expect(modal.locator(".contract-facts")).toContainText(
+    "入団時年俸 600万円",
+  );
+  await expect(modal.locator(".contract-facts")).not.toContainText("5,400");
+  await page.getByRole("button", { name: "閉じる ×" }).click();
+  await page.reload();
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: /編成・補強/ })
+    .click();
+  await settle();
+  await expect(prospect.locator(".scouting-status b")).toHaveText(
+    `調査 ${count}回`,
+  );
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: /選手名鑑/ })
+    .click();
+  await page.getByLabel("守備位置", { exact: true }).selectOption("投");
+  await page.locator(".player-summary").first().click();
+  modal = page.getByRole("dialog", { name: "選手詳細" });
+  const panel = modal.getByRole("region", { name: "投手能力画面" });
+  await expect(panel).toBeVisible();
+  await expect(panel.locator(".ability-panel-left .ability-chip")).toHaveCount(
+    2,
+  );
+  const labels = await panel
+    .locator(".ability-panel-left .ability-chip small")
+    .allTextContents();
+  expect(labels).toEqual(["コントロール", "スタミナ"]);
+  await expect(panel.locator(".ability-panel-left")).toContainText("球速");
+  await expect(
+    panel.getByRole("img", { name: "変化球の方向と7段階の変化量" }),
+  ).toBeVisible();
+  for (const width of [360, 390, 430, 1100]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    );
+    expect(await modal.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+      true,
+    );
+    const left = await panel.locator(".ability-panel-left").boundingBox();
+    const right = await panel.locator(".ability-panel-right").boundingBox();
+    expect(left!.x + left!.width).toBeLessThan(right!.x);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await panel.screenshot({ path: "test-results/pitcher-ability-panel.png" });
+  expect(errors).toEqual([]);
+});

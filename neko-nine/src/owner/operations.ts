@@ -11,6 +11,7 @@ import {
   post,
   acquire,
 } from "./engine";
+import { renewalSalary } from "./salary";
 import {
   ACTIVE_LIMIT,
   FOREIGN_LIMIT,
@@ -172,19 +173,7 @@ export function phaseBlockers(w: WorldState) {
 export function contractAssessment(w: WorldState) {
   const list = roster(w).filter((p) => p.contractYear < w.year + 1);
   list.forEach((p) => {
-    p.ask = p.registration === "development" ? 300 : desiredSalary(p);
-    const r = p.reports[w.year];
-    if (r)
-      p.ask =
-        Math.round(
-          Math.max(
-            p.ask +
-              (p.position === "投"
-                ? r.wins * 120 + r.saves * 45 + r.holds * 30
-                : r.hits * 8 + r.rbi * 8 + r.steals * 25),
-            p.salary * 0.8,
-          ) / 100,
-        ) * 100;
+    p.ask = renewalSalary(p);
     p.negotiation = "pending";
     p.meetingReason = "";
   });

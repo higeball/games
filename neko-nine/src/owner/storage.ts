@@ -3,6 +3,7 @@ import { PHASE_NAMES, SKILLS, POSITIONS } from "./model";
 import { upgradeLegacy } from "./operations";
 import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
+import { normalizeSalaryScale } from "./salary";
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const r = indexedDB.open("neko-owner-v3", 1);
@@ -91,7 +92,8 @@ export async function loadWorld(backup = false): Promise<WorldState | null> {
   if (current) {
     const renamed = normalizePlayerNames(current);
     const filled = backfillCareerHistory(current);
-    if ((renamed || filled) && !backup) await persistWorld(current);
+    const salaries = normalizeSalaryScale(current);
+    if ((renamed || filled || salaries) && !backup) await persistWorld(current);
     return current;
   }
   if (backup) return current;
@@ -123,6 +125,7 @@ export async function loadWorld(backup = false): Promise<WorldState | null> {
   const upgraded = upgradeLegacy(legacy);
   normalizePlayerNames(upgraded);
   backfillCareerHistory(upgraded);
+  normalizeSalaryScale(upgraded);
   validateWorld(upgraded);
   await persistWorld(upgraded);
   return upgraded;

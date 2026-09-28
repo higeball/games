@@ -161,7 +161,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     .getByRole("button", { name: /編成・補強/ })
     .click();
   await page
-    .getByRole("button", { name: "調査 200万円", exact: true })
+    .getByRole("button", { name: /^調査 200万円（/ })
     .first()
     .click();
   await expect(page.getByRole("status")).toHaveCount(0);

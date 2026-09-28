@@ -162,11 +162,20 @@ test("old saves gain career history and compact individually colored ranks", asy
     modal.getByRole("table", { name: /一軍直近3年成績/ }).locator("tbody tr"),
   ).toHaveCount(3);
   await expect(modal.locator(".ability-chip")).toHaveCount(6);
+  const left = modal.locator(".ability-panel-left");
+  const right = modal.locator(".ability-panel-right");
   expect(
-    (await modal.locator(".ability-grid").boundingBox())!.height,
-  ).toBeLessThanOrEqual(65);
+    (await left.boundingBox())!.x + (await left.boundingBox())!.width,
+  ).toBeLessThan((await right.boundingBox())!.x);
+  const tops = await left
+    .locator(".ability-chip")
+    .evaluateAll((els) => els.map((el) => el.getBoundingClientRect().y));
+  expect(tops.every((top, i) => i === 0 || top > tops[i - 1])).toBe(true);
+  expect(
+    (await right.locator(".ability-season").boundingBox())!.y,
+  ).toBeLessThan((await right.locator(".ability-special").boundingBox())!.y);
   await modal
-    .locator(".ability-grid")
+    .locator(".player-ability-panel")
     .screenshot({ path: "test-results/compact-player-detail.png" });
   await expect(modal).toContainText("2024");
   await expect(modal).toContainText("補完データ");
