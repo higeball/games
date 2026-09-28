@@ -94,5 +94,5 @@ it("shows only in-period markets and no routes to other calendar events", () => 
     [...render().querySelectorAll(".market-tabs button")].map(
       (b) => b.textContent,
     ),
-  ).toEqual(["イベント", "FA市場", "外国人", "トレード"]);
+  ).toEqual(["契約更改", "FA市場", "外国人", "トレード"]);
 });

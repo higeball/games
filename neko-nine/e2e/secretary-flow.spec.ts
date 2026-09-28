@@ -108,7 +108,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     page.getByRole("heading", { name: "戦力外候補を比較する" }),
   ).toBeVisible();
   await expect(
-    page.getByRole("navigation").getByRole("button", { name: /編成・補強/ }),
+    page.getByRole("navigation").getByRole("button", { name: /進行/ }),
   ).toHaveClass("active");
   const young = page.getByLabel("3年目までの選手を除外"),
     core = page.getByLabel("主力選手を除外");
@@ -212,7 +212,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   await page.reload();
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: /編成・補強/ })
+    .getByRole("button", { name: /進行/ })
     .click();
   await settle();
   await expect(selected).toHaveAttribute("data-released", "true");
@@ -248,6 +248,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
         };
       }),
   );
+  await page.locator(".release-filters > summary").click();
   await page.getByLabel("戦力外候補を検索").fill(mainName);
   await expect(page.locator(".release-candidate")).toHaveCount(0);
   await core.uncheck();
@@ -301,7 +302,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   await expect(
     page.getByRole("heading", { name: "ドラフト 第1巡" }),
   ).toBeVisible();
-  await expect(guide).toContainText("第1巡");
+  await expect(guide).toContainText("指名");
   await expect(page.locator(".market-tabs")).toHaveCount(0);
   await expect(page.locator(".event-progression")).toHaveCount(0);
   expect(errors).toEqual([]);

@@ -30,6 +30,8 @@ import { AbilityBadge } from "./AbilityBadge";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { ScoutingStatus } from "./ScoutingStatus";
 import { CampPanel } from "./CampPanel";
+import { TeamProgress } from "./TeamProgress";
+import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
 type Props = {
   w: WorldState;
   act: (a: OwnerAction) => void;
@@ -41,10 +43,12 @@ export function OwnerStatus({
   w,
   onAdvance,
   onStopDraft,
+  onReturn,
 }: {
   w: WorldState;
   onAdvance?: () => void;
   onStopDraft?: () => void;
+  onReturn?: () => void;
 }) {
   const t = w.teams[0],
     f = t.finance,
@@ -95,6 +99,11 @@ export function OwnerStatus({
           </strong>
         </div>
       </div>
+      {onReturn && (
+        <button className="return-to-event" onClick={onReturn}>
+          ← {PHASE_NAMES[w.phase]}に戻る
+        </button>
+      )}
       {w.phase !== "review" && onAdvance && (
         <button
           className="primary status-advance"
@@ -151,22 +160,9 @@ export function Dashboard({
   act: Props["act"];
   go: (tab: "ホーム" | "選手" | "編成" | "経営" | "リーグ") => void;
 }) {
-  const blockers = phaseBlockers(w),
-    strength = teamStrength(w),
-    list = roster(w);
-  const next =
-    w.phase === "season"
-      ? undefined
-      : PHASE_FLOW[PHASE_FLOW.indexOf(w.phase) + 1];
-  const nextInfo =
-    w.phase === "season"
-      ? `${w.month}月 月間MVP・営業報告`
-      : w.phase === "registration"
-        ? "4月 レギュラーシーズン開幕"
-        : next
-          ? `${PHASE_DATES[next]} ${PHASE_NAMES[next]}`
-          : "10月 シーズン総括";
-  const ageGroups = [
+  const list = roster(w),
+    team = w.teams[0];
+  const ages = [
     { name: "22歳以下", count: list.filter((p) => p.age <= 22).length },
     {
       name: "23歳〜27歳",
@@ -184,96 +180,64 @@ export function Dashboard({
   ];
   return (
     <>
-      {w.phase !== "review" && (
-        <section className="event-card">
-          <div className="eyebrow">今のイベント</div>
-          <h2>{PHASE_NAMES[w.phase]}</h2>
-          <p>{hints[w.phase]}</p>
-          {!["review", "season"].includes(w.phase) && (
-            <button
-              className="primary"
-              onClick={() => go(w.phase === "budget" ? "経営" : "編成")}
-            >
-              今すぐイベントへ進む →
-            </button>
-          )}
-          {w.phase === "season" && (
-            <>
-              <button onClick={() => go("編成")}>
-                来秋のドラフト候補を調査
-              </button>
-            </>
-          )}
-          <small className="next-event">
-            次のイベント：
-            {nextInfo}
-          </small>
-        </section>
-      )}
-      {w.phase !== "review" && (
-        <div className="club-heading">
-          <div>
-            <small>FUKUOKA / OWNER'S DESK</small>
-            <h1>
-              福岡から、
-              <br />
-              次の黄金期へ。
-            </h1>
-            <p>福岡ソフトにゃんくホークス</p>
+      {w.phase === "season" && (
+        <>
+          <section className="season-scoreboard" aria-label="今季の戦況">
+            <small>パ・リーグ</small>
+            <strong>
+              {standings(w, "パ").findIndex((t) => t.id === 0) + 1}位
+            </strong>
+            <span>
+              {team.wins}勝 {team.losses}敗 {team.draws}分
+            </span>
+            <p>
+              {team.wins + team.losses + team.draws} / 143試合 · 前年{" "}
+              {team.previousRank}位
+            </p>
+          </section>
+          <div className="inline-actions">
+            <button onClick={() => go("リーグ")}>順位・個人成績を見る</button>
+            <button onClick={() => go("編成")}>来秋のドラフト候補を調査</button>
           </div>
-          <YasuPortrait />
-        </div>
+          <h2>球団ニュース</h2>
+          <div className="news-feed">
+            {w.news.slice(0, 6).map((n) => (
+              <article key={n.id}>
+                <small>球団からの報告</small>
+                <h3>{n.title}</h3>
+                <p>{n.body}</p>
+              </article>
+            ))}
+          </div>
+        </>
       )}
-      <section className="strength-panel">
-        <div className="section-title">
-          <h2>補強ポイント</h2>
-          <span>支配下の上位戦力</span>
-        </div>
-        <div className="strength-chart">
-          {strength.map((s) => (
-            <div key={s.name}>
-              <span>{s.name}</span>
-              <div className="strength-track">
-                <i style={{ width: `${Math.min(100, s.score)}%` }} />
-              </div>
-              <b className={s.urgent ? "negative" : ""}>{grade(s.score)}</b>
-            </div>
-          ))}
-        </div>
-        <p className="warning">
-          {strength
-            .filter((s) => s.urgent)
-            .map((s) => s.name)
-            .join("・") || "目立つ穴はありません"}
-          {strength.some((s) => s.urgent)
-            ? "に補強の余地。年齢と年俸も見て選びましょう。"
-            : "。若返りと控えの厚みを考えましょう。"}
-        </p>
-        <div className="age-chart">
-          {ageGroups.map((g) => (
-            <div key={g.name}>
-              <span>{g.name}</span>
-              <i
-                style={{
-                  width: `${(g.count / Math.max(1, list.length)) * 100}%`,
-                }}
-              />
-              <b>{g.count}人</b>
-            </div>
-          ))}
-        </div>
-      </section>
+      <TeamProgress w={w} compact={w.phase === "review"} />
       {w.phase === "review" && (
-        <button
-          className="primary review-advance"
-          onClick={() => act({ type: "advance" })}
-        >
-          第1次戦力外通告へ進む →
-        </button>
+        <>
+          <div className="age-chart">
+            {ages.map((g) => (
+              <div key={g.name}>
+                <span>{g.name}</span>
+                <i
+                  style={{
+                    width: `${(g.count / Math.max(1, list.length)) * 100}%`,
+                  }}
+                />
+                <b>{g.count}人</b>
+              </div>
+            ))}
+          </div>
+          <button
+            className="primary review-advance"
+            onClick={() => act({ type: "advance" })}
+          >
+            第1次戦力外通告へ進む →
+          </button>
+        </>
       )}
-      {w.phase === "review" && w.archives.at(-1)?.year === w.year && (
+      {w.archives.at(-1)?.year === w.year && (
         <section className="season-outcome">
-          <h2>{w.year}年 ポストシーズン結果</h2>
+          <h2>{w.year}年 シーズン結果</h2>
           <p>
             日本一：<b>{w.teams[w.archives.at(-1)!.champion].name}</b>
           </p>
@@ -286,97 +250,22 @@ export function Dashboard({
           <Annual w={w} />
         </section>
       )}
-      {w.phase !== "review" && (
-        <>
-          <section className="todo-panel">
-            <h2>要対応タスク</h2>
-            {blockers.length ? (
-              blockers.map((s) => (
-                <button key={s} onClick={() => go("編成")}>
-                  ! {s} ›
-                </button>
-              ))
-            ) : (
-              <p>必須タスクは完了。補強や予算を確認して日程を進められます。</p>
-            )}
-            {w.phase === "contracts" && (
-              <p>
-                FA市場 {w.players.filter((p) => p.market === "fa").length}人 ／
-                育成
-                {list.filter((p) => p.registration === "development").length}人
-              </p>
-            )}
-            {seniorRoster(w).length >= 66 &&
-              ["review", "release", "release2"].includes(w.phase) && (
-                <p className="warning">
-                  空き枠{70 - seniorRoster(w).length}
-                  人。6人指名したい場合は、先に枠を空けましょう。
-                </p>
-              )}
-          </section>
-          <div className="section-title">
-            <h2>オーナー方針</h2>
-            <span>起用は監督に委任</span>
-          </div>
-          <div className="segmented">
-            {(["若手育成", "バランス", "勝利優先"] as const).map((value) => (
-              <button
-                key={value}
-                className={w.teams[0].policy === value ? "selected" : ""}
-                onClick={() => act({ type: "policy", value })}
-              >
-                {value}
-              </button>
-            ))}
-          </div>
-          {w.archives.at(-1)?.year === w.year && (
-            <>
-              <section className="season-outcome">
-                <h2>{w.year}年 ポストシーズン結果</h2>
-                <p>
-                  日本一：<b>{w.teams[w.archives.at(-1)!.champion].name}</b>
-                </p>
-                <details>
-                  <summary>CS・日本シリーズの対戦結果</summary>
-                  {w.seriesLog.map((s, i) => (
-                    <p key={i}>{s}</p>
-                  ))}
-                </details>
-              </section>
-              <Annual w={w} />
-            </>
-          )}
-          <button className="wide-select" onClick={() => go("リーグ")}>
-            セ・パ順位と個人成績・歴代日本一 ›
-          </button>
-          <h2>球団ニュース</h2>
-          <div className="news-feed">
-            {w.news.slice(0, 6).map((n) => (
-              <article key={n.id}>
-                <small>{n.year} / CLUB REPORT</small>
-                <h3>{n.title}</h3>
-                <p>{n.body}</p>
-              </article>
-            ))}
-          </div>
-        </>
-      )}
     </>
   );
 }
-
 export function FrontOffice({ w, act, open }: Props) {
-  const [view, setView] = useState("イベント");
+  const [view, setView] = useState("契約更改");
   if (w.phase === "draft") return <DraftBoard w={w} act={act} open={open} />;
   const releasing = ["release", "release2"].includes(w.phase);
   const choices =
-    w.phase === "contracts" ? ["イベント", "FA市場", "外国人", "トレード"] : [];
+    w.phase === "contracts" ? ["契約更改", "FA市場", "外国人", "トレード"] : [];
   const marketTabs = (
     <div className="market-tabs">
       {choices.map((v) => (
         <button
           key={v}
           className={view === v ? "selected" : ""}
+          aria-pressed={view === v}
           onClick={() => setView(v)}
         >
           {v}
@@ -386,23 +275,19 @@ export function FrontOffice({ w, act, open }: Props) {
   );
   return (
     <>
-      <div className="eyebrow">BASEBALL OPERATIONS</div>
-      <h1>{releasing ? PHASE_NAMES[w.phase] : "編成・補強"}</h1>
       {choices.length > 0 && marketTabs}
-      {!releasing && (
-        <div className="phase-heading">
-          <span>{PHASE_NAMES[w.phase]}</span>
-          <b>支配下 {seniorRoster(w).length}/70</b>
-        </div>
+      {w.phase === "release2" && w.archives.at(-1)?.year === w.year && (
+        <details className="optional-section">
+          <summary>日本シリーズ・シーズン決算を見る</summary>
+          <p>日本一：{w.teams[w.archives.at(-1)!.champion].name}</p>
+          {w.seriesLog.map((s, i) => (
+            <p key={i}>{s}</p>
+          ))}
+          <Annual w={w} />
+        </details>
       )}
-      {!["review", "season", "release"].includes(w.phase) && (
-        <div className={`event-progression${releasing ? " compact" : ""}`}>
-          <p>
-            {phaseBlockers(w).length
-              ? `未完了：${phaseBlockers(w).join(" / ")}`
-              : "検討・手続きが済んだら、次のイベントへ進めます。"}
-          </p>
-        </div>
+      {w.phase === "contracts" && w.compensations.length > 0 && (
+        <Protection w={w} act={act} open={open} />
       )}
       {w.phase === "season" ? (
         <DraftBoard w={w} act={act} open={open} />
@@ -423,9 +308,6 @@ export function FrontOffice({ w, act, open }: Props) {
       ) : w.phase === "contracts" ? (
         <>
           <Contracts w={w} act={act} open={open} />
-          {w.compensations.length > 0 && (
-            <Protection w={w} act={act} open={open} />
-          )}
         </>
       ) : w.phase === "budget" ? (
         <StaffPanel w={w} act={act} />
@@ -504,33 +386,34 @@ function DraftBoard({ w, act, open }: Props) {
       </h2>
       {inDraft && (
         <ol className="draft-steps" aria-label="ドラフトの進行">
-          {["候補を指名", "競合・くじ引き", "結果を確認", "次の巡へ"].map(
-            (s, i) => (
-              <li
-                key={s}
-                className={
-                  i ===
-                  (finished
-                    ? 3
-                    : pending?.stage === "lottery"
-                      ? 1
-                      : pending
-                        ? 2
-                        : 0)
-                    ? "current"
-                    : ""
-                }
-              >
-                {s}
-              </li>
-            ),
-          )}
+          {["指名", "抽選", "結果", "次の巡"].map((s, i) => (
+            <li
+              key={s}
+              className={
+                i ===
+                (finished
+                  ? 3
+                  : pending?.stage === "lottery"
+                    ? 1
+                    : pending
+                      ? 2
+                      : 0)
+                  ? "current"
+                  : ""
+              }
+            >
+              {s}
+            </li>
+          ))}
         </ol>
       )}
       {!pending && !finished && (
-        <p>
-          調査度0〜100%。低調査では能力評価に大きな幅が残ります。1位は重複抽選、下位は逆順位を交互に反転。契約金1,000万円・年俸600万円。
-        </p>
+        <details className="optional-section">
+          <summary>ドラフトのルール・契約条件</summary>
+          <p>
+            調査度0〜100%。低調査では能力評価に大きな幅が残ります。1位は重複抽選、下位は逆順位を交互に反転。契約金1,000万円・年俸600万円。
+          </p>
+        </details>
       )}
       {pending && selected && (
         <section
@@ -559,8 +442,6 @@ function DraftBoard({ w, act, open }: Props) {
           </p>
           {pending.stage === "lottery" ? (
             <>
-              <h3>交渉権をかけて、くじ引きです。</h3>
-              <p>フーミー：ヤスオーナー、くじを引いてください！</p>
               <button
                 className="primary"
                 onClick={() => act({ type: "drawDraftLottery" })}
@@ -627,6 +508,14 @@ function DraftBoard({ w, act, open }: Props) {
           <p className="muted">
             残り調査 {w.scoutsLeft}件 ／ 空き枠 {70 - seniorRoster(w).length}人
           </p>
+          <p className="decision-caption">
+            {picking ? "指名する選手を選択" : "調査する選手を選択"} ·
+            補強ポイント：
+            {teamStrength(w)
+              .filter((s) => s.urgent)
+              .map((s) => s.name)
+              .join("・") || "選手層を厚くする"}
+          </p>
           <div className="prospect-grid">
             {candidates.slice(0, 24).map((p) => {
               const skill = p.position === "投" ? "control" : "contact",
@@ -659,7 +548,11 @@ function DraftBoard({ w, act, open }: Props) {
                       </button>
                     )}
                     {picking && (
-                      <button onClick={() => act({ type: "draft", id: p.id })}>
+                      <button
+                        className="primary"
+                        disabled={seniorRoster(w).length >= 70}
+                        onClick={() => act({ type: "draft", id: p.id })}
+                      >
                         指名する
                       </button>
                     )}
@@ -739,11 +632,22 @@ function Market({
         w={w}
         list={w.players.filter((p) => p.market === kind)}
         open={open}
-        label={kind === "foreign" ? "外国人として獲得" : "希望年俸で獲得"}
+        label={
+          kind === "fa"
+            ? "FA交渉を始める"
+            : kind === "foreign"
+              ? "外国人として獲得"
+              : "希望年俸で獲得"
+        }
         action={
-          enabled && kind !== "fa"
+          enabled
             ? (p) =>
-                act({ type: kind === "foreign" ? "foreign" : "sign", id: p.id })
+                kind === "fa"
+                  ? open(p.id)
+                  : act({
+                      type: kind === "foreign" ? "foreign" : "sign",
+                      id: p.id,
+                    })
             : undefined
         }
       />
@@ -756,21 +660,50 @@ function Contracts({ w, act, open }: Props) {
   return (
     <>
       <h2>契約更改</h2>
-      <p>
-        成績査定に基づく一括提示で通常選手を更新。主力・ベテランは要面談に残ります。出来高は達成時に支払い、複数年は将来の枠と年俸を固定します。
-      </p>
-      <SalaryBudget w={w} act={act} />
-      <button
-        className="primary"
-        disabled={!list.some((p) => p.negotiation !== "meeting")}
-        onClick={() => act({ type: "renewAll" })}
+      <div className="result-counts">
+        <span>
+          契約済み <b>{roster(w).length - list.length}人</b>
+        </span>
+        <span>
+          未提示 <b>{list.length - meetings.length}人</b>
+        </span>
+        <span>
+          要面談 <b>{meetings.length}人</b>
+        </span>
+      </div>
+      {list.length > meetings.length && (
+        <button
+          className="primary"
+          disabled={!list.some((p) => p.negotiation !== "meeting")}
+          onClick={() => act({ type: "renewAll" })}
+        >
+          査定年俸を一括提示 ({list.length - meetings.length}人)
+        </button>
+      )}
+      {list.length > 0 && <h3>個別交渉する選手</h3>}
+      {list.length > 0 ? (
+        <PlayerList
+          w={w}
+          list={list}
+          open={open}
+          action={(p) => open(p.id)}
+          label="契約を交渉する"
+        />
+      ) : (
+        <p className="completion-card">
+          ✓ 全選手の来季契約が揃いました。補強を終えたら、次へ進めます。
+        </p>
+      )}
+      <details
+        className="optional-section"
+        open={projectedPayroll(w) > w.teams[0].finance.salaryBudget}
       >
-        査定年俸を一括提示 ({list.length - meetings.length}人)
-      </button>
-      <h3>
-        要面談 {meetings.length}人 / 未提示 {list.length - meetings.length}人
-      </h3>
-      <PlayerList w={w} list={list} open={open} />
+        <summary>
+          年俸予算を調整 · 残り{" "}
+          {money(w.teams[0].finance.salaryBudget - projectedPayroll(w))}
+        </summary>
+        <SalaryBudget w={w} act={act} />
+      </details>
     </>
   );
 }
@@ -832,7 +765,11 @@ function Protection({ w, act, open }: Props) {
         <button onClick={() => act({ type: "autoProtect" })}>
           戦力順で28人を提案
         </button>
-        <button onClick={() => act({ type: "compensate" })}>
+        <button
+          className="primary"
+          disabled={c.protected.length !== Math.min(28, list.length)}
+          onClick={() => act({ type: "compensate" })}
+        >
           プロテクトを確定
         </button>
       </div>
@@ -843,6 +780,10 @@ function Protection({ w, act, open }: Props) {
               <input
                 type="checkbox"
                 checked={c.protected.includes(p.id)}
+                disabled={
+                  !c.protected.includes(p.id) &&
+                  c.protected.length >= Math.min(28, list.length)
+                }
                 onChange={() => act({ type: "protect", id: p.id })}
               />
               {p.position} {p.name}
@@ -871,12 +812,17 @@ function ActiveDraft({ w, act }: Omit<Props, "open">) {
     );
   const [give, setGive] = useState(ours[0]?.id ?? ""),
     [take, setTake] = useState(others[0]?.id ?? "");
+  if (w.activeDraftDone)
+    return (
+      <section className="completion-card">
+        <h2>選手交換が完了しました</h2>
+        <p>新しい戦力が合流しました。チーム戦力で加入選手を確認できます。</p>
+      </section>
+    );
   return (
     <>
       <h2>現役ドラフト</h2>
-      <p>
-        各球団の出場機会の少ない猫を交換するゲーム内制度です。放出候補と欲しい選手を選んでください。選択すると全球団の移籍が確定します。
-      </p>
+      <p className="decision-caption">放出する選手と、迎える選手を比較</p>
       <PlayerSelect
         label="放出候補"
         list={ours}
@@ -890,6 +836,7 @@ function ActiveDraft({ w, act }: Omit<Props, "open">) {
         onChange={setTake}
         w={w}
       />
+      <ExchangePreview w={w} give={give} take={take} />
       <button
         className="primary"
         disabled={w.activeDraftDone || !give || !take}
@@ -898,6 +845,42 @@ function ActiveDraft({ w, act }: Omit<Props, "open">) {
         {w.activeDraftDone ? "現役ドラフト実施済み" : "この選手交換で確定"}
       </button>
     </>
+  );
+}
+function ExchangePreview({
+  w,
+  give,
+  take,
+}: {
+  w: WorldState;
+  give: string;
+  take: string;
+}) {
+  return (
+    <section className="exchange-preview" aria-label="交換する選手の比較">
+      {[
+        [give, "送り出す選手"],
+        [take, "迎える選手"],
+      ].map(([id, label]) => {
+        const p = w.players.find((p) => p.id === id);
+        return (
+          <article key={label}>
+            <small>{label}</small>
+            {p ? (
+              <>
+                <h3>
+                  {p.position} {p.name} · {p.age}歳
+                </h3>
+                <p>年俸 {money(p.salary)}</p>
+                <PlayerAbilityPanel p={p} w={w} />
+              </>
+            ) : (
+              <p>選手を選んでください</p>
+            )}
+          </article>
+        );
+      })}
+    </section>
   );
 }
 function PlayerSelect({
@@ -984,7 +967,9 @@ function TradePanel({ w, act }: Omit<Props, "open">) {
           onChange={(e) => setCash(Number(e.target.value))}
         />
       </label>
+      <ExchangePreview w={w} give={give} take={take} />
       <button
+        className="primary"
         disabled={w.phase !== "contracts" || !give || !take}
         onClick={() => act({ type: "trade", give, take, cash })}
       >
@@ -997,14 +982,12 @@ export function StaffPanel({ w, act }: Omit<Props, "open">) {
   return (
     <>
       <h2>監督・コーチの契約</h2>
-      <p>
-        6職種の年俸と指導力を比較。更新するスタッフも、新しく招くスタッフも、毎年契約を確定します。
-      </p>
+      <p className="decision-caption">現職を更新するか、候補から選ぶ</p>
       {STAFF_ROLES.map((role) => (
         <section className="staff-section" key={role}>
           <h3>{role}</h3>
           {w.staff
-            .filter((s) => s.role === role && (s.team === 0 || s.team === null))
+            .filter((s) => s.role === role && s.team === 0)
             .sort(
               (a, b) =>
                 Number(b.team === 0) - Number(a.team === 0) ||
@@ -1019,6 +1002,30 @@ export function StaffPanel({ w, act }: Omit<Props, "open">) {
                 hire={() => act({ type: "hire", id: s.id })}
               />
             ))}
+          <details className="optional-section">
+            <summary>{role}の候補を比較する</summary>
+            {w.staff
+              .filter((s) => s.role === role && s.team === null)
+              .sort((a, b) => b.teaching - a.teaching)
+              .slice(0, 3)
+              .map((s) => (
+                <StaffCard
+                  key={s.id}
+                  s={s}
+                  target={w.year + 1}
+                  hire={
+                    w.staff.some(
+                      (current) =>
+                        current.role === role &&
+                        current.team === 0 &&
+                        current.contractYear >= w.year + 1,
+                    )
+                      ? undefined
+                      : () => act({ type: "hire", id: s.id })
+                  }
+                />
+              ))}
+          </details>
         </section>
       ))}
     </>
@@ -1026,7 +1033,14 @@ export function StaffPanel({ w, act }: Omit<Props, "open">) {
 }
 function Registration({ w, act, open }: Props) {
   const [mode, setMode] = useState("一軍選抜"),
+    [group, setGroup] = useState("投手"),
     ids = w.teams[0].activeIds;
+  const groups: Record<string, string[]> = {
+    投手: ["投"],
+    捕手: ["捕"],
+    内野: ["一", "二", "三", "遊"],
+    外野: ["左", "中", "右"],
+  };
   return (
     <>
       <h2>開幕メンバーを決める</h2>
@@ -1065,25 +1079,62 @@ function Registration({ w, act, open }: Props) {
           action={(p) => act({ type: "promote", id: p.id })}
         />
       ) : (
-        <div className="choice-list">
-          {seniorRoster(w).map((p) => (
-            <div key={p.id}>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={ids.includes(p.id)}
-                  onChange={() => act({ type: "active", id: p.id })}
-                />
-                {p.position} {p.name}
-                <small>
-                  {p.species === "dog" ? "外国人" : "猫"} / {p.age}歳
-                  {p.promise !== "none" ? " / 起用確約" : ""}
-                </small>
-              </label>
-              <button onClick={() => open(p.id)}>詳細</button>
-            </div>
-          ))}
-        </div>
+        <>
+          <div className="segmented" aria-label="一軍候補のポジション">
+            {Object.entries(groups).map(([name, positions]) => (
+              <button
+                key={name}
+                aria-pressed={group === name}
+                className={group === name ? "selected" : ""}
+                onClick={() => setGroup(name)}
+              >
+                {name} ·{" "}
+                {
+                  seniorRoster(w).filter(
+                    (p) => positions.includes(p.position) && ids.includes(p.id),
+                  ).length
+                }
+                人
+              </button>
+            ))}
+          </div>
+          {ids.length >= 31 && (
+            <p className="muted">
+              入れ替えは、一軍選手のチェックを外してから。
+            </p>
+          )}
+          <div className="choice-list">
+            {seniorRoster(w)
+              .filter((p) => groups[group].includes(p.position))
+              .map((p) => (
+                <div key={p.id}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={ids.includes(p.id)}
+                      disabled={
+                        !ids.includes(p.id) &&
+                        (ids.length >= 31 ||
+                          (p.species === "dog" &&
+                            ids.filter(
+                              (id) =>
+                                w.players.find((p) => p.id === id)?.species ===
+                                "dog",
+                            ).length >= 4))
+                      }
+                      onChange={() => act({ type: "active", id: p.id })}
+                    />
+                    {p.position} {p.name}
+                    <small>
+                      {p.species === "dog" ? "外国人" : "猫"} / {p.age}歳
+                      {p.promise !== "none" ? " / 起用確約" : ""}
+                    </small>
+                  </label>
+                  <button onClick={() => open(p.id)}>詳細</button>
+                </div>
+              ))}
+          </div>
+        </>
       )}
     </>
   );

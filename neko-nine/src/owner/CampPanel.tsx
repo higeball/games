@@ -42,10 +42,6 @@ export function CampPanel({
     );
     return (
       <section className="camp-results" aria-label="キャンプ結果">
-        <h2>{w.phase === "spring" ? "春季" : "秋季"}キャンプ結果</h2>
-        <p className="notice">
-          キャンプが終了しました。能力の変化を確認して、ヘッダーから次のイベントへ進みましょう。
-        </p>
         {report ? (
           <>
             <div className="camp-result-summary">
@@ -151,9 +147,8 @@ export function CampPanel({
   };
   return (
     <section className="camp-planner" aria-label="キャンプ計画">
-      <h2>{w.phase === "spring" ? "春季" : "秋季"}キャンプを準備する</h2>
-      <p>
-        設定は選ぶだけで自動保存されます。集中指導は任意です。内容が決まったら、一番下の実施ボタンを押してください。
+      <p className="decision-caption">
+        開催地と育成方針を選択 · 変更は自動保存
       </p>
       <section className="camp-step">
         <h3>1. 開催地と予算を選ぶ</h3>
@@ -216,14 +211,15 @@ export function CampPanel({
                   })
                 }
               >
+                {selected ? "✓ " : ""}
                 {label}
               </button>
             );
           })}
         </div>
       </section>
-      <section className="camp-step">
-        <h3>3. 集中指導を選ぶ・任意 ({plan.special.length}/5)</h3>
+      <details className="camp-step camp-special-details">
+        <summary>集中指導・OB招聘（任意） · {plan.special.length}/5人</summary>
         <p>
           上の枠から選手と指導内容を選ぶだけです。「指定しない」に戻すと解除できます。
         </p>
@@ -232,7 +228,15 @@ export function CampPanel({
             update({
               ...plan,
               special: players
-                .filter((p) => p.age <= 27)
+                .filter(
+                  (p) =>
+                    p.age <= 27 &&
+                    plan.focuses.some((s) =>
+                      ["control", "stamina"].includes(s)
+                        ? p.position === "投"
+                        : p.position !== "投",
+                    ),
+                )
                 .sort((a, b) => b.potential - a.potential)
                 .slice(0, 5)
                 .map((p) => ({ id: p.id, kind: "breakout" })),
@@ -359,9 +363,9 @@ export function CampPanel({
             </option>
           </select>
         </label>
-      </section>
+      </details>
       <section className="camp-execution">
-        <h3>4. 内容を確認して実施</h3>
+        <h3>この内容で実施</h3>
         <p>
           {CAMPS[location].name} / 重点：
           {plan.focuses.map((s) => SKILLS[s]).join("・")} / 集中指導{" "}

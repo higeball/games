@@ -89,7 +89,7 @@ test("restrained profile styling, entry pay and persistent scouting feedback", a
   await page.reload();
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: /編成・補強/ })
+    .getByRole("button", { name: /進行/ })
     .click();
   await settle();
   await expect(prospect.locator(".scouting-status b")).toHaveText(

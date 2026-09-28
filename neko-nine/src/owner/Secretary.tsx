@@ -1,5 +1,6 @@
 import { PHASE_FLOW, PHASE_NAMES, type WorldState } from "./model";
 import { phaseBlockers, seniorRoster } from "./operations";
+import { eventObjective } from "./experience";
 
 export function nextEventLabel(w: WorldState) {
   if (w.phase === "season") return `${w.month}月を進める`;
@@ -11,13 +12,9 @@ export function phaseFinishLabel(w: WorldState) {
   return `${PHASE_NAMES[w.phase]}を終了し${nextEventLabel(w)}`;
 }
 export function eventTab(
-  w: Pick<WorldState, "phase">,
+  _w: Pick<WorldState, "phase">,
 ): "ホーム" | "編成" | "経営" {
-  return ["review", "season"].includes(w.phase)
-    ? "ホーム"
-    : w.phase === "budget"
-      ? "経営"
-      : "編成";
+  return "ホーム";
 }
 export function secretaryAdvice(w: WorldState) {
   const room = 70 - seniorRoster(w).length;
@@ -160,7 +157,9 @@ export function FoomyGuide({
         <div>
           <small>OWNER'S SECRETARY</small>
           <h2>フーミーからのご案内</h2>
-          <p>{advice.message}</p>
+          <p>
+            {w.phase === "review" ? advice.message : eventObjective(w).hint}
+          </p>
         </div>
       </div>
       {onAdvance && (
@@ -212,7 +211,7 @@ export function FoomyGuide({
             ))}
           </ol>
         </section>
-      ) : w.phase === "draft" ? null : (
+      ) : compact ? null : (
         <>
           <ol className="year-journey" aria-label="年間の進行">
             {["構想", "補強・契約", "調整・開幕準備", "シーズン"].map(

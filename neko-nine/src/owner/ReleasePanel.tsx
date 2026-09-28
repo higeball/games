@@ -117,9 +117,6 @@ export function ReleasePanel({
           全選手から選ぶ
         </button>
       </div>
-      <p className="muted">
-        戦力外選手候補は若手・主力・契約継続中の選手を除き、出場機会・年齢・戦力評価・年俸から約10人に絞っています。通告は自動では行いません。
-      </p>
       <div
         className="position-tabs"
         role="tablist"
@@ -157,7 +154,11 @@ export function ReleasePanel({
           </button>
         ))}
       </div>
-      <div className="release-filters">
+      <details className="release-filters optional-section">
+        <summary>絞り込み・検索</summary>
+        <p className="muted">
+          候補は若手・主力・契約継続中を除き、約10人に絞っています。条件を変えて全選手から選べます。
+        </p>
         <label>
           <input
             type="checkbox"
@@ -200,7 +201,7 @@ export function ReleasePanel({
             }
           />
         </div>
-      </div>
+      </details>
       <div className="segmented">
         {["戦力外", "育成打診"].map((v) => (
           <button

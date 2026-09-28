@@ -56,6 +56,7 @@ test("camp plan and results survive three-slot saves, title return and a new gam
   await settle();
   await page.getByLabel("追加練習予算").selectOption("2500");
   await settle();
+  await page.locator(".camp-special-details > summary").click();
   await click("若手5人を自動で選ぶ");
   await expect(
     page.getByRole("button", { name: "集中指導に追加", exact: true }),
@@ -64,7 +65,7 @@ test("camp plan and results survive three-slot saves, title return and a new gam
     page.getByRole("button", { name: "このキャンプ計画を保存", exact: true }),
   ).toHaveCount(0);
   await page.reload();
-  await click(/今すぐイベントへ進む/);
+  await page.locator(".camp-special-details > summary").click();
   await expect(page.getByLabel("キャンプ開催地")).toHaveValue("1");
   await expect(page.getByLabel("追加練習予算")).toHaveValue("2500");
   await expect(page.getByLabel("集中指導5の選手")).not.toHaveValue("");
@@ -81,6 +82,15 @@ test("camp plan and results survive three-slot saves, title return and a new gam
     page.getByRole("region", { name: "キャンプ結果" }),
   ).toBeVisible();
   expect(await page.locator(".camp-change").count()).toBeGreaterThan(0);
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: /チーム戦力/ })
+    .click();
+  expect(
+    Number(await page.locator(".team-score > b").textContent()),
+  ).toBeGreaterThan(0);
+  await expect(page.locator(".status-advance")).toHaveCount(0);
+  await click(/秋季キャンプに戻る/);
   await checkWidths();
   const firstResult = await page
     .locator(".camp-result-list article")

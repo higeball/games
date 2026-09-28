@@ -259,6 +259,12 @@ export type WorldState = {
   version: 3;
   salaryModelVersion?: 1;
   revision: number;
+  strengthBaseline?: {
+    year: number;
+    label: string;
+    scores: { name: string; score: number }[];
+    players: { id: string; name: string; position: Position }[];
+  };
   seed: number;
   nextId: number;
   year: number;

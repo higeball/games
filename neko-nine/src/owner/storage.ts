@@ -4,6 +4,7 @@ import { upgradeLegacy } from "./operations";
 import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { normalizeSalaryScale } from "./salary";
+import { recordStrengthBaseline } from "./experience";
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const r = indexedDB.open("neko-owner-v3", 1);
@@ -78,6 +79,17 @@ export function validateWorld(value: unknown): asserts value is WorldState {
     throw Error("キャンプ開催地が不正です。");
   const report = w.campReport;
   if (
+    w.strengthBaseline &&
+    (!Array.isArray(w.strengthBaseline.scores) ||
+      w.strengthBaseline.scores.length !== 5 ||
+      w.strengthBaseline.scores.some(
+        (s) => !s || !Number.isFinite(s.score) || s.score < 0 || s.score > 100,
+      ) ||
+      !Array.isArray(w.strengthBaseline.players) ||
+      w.strengthBaseline.players.some((p) => !p || typeof p.id !== "string"))
+  )
+    throw Error("戦力の比較記録が壊れています。");
+  if (
     report &&
     (!["autumn", "spring"].includes(report.phase) ||
       !Number.isInteger(report.year) ||
@@ -143,10 +155,13 @@ async function readWorld(backup = false): Promise<WorldState | null> {
 export async function loadWorld(backup = false): Promise<WorldState | null> {
   const current = await readWorld(backup);
   if (current) {
+    const needsBaseline = !current.strengthBaseline;
+    recordStrengthBaseline(current);
     const renamed = normalizePlayerNames(current);
     const filled = backfillCareerHistory(current);
     const salaries = normalizeSalaryScale(current);
-    if ((renamed || filled || salaries) && !backup) await persistWorld(current);
+    if ((renamed || filled || salaries || needsBaseline) && !backup)
+      await persistWorld(current, false);
     return current;
   }
   if (backup) return current;
@@ -183,7 +198,7 @@ export async function loadWorld(backup = false): Promise<WorldState | null> {
   await persistWorld(upgraded);
   return upgraded;
 }
-export async function persistWorld(w: WorldState) {
+export async function persistWorld(w: WorldState, rotateBackup = true) {
   validateWorld(w);
   const db = await openDB();
   return new Promise<void>((resolve, reject) => {
@@ -191,7 +206,7 @@ export async function persistWorld(w: WorldState) {
       s = tx.objectStore("saves"),
       r = s.get("current");
     r.onsuccess = () => {
-      if (r.result) s.put(r.result, "backup");
+      if (r.result && rotateBackup) s.put(r.result, "backup");
       s.put(w, "current");
     };
     tx.oncomplete = () => {

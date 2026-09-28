@@ -44,10 +44,16 @@ import { ScoutingStatus } from "./ScoutingStatus";
 import { normalizeSalaryScale } from "./salary";
 import { SaveSlotsPanel } from "./SaveSlotsPanel";
 import { ConfirmDialog } from "./ConfirmDialog";
+import {
+  actionFeedback,
+  eventObjective,
+  recordStrengthBaseline,
+} from "./experience";
+import { TeamProgress } from "./TeamProgress";
 
-type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ";
+type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ" | "調査";
 const tabs: Tab[] = ["ホーム", "選手", "編成", "経営"];
-const icons = ["⌂", "▦", "⚑", "▤", "♜"];
+const icons = ["▶", "▦", "↗", "▤", "♜"];
 const breed = (p: Player) =>
   (p.species === "cat" ? CAT_BREEDS : DOG_BREEDS)[p.breed];
 function portrait(p: Player) {
@@ -82,6 +88,18 @@ export default function OwnerApp() {
     }
   }, [atTitle]);
   const [eventVisit, setEventVisit] = useState(0);
+  const [feedback, setFeedback] =
+    useState<ReturnType<typeof actionFeedback>>(null);
+  const [toast, setToast] = useState("");
+  useEffect(() => {
+    if (!feedback) {
+      setToast("");
+      return;
+    }
+    setToast(feedback.title);
+    const timer = window.setTimeout(() => setToast(""), 2800);
+    return () => window.clearTimeout(timer);
+  }, [feedback]);
   const worker = useRef<Worker | null>(null),
     job = useRef(0),
     pending = useRef(
@@ -140,6 +158,7 @@ export default function OwnerApp() {
     });
   }
   async function commit(next: WorldState) {
+    recordStrengthBaseline(next);
     backfillCareerHistory(next);
     normalizeSalaryScale(next);
     await persistWorld(next);
@@ -157,6 +176,8 @@ export default function OwnerApp() {
           ? await compute(a.type === "skipSeason" ? "skip" : "month")
           : applyOwnerAction(w, a);
       await commit(next);
+      const result = actionFeedback(w, next, a);
+      if (result || a.type === "advance") setFeedback(result);
       if (a.type === "advance" || a.type === "skipSeason") {
         setDetail(null);
         setEventVisit((n) => n + 1);
@@ -180,6 +201,7 @@ export default function OwnerApp() {
       setSettings(false);
       setDetail(null);
       setTab("ホーム");
+      setFeedback(null);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -204,6 +226,7 @@ export default function OwnerApp() {
       backfillCareerHistory(next);
       await commit(next);
       setSettings(false);
+      setFeedback(null);
       setDetail(null);
       setTab("ホーム");
       setAtTitle(false);
@@ -212,6 +235,7 @@ export default function OwnerApp() {
     }
   }
   const selected = w?.players.find((p) => p.id === detail);
+  const objective = w ? eventObjective(w) : null;
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [tab, w?.phase]);
@@ -232,7 +256,7 @@ export default function OwnerApp() {
             ☰
           </button>
         </header>
-        {error && (
+        {error && !selected && (
           <div className="error" role="alert">
             {error}
             <button onClick={() => setError("")}>閉じる</button>
@@ -295,24 +319,104 @@ export default function OwnerApp() {
           <>
             <OwnerStatus
               w={w}
-              onAdvance={() => act({ type: "advance" })}
-              onStopDraft={() => act({ type: "passDraft" })}
+              onAdvance={
+                tab === "ホーム" ? () => act({ type: "advance" }) : undefined
+              }
+              onStopDraft={
+                tab === "ホーム" ? () => act({ type: "passDraft" }) : undefined
+              }
+              onReturn={tab !== "ホーム" ? () => setTab("ホーム") : undefined}
             />
             <main className="workspace" key={tab}>
-              {(tab === "ホーム" ||
-                tab === "編成" ||
-                (tab === "経営" && w.phase === "budget")) && (
-                <FoomyGuide w={w} compact={tab !== "ホーム"} />
+              {tab === "ホーム" && (
+                <>
+                  {w.phase !== "review" && w.phase !== "draft" && (
+                    <div className="event-title">
+                      <small>{objective!.state}</small>
+                      <h1>{objective!.title}</h1>
+                    </div>
+                  )}
+                  <FoomyGuide w={w} compact={w.phase !== "review"} />
+                </>
               )}
-              {tab === "ホーム" && <Dashboard w={w} act={act} go={setTab} />}
+              {feedback && (tab === "ホーム" || tab === "経営") && (
+                <section
+                  className="action-receipt"
+                  aria-label="操作の結果"
+                  aria-live="polite"
+                >
+                  <small>結果</small>
+                  <strong>{feedback.title}</strong>
+                  <p>{feedback.body}</p>
+                  {feedback.changes.length > 0 && (
+                    <p className="receipt-changes">
+                      {feedback.changes.join(" ／ ")}
+                    </p>
+                  )}
+                  <button
+                    className="text-action"
+                    onClick={() => setFeedback(null)}
+                  >
+                    確認して閉じる
+                  </button>
+                </section>
+              )}
+              {tab === "ホーム" &&
+                (w.phase === "review" || w.phase === "season" ? (
+                  <Dashboard
+                    w={w}
+                    act={act}
+                    go={(t) => setTab(t === "編成" ? "調査" : t)}
+                  />
+                ) : w.phase === "budget" ? (
+                  <>
+                    <StaffPanel w={w} act={act} />
+                    <details className="optional-section">
+                      <summary>施設・集客に投資する（任意）</summary>
+                      <Business w={w} act={act} />
+                    </details>
+                  </>
+                ) : (
+                  <FrontOffice
+                    key={`${w.phase}-${eventVisit}`}
+                    w={w}
+                    act={act}
+                    open={setDetail}
+                  />
+                ))}
               {tab === "選手" && <Players w={w} open={setDetail} />}
               {tab === "編成" && (
-                <FrontOffice
-                  key={`${w.phase}-${eventVisit}`}
-                  w={w}
-                  act={act}
-                  open={setDetail}
-                />
+                <>
+                  <TeamProgress w={w} />
+                  <details className="optional-section">
+                    <summary>起用方針を選ぶ</summary>
+                    <div className="segmented">
+                      {(["若手育成", "バランス", "勝利優先"] as const).map(
+                        (value) => (
+                          <button
+                            key={value}
+                            aria-pressed={w.teams[0].policy === value}
+                            className={
+                              w.teams[0].policy === value ? "selected" : ""
+                            }
+                            onClick={() => act({ type: "policy", value })}
+                          >
+                            {value}
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  </details>
+                  <button
+                    className="wide-select"
+                    onClick={() => setTab("リーグ")}
+                  >
+                    セ・パ順位と個人成績・歴代日本一 ›
+                  </button>
+                </>
+              )}
+              {tab === "調査" && (
+                <FrontOffice w={w} act={act} open={setDetail} />
               )}
               {tab === "経営" && <Business w={w} act={act} />}
               {tab === "リーグ" && <League w={w} open={setDetail} />}
@@ -322,16 +426,17 @@ export default function OwnerApp() {
                 <button
                   key={t}
                   className={tab === t ? "active" : ""}
+                  aria-current={tab === t ? "page" : undefined}
                   onClick={() => setTab(t)}
                 >
                   <span>{icons[i]}</span>
                   {t === "選手"
                     ? "選手名鑑"
                     : t === "編成"
-                      ? "編成・補強"
+                      ? "チーム戦力"
                       : t === "経営"
-                        ? "施設・経営"
-                        : t}
+                        ? "球団経営"
+                        : "進行"}
                 </button>
               ))}
             </nav>
@@ -360,6 +465,7 @@ export default function OwnerApp() {
                   lock.current = true;
                   try {
                     await commit(next);
+                    setFeedback(null);
                     setDetail(null);
                     setAtTitle(false);
                     setTab(eventTab(next));
@@ -412,6 +518,8 @@ export default function OwnerApp() {
             w={w}
             close={() => setDetail(null)}
             act={act}
+            result={feedback}
+            error={error}
           />
         )}{" "}
         {newGameConfirm && (
@@ -436,6 +544,11 @@ export default function OwnerApp() {
               先にセーブ枠へ保存する
             </button>
           </ConfirmDialog>
+        )}
+        {toast && !busy && !settings && !selected && !atTitle && (
+          <div className="receipt-toast" aria-live="polite">
+            ✓ {toast}
+          </div>
         )}
         {busy && (
           <div className="busy" role="status">
@@ -553,11 +666,14 @@ export function PlayerList({
                 </span>
                 {p.market === "draft" && <ScoutingStatus p={p} />}
               </div>
-              <b>›</b>
+              <b>能力を見る ›</b>
             </button>
+            {p.team !== 0 && ["fa", "foreign", "tryout"].includes(p.market) && (
+              <PlayerAbilityPanel p={p} w={w} />
+            )}
             {p.market !== "draft" && <RecentResults p={p} w={w} />}
             {action && (
-              <button className="row-action" onClick={() => action(p)}>
+              <button className="row-action primary" onClick={() => action(p)}>
                 {label}
               </button>
             )}
@@ -666,7 +782,11 @@ export function StaffCard({
         方針：{s.policy} {s.history[0] && `／ ${s.history[0]}`}
       </p>
       {hire && (
-        <button disabled={s.contractYear >= target} onClick={hire}>
+        <button
+          className="primary"
+          disabled={s.contractYear >= target}
+          onClick={hire}
+        >
           {s.contractYear >= target
             ? "来季契約済み"
             : s.team === 0
@@ -683,11 +803,15 @@ function PlayerDetail({
   w,
   close,
   act,
+  result,
+  error,
 }: {
   p: Player;
   w: WorldState;
   close: () => void;
   act: (a: OwnerAction) => void;
+  result?: ReturnType<typeof actionFeedback>;
+  error?: string;
 }) {
   const [offer, setOffer] = useState(p.ask),
     [years, setYears] = useState(1),
@@ -759,6 +883,16 @@ function PlayerDetail({
           {p.injured ? `離脱中（残り${p.injured}試合目安）` : "活動中"}
         </p>
         <h3>契約</h3>
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+        {ours && w.phase === "contracts" && p.contractYear >= w.year + 1 && (
+          <p className="completion-card">
+            ✓ 来季契約が確定しました · 年俸 {money(p.salary)}
+          </p>
+        )}
         <div className="contract-facts">
           <span>
             現在 <b>{p.market === "draft" ? "未契約" : money(p.salary)}</b>
@@ -834,6 +968,7 @@ function PlayerDetail({
               </>
             )}
             <button
+              className="primary"
               onClick={() =>
                 act(
                   p.market === "fa"
@@ -861,6 +996,11 @@ function PlayerDetail({
               </p>
             )}
           </div>
+        )}
+        {result?.playerId === p.id && (
+          <p className="negotiation-response" aria-live="polite">
+            {result.body}
+          </p>
         )}
         {!ours &&
           ["season", "draft", "fa", "tryout", "contracts"].includes(w.phase) &&
@@ -935,17 +1075,8 @@ function Business({
     <>
       <div className="eyebrow">CLUB BUSINESS</div>
       <h1>球団経営</h1>
-      {editable && (
-        <div className="event-progression">
-          <p>
-            施設への投資は任意です。監督・コーチ6職種の契約を確定したら進めます。
-          </p>
-        </div>
-      )}
-      <p className="intro">
-        強いチームを支える、続けられる経営。
-        <br />
-        固定費と投資のバランスを整えよう。
+      <p className="decision-caption">
+        {editable ? "施設・集客への投資は任意です" : "球団の収支・設備を確認"}
       </p>
       <div className="metrics">
         <div>
@@ -1045,9 +1176,10 @@ function Business({
             </span>
             <button
               disabled={!editable || f.facilities[i] >= 5 || f.debt > 0}
+              className="primary"
               onClick={() => act({ type: "invest", facility: i })}
             >
-              投資する
+              {f.facilities[i] >= 5 ? "最大レベル" : "設備に投資する"}
             </button>
           </article>
         ))}
@@ -1071,7 +1203,6 @@ function Business({
         {!rows.length && <p>新年度の収支はこれから記録されます。</p>}
       </div>
       <Annual w={w} />
-      {editable && <StaffPanel w={w} act={act} />}
     </>
   );
 }

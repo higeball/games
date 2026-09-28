@@ -73,7 +73,7 @@ test("mobile draft advances only after each result, including lottery and reload
   await page.reload();
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: /編成・補強/ })
+    .getByRole("button", { name: /進行/ })
     .click();
   await settle();
   const guide = page.getByRole("complementary", { name: "秘書フーミーの案内" });
@@ -105,7 +105,7 @@ test("mobile draft advances only after each result, including lottery and reload
         await page.reload();
         await page
           .getByRole("navigation")
-          .getByRole("button", { name: /編成・補強/ })
+          .getByRole("button", { name: /進行/ })
           .click();
         await settle();
         reloaded = true;
@@ -156,6 +156,16 @@ test("mobile draft advances only after each result, including lottery and reload
   ).toBeVisible();
   expect(sawLottery).toBe(true);
   await expect(page.getByText("獲得 6人。", { exact: false })).toBeVisible();
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: /チーム戦力/ })
+    .click();
+  await expect(page.locator(".newcomer-list > div")).toHaveCount(6);
+  await expect(page.locator(".status-advance")).toHaveCount(0);
+  await click(/ドラフト会議に戻る/);
+  await expect(
+    page.getByRole("heading", { name: "ドラフト指名終了", exact: true }),
+  ).toBeVisible();
   for (const width of [360, 390, 430, 1100]) {
     await page.setViewportSize({ width, height: 844 });
     expect(
@@ -173,6 +183,8 @@ test("mobile draft advances only after each result, including lottery and reload
     true,
   );
   await click("ドラフト会議を終了し秋季キャンプへ進む");
-  await expect(guide).toContainText("秋季キャンプになります");
+  await expect(
+    page.getByRole("heading", { name: "育成方針を選び、キャンプ実施" }),
+  ).toBeVisible();
   expect(errors).toEqual([]);
 });

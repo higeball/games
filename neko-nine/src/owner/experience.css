@@ -1,0 +1,414 @@
+/* One visual language: solid buttons commit, outlined controls choose, paper holds reports. */
+.workspace {
+  padding-top: 18px;
+}
+.workspace button,
+.modal button {
+  min-height: 42px;
+}
+.owner-shell button.primary {
+  background: var(--green);
+  color: #fffdf7;
+  border: 1px solid var(--green);
+  justify-content: center;
+  font-weight: 750;
+}
+.owner-shell button.primary:disabled {
+  background: #e5e6df;
+  border-color: #d5d9d0;
+  color: #747b73;
+  opacity: 1;
+}
+.owner-shell :is(.segmented, .market-tabs, .focus-options) button.selected {
+  background: #e6ecdf;
+  color: var(--green);
+  border: 2px solid var(--green);
+  font-weight: 800;
+}
+.focus-options button:disabled[aria-pressed="true"] {
+  opacity: 1;
+}
+.owner-shell button:focus-visible,
+.owner-shell summary:focus-visible,
+.owner-shell select:focus-visible {
+  outline: 3px solid #c08e35;
+  outline-offset: 3px;
+}
+.return-to-event {
+  width: calc(100% - 16px);
+  margin: 0 8px 7px;
+  min-height: 36px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #fdfbf5;
+  color: var(--green);
+}
+.event-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.event-title > small {
+  font-size: 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 4px 6px;
+  color: var(--green);
+}
+.event-title h1 {
+  font-size: 20px;
+  line-height: 1.45;
+  margin: 0;
+}
+.secretary-guide.compact {
+  margin-bottom: 18px;
+  background: #f1eee3;
+  border: 0;
+}
+.secretary-guide.compact .secretary-briefing {
+  padding: 8px 10px;
+  gap: 10px;
+  align-items: center;
+}
+.secretary-guide.compact .secretary-briefing img {
+  width: 40px;
+  height: 52px;
+  flex-basis: 40px;
+}
+.secretary-guide.compact .secretary-briefing small {
+  display: none;
+}
+.secretary-guide.compact .secretary-briefing h2 {
+  font-size: 10px;
+  margin: 0 0 2px;
+}
+.secretary-guide.compact .secretary-briefing p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.decision-caption {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 650;
+  margin: 12px 0;
+}
+.draft-steps {
+  gap: 8px;
+  padding: 0;
+  margin: 12px 0 16px;
+}
+.draft-steps li,
+.draft-steps li.current {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 4px 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.draft-steps li.current {
+  color: var(--green);
+  font-weight: 800;
+}
+.draft-steps li.current::before {
+  content: "● ";
+}
+.draft-outcome > p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.optional-section {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 12px;
+  margin: 14px 0;
+  background: transparent;
+}
+.optional-section > summary,
+.camp-special-details > summary {
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 22px;
+}
+.optional-section[open] > summary {
+  margin-bottom: 12px;
+}
+.action-receipt,
+.completion-card {
+  padding: 14px;
+  margin: 14px 0;
+  border: 1px solid #b9c9b4;
+  border-radius: 6px;
+  background: #f1f3e9;
+}
+.action-receipt > small {
+  display: block;
+  color: var(--green);
+  font-size: 10px;
+  margin-bottom: 4px;
+}
+.action-receipt > strong {
+  font-size: 15px;
+}
+.action-receipt p,
+.completion-card p {
+  font-size: 12px;
+  line-height: 1.7;
+}
+.receipt-changes {
+  font-weight: 700;
+}
+.text-action {
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+  padding: 4px 0;
+  font-size: 11px;
+  color: var(--green);
+}
+.result-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #eeeede;
+  padding: 12px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.result-counts b {
+  margin-left: 5px;
+}
+.team-progress {
+  padding: 16px 0;
+}
+.team-progress h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.team-progress .section-title {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.team-progress .section-title small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.team-score {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 16px 0;
+}
+.team-score > span {
+  font-size: 12px;
+}
+.team-score > strong {
+  font-size: 27px;
+}
+.team-score > b {
+  font-size: 15px;
+}
+.progress-strength-rows {
+  display: grid;
+  gap: 14px;
+}
+.progress-strength-rows > div {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 20px 44px;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+.progress-strength-rows > div > b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.comparison-track {
+  height: 9px;
+  position: relative;
+  background: #e4e3d6;
+  border-radius: 3px;
+}
+.comparison-track i {
+  display: block;
+  height: 100%;
+  background: var(--green);
+  border-radius: 3px;
+}
+.comparison-track em {
+  position: absolute;
+  top: -3px;
+  height: 15px;
+  width: 2px;
+  background: #c3994e;
+}
+.team-progress > .muted {
+  font-size: 10px;
+  margin: 14px 0;
+}
+.newcomer-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.newcomer-list > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #efeddf;
+  padding: 8px;
+  font-size: 12px;
+}
+.newcomer-list svg {
+  width: 42px;
+  height: 46px;
+  flex-shrink: 0;
+}
+.newcomer-list small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
+.result-note {
+  font-size: 12px;
+  color: var(--green);
+}
+.negotiation-response {
+  background: #eef1e5;
+  border: 1px solid #becbb6;
+  border-radius: 5px;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.choice-list > div:has(input:checked) {
+  background: #e8eddf;
+}
+.choice-list input {
+  accent-color: var(--green);
+  width: 18px;
+  height: 18px;
+}
+.owner-shell > .error {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.season-scoreboard {
+  background: #efeddf;
+  padding: 18px;
+  border-radius: 6px;
+}
+.season-scoreboard small {
+  display: block;
+  font-size: 11px;
+}
+.season-scoreboard strong {
+  font-size: 42px;
+  margin-right: 20px;
+  color: var(--green);
+}
+.season-scoreboard span {
+  font-size: 18px;
+  font-weight: 700;
+}
+.season-scoreboard p {
+  font-size: 12px;
+  margin-bottom: 0;
+}
+.exchange-preview {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.exchange-preview article {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+.exchange-preview h3 {
+  font-size: 13px;
+}
+.exchange-preview small {
+  font-size: 11px;
+  color: var(--green);
+}
+.exchange-preview p {
+  font-size: 12px;
+}
+.staff-section {
+  margin: 20px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.staff-section > h3 {
+  font-size: 15px;
+}
+.staff-section .optional-section {
+  padding: 10px;
+}
+.camp-step .field {
+  margin: 12px 0;
+}
+.camp-special-details[open] summary {
+  margin-bottom: 12px;
+}
+.camp-special-slots {
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+}
+.camp-execution {
+  background: #eeefdf;
+}
+.camp-execution .budget-preview {
+  margin: 12px 0;
+}
+.prospect-grid .primary {
+  margin: 0;
+}
+.owner-shell .candidate-action:not(.cancel-release) {
+  color: var(--ability-negative);
+  border: 1px solid #ba8a81;
+  background: #fbf8f0;
+}
+.bottom-nav button {
+  font-size: 11px;
+}
+.bottom-nav .active {
+  background: #e4ebdc;
+  color: var(--green);
+}
+.player-summary > b {
+  font-size: 11px;
+  color: var(--green);
+  white-space: nowrap;
+}
+.receipt-toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(86px + env(safe-area-inset-bottom));
+  z-index: 35;
+  width: min(680px, calc(100% - 32px));
+  background: #294d43;
+  color: #fffdf7;
+  border-radius: 6px;
+  box-shadow: 0 4px 18px #14272f33;
+  padding: 10px 14px;
+  font-size: 12px;
+  pointer-events: none;
+}
+@media (min-width: 650px) {
+  .exchange-preview {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .owner-shell * {
+    scroll-behavior: auto !important;
+  }
+}

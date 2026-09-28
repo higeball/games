@@ -99,6 +99,7 @@ test("old saves gain career history and compact individually colored ranks", asy
   await page.reload();
   await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
   await expect(page.getByRole("status")).toHaveCount(0);
+  await page.locator(".release-filters > summary").click();
   await page.getByLabel("主力選手を除外").uncheck();
   await page.getByLabel("戦力外候補を検索").fill(original.name);
   const card = page.locator(`[data-player-id="${original.id}"]`);

@@ -23,10 +23,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     await expect(page.getByRole("alert")).toHaveCount(0);
   };
   const home = async () =>
-    page
-      .getByRole("navigation")
-      .getByRole("button", { name: /ホーム/ })
-      .click();
+    page.getByRole("navigation").getByRole("button", { name: /進行/ }).click();
   const event = async () => {
     if (
       await page.getByRole("button", { name: /今すぐイベントへ進む/ }).count()
@@ -77,6 +74,9 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await home();
   await click(/FA公示・第2次戦力外へ進む/);
   await home();
+  await page
+    .getByText("日本シリーズ・シーズン決算を見る", { exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: "一年の決算" })).toBeVisible();
   await click(/合同トライアウトへ進む/);
   await click(/現役ドラフトへ進む/);
@@ -86,6 +86,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await click(/契約更改へ進む/);
   await event();
   await click(/査定年俸を一括提示/);
+  await page.locator("summary").filter({ hasText: "年俸予算を調整" }).click();
   await page.getByLabel("来季年俸予算").selectOption("400000");
   await expect(page.getByRole("status")).toHaveCount(0);
   await page.screenshot({
@@ -116,7 +117,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   }
   await page
     .getByRole("navigation")
-    .getByRole("button", { name: /施設・経営/ })
+    .getByRole("button", { name: /球団経営/ })
     .click();
   await page.screenshot({
     path: "test-results/fukuoka-business.png",
@@ -125,6 +126,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await home();
   await click(/春季キャンプへ進む/);
   await event();
+  await page.locator(".camp-special-details > summary").click();
   const pitcher = await page
     .getByLabel("集中指導1の選手")
     .locator("option")
@@ -151,6 +153,18 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await click(/開幕一軍登録へ進む/);
   await event();
   await expect(page.getByText(/一軍 31\/31人/)).toBeVisible();
+  await page.getByRole("button", { name: /^外野 ·/ }).click();
+  await expect(page.getByRole("button", { name: /^外野 ·/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(
+    await page
+      .locator(".choice-list label")
+      .evaluateAll((els) =>
+        els.every((el) => /^[左中右] /.test(el.textContent!.trim())),
+      ),
+  ).toBe(true);
   await page.screenshot({
     path: "test-results/fukuoka-registration.png",
     fullPage: true,
@@ -168,10 +182,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await click(/レギュラーシーズン開幕/);
   await expect(page.locator(".status-date")).toContainText("2027年 4月");
   await click("4月を進める →");
-  await page
-    .getByRole("navigation")
-    .getByRole("button", { name: /編成・補強/ })
-    .click();
+  await click("来秋のドラフト候補を調査");
   await page
     .getByRole("button", { name: /^調査 200万円（/ })
     .first()
@@ -213,6 +224,9 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await home();
   await click(/FA公示・第2次戦力外へ進む/);
   await home();
+  await page
+    .getByText("日本シリーズ・シーズン決算を見る", { exact: true })
+    .click();
   await expect(page.getByRole("heading", { name: "一年の決算" })).toBeVisible();
   await page.screenshot({
     path: "test-results/fukuoka-annual.png",
