@@ -215,7 +215,7 @@ export function Dashboard({
       )}
       <section className="strength-panel">
         <div className="section-title">
-          <h2>どこを補強する？</h2>
+          <h2>補強ポイント</h2>
           <span>支配下の上位戦力</span>
         </div>
         <div className="strength-chart">

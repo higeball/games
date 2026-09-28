@@ -88,6 +88,10 @@ React・TypeScript・Vite。`src/owner/engine.ts` は描画から独立した試
 
 就任直後はフーミーによる年間の流れ → ポジション別の補強ポイント → 第1次戦力外通告へ、の順で案内します。資金・年俸・支配下・順位は固定ヘッダーに横一段で表示。戦力外候補はポジション別タブで絞り込め、終了ボタンはヘッダー内の「第1次戦力外通告を終了しドラフト会議へ進む」です。
 
+年間の流れは矢印ごとに改行し、手続き名の途中では折り返さない表示です。カードの一辺だけを着色する装飾は廃止。弾道・球種・特殊能力も共通の色付きボックスで表示します。
+
+戦力外通告・育成契約打診の確認はアプリ内モーダルです。戦力外通告後も候補一覧に選手を残し、ボタンから取消可能です。取消時は登録枠とファン評価も復元し、年俸・能力・成績は変わりません。通告期間を終了すると確定し、次の期間には取り消せません。育成契約打診の結果は取消対象ではありません。
+
 ドット絵フーミーの最終プロンプト（組み込み画像生成・style-transfer）:
 
 > Asset: transparent portrait sprite for a Japanese baseball-owner mobile game. Image 1 is the edit target: secretary Foomy. Image 2 is the style reference ONLY, Yasu's existing pixel sprites. Redraw Image 1 as genuine crisp square-pixel 16-bit JRPG character artwork at the SAME pixel density, dark pixel outlines, limited palette, stepped shading, large friendly eyes and chibi proportions as Yasu. Preserve Foomy's short chestnut-brown bob hair, adult female identity, friendly smile, navy business jacket, cream blouse and clipboard. A single front-facing upper-body portrait centered, head and shoulders fully visible with small transparent padding. True alpha transparent background. No smooth anime linework, no antialiasing, no gradients, no text, no watermark. Do not draw Yasu, no sheet, only one Foomy sprite.

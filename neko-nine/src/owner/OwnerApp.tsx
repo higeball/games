@@ -39,6 +39,7 @@ import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { AbilityBadge } from "./AbilityBadge";
 import { RecentResults } from "./RecentResults";
+import { ProfileAbilities } from "./ProfileAbilities";
 
 type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ";
 const tabs: Tab[] = ["ホーム", "選手", "編成", "経営"];
@@ -661,7 +662,6 @@ function PlayerDetail({
             </p>
           </div>
         </div>
-        <div className="badge">{p.trait}</div>
         <p className="muted">
           {p.species === "dog"
             ? "外国人"
@@ -684,20 +684,7 @@ function PlayerDetail({
             );
           })}
         </div>
-        {p.position === "投" ? (
-          <p>
-            球速{" "}
-            {ours
-              ? `${p.velocity}km/h`
-              : `${p.velocity - 5}〜${p.velocity + 5}km/h（推定）`}
-            <br />
-            {p.pitches
-              .map((x) => `${x.name} ${ours ? x.level : "調査中"}`)
-              .join(" / ")}
-          </p>
-        ) : (
-          <p>弾道 {ours ? p.trajectory : "未確定"}</p>
-        )}
+        <ProfileAbilities p={p} known={ours} />
         <p className="muted">
           将来性：
           {p.age >= 32 ? "ベテラン調整" : potentialEstimate(w, p)} ／ 人気{" "}

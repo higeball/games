@@ -1,6 +1,15 @@
 import type { Player, WorldState } from "./model";
 import { ability, roster } from "./engine";
 
+export function isPendingRelease(p: Player, w: WorldState) {
+  return (
+    p.team === null &&
+    p.market === "tryout" &&
+    p.releaseNotice?.year === w.year &&
+    p.releaseNotice.phase === w.phase
+  );
+}
+
 export function isCorePlayer(p: Player, year: number) {
   const r = p.reports[year];
   if (!r) return false;
@@ -28,11 +37,13 @@ export function releaseCandidates(
     search: string;
   },
 ) {
-  return roster(w)
+  return [...roster(w), ...w.players.filter((p) => isPendingRelease(p, w))]
     .filter(
       (p) =>
-        (!options.excludeYoung || p.pro > 3) &&
-        (!options.excludeCore || !isCorePlayer(p, w.year)) &&
+        (isPendingRelease(p, w) || !options.excludeYoung || p.pro > 3) &&
+        (isPendingRelease(p, w) ||
+          !options.excludeCore ||
+          !isCorePlayer(p, w.year)) &&
         (options.mode !== "育成打診" ||
           (p.registration === "senior" && p.species === "cat")) &&
         (options.position === "全守備" || p.position === options.position) &&
@@ -40,6 +51,7 @@ export function releaseCandidates(
     )
     .sort(
       (a, b) =>
+        Number(isPendingRelease(b, w)) - Number(isPendingRelease(a, w)) ||
         Number(a.contractYear > w.year) - Number(b.contractYear > w.year) ||
         Number(isCorePlayer(a, w.year)) - Number(isCorePlayer(b, w.year)) ||
         releaseReasons(b, w.year).length - releaseReasons(a, w.year).length ||

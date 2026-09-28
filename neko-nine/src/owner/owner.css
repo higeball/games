@@ -19,7 +19,6 @@
   top: 0;
   z-index: 15;
   background: var(--paper);
-  border-bottom: 3px solid var(--gold);
   box-shadow: 0 4px 12px #14272f12;
 }
 .status-date {
@@ -96,7 +95,6 @@
 }
 .event-card {
   background: #eeecdf;
-  border-top: 4px solid var(--gold);
   padding: 18px;
 }
 .event-card h2 {
@@ -132,7 +130,7 @@
 .strength-track i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #779a78, var(--green));
+  background: var(--green);
 }
 .age-chart {
   background: #eeecdf;
@@ -450,7 +448,6 @@ b {
   align-items: center;
   justify-content: space-between;
   padding: calc(9px + env(safe-area-inset-top)) 18px 9px;
-  border-bottom: 3px solid var(--green);
   background: var(--paper);
 }
 .masthead > button {
@@ -605,7 +602,6 @@ b {
   display: block;
 }
 .task-card {
-  border-top: 3px solid var(--gold);
   padding: 18px;
   background: #edeadf;
   border-radius: 0 0 6px 6px;
@@ -723,7 +719,7 @@ b {
 }
 .welcome {
   padding: 35px 26px;
-  background: linear-gradient(135deg, transparent 50%, #e9eddf 50%);
+  background: var(--paper);
   min-height: calc(100dvh - 70px);
 }
 .welcome h1 {
@@ -757,7 +753,6 @@ b {
 .welcome-portrait > span {
   z-index: 1;
   font-size: 12px;
-  border-left: 2px solid var(--gold);
   padding-left: 15px;
   line-height: 2;
 }
@@ -874,7 +869,6 @@ b {
 .secretary-guide {
   margin: 0 0 22px;
   border: 1px solid #d5c6a8;
-  border-top: 3px solid var(--gold);
   border-radius: 9px;
   background: #fffaf0;
   overflow: hidden;
@@ -1205,7 +1199,6 @@ b {
   display: flex;
   justify-content: space-between;
   padding: 11px;
-  border-left: 3px solid var(--gold);
   background: #ece9df;
   font-size: 12px;
   margin-bottom: 16px;
@@ -1299,7 +1292,6 @@ b {
   border: 1px solid var(--line);
   background: #fffdf8;
   padding: 17px;
-  border-top: 3px solid var(--green);
 }
 .camp-grid small {
   font: 10px monospace;
@@ -1415,7 +1407,6 @@ b {
 .annual {
   padding: 17px;
   background: #eeeade;
-  border-top: 3px solid var(--gold);
   margin: 22px 0;
 }
 .annual h2 {
@@ -1688,7 +1679,6 @@ b {
 }
 .season-overview li {
   counter-increment: route;
-  border-left: 2px solid var(--gold);
   background: #eeeade;
   padding: 7px 8px;
 }
@@ -1706,7 +1696,7 @@ b {
   line-height: 1.6;
   margin: 3px 0;
 }
-.season-overview li span {
+.season-overview li > span {
   display: block;
   font-size: 10px;
   line-height: 1.6;
@@ -1783,7 +1773,6 @@ b {
   margin: 6px 0;
 }
 .growth-line {
-  border-left: 2px solid var(--gold);
   padding-left: 10px;
   font-size: 11px;
 }
@@ -1857,4 +1846,110 @@ b {
     animation: none !important;
     scroll-behavior: auto !important;
   }
+}
+.profile-abilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.ability-plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 29px;
+  padding: 5px 9px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.ability-plate.positive {
+  background: #dcecff;
+  border-color: #87b6e1;
+  color: #164e83;
+}
+.ability-plate.neutral {
+  background: #fff0bd;
+  border-color: #d6bd6a;
+  color: #775616;
+}
+.ability-plate.negative {
+  background: #ffe1e4;
+  border-color: #df949b;
+  color: #982d3c;
+}
+.ability-plate.condition {
+  background: #e8f1da;
+  border-color: #b4c991;
+  color: #456126;
+}
+.season-overview li b .route-line {
+  display: block;
+  color: var(--ink);
+  font-size: inherit;
+  line-height: inherit;
+}
+.season-overview li b .route-token {
+  display: inline-block;
+  white-space: nowrap;
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+.release-candidate.release-selected {
+  background: #fff0ea;
+  border-color: #d7aba0;
+}
+.release-state {
+  display: inline-block;
+  padding: 3px 7px;
+  background: #ffe0d7;
+  color: #934231;
+  border: 1px solid #d7aba0;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.candidate-action.cancel-release {
+  background: #e3effa;
+  color: #235a85;
+  border-color: #9fbdd7;
+}
+.app-confirm {
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  box-shadow: 0 12px 36px #0004;
+}
+.app-confirm::backdrop {
+  background: #14272fb3;
+}
+.app-confirm > section {
+  padding: 20px;
+}
+.app-confirm h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+.confirmation-body {
+  font-size: 12px;
+  line-height: 1.8;
+}
+.confirmation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 8px;
+  margin-top: 20px;
+}
+.confirmation-actions button {
+  margin-top: 0;
+  min-height: 44px;
+  font-size: 12px;
+  justify-content: center;
 }

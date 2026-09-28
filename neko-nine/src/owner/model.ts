@@ -95,6 +95,13 @@ export type Player = {
   reports: Record<number, RecordLine>;
   /** Fictional reserve-league reference stats; never included in league totals. */
   farmReports?: Record<number, RecordLine>;
+  /** Reversible notice, valid only until this release period is finished. */
+  releaseNotice?: {
+    year: number;
+    phase: "release" | "release2";
+    market: Player["market"];
+    popularityLoss: number;
+  };
   growth: string[];
   scouting: number;
   preference: "優勝" | "出場" | "年俸";
@@ -295,6 +302,7 @@ export type CampPlan = {
 export type OwnerAction =
   | { type: "advance" }
   | { type: "release"; id: string }
+  | { type: "cancelRelease"; id: string }
   | { type: "hire"; id: string }
   | { type: "draft"; id: string }
   | { type: "passDraft" }

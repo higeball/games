@@ -2,7 +2,7 @@ import { beforeAll, expect, it } from "vitest";
 import { createWorld, newPlayer, applyOwnerAction, roster } from "./engine";
 import { playerName, normalizePlayerNames } from "./identity";
 import { portraitPattern } from "./AnimalPortrait";
-import { releaseCandidates, isCorePlayer } from "./release";
+import { releaseCandidates, isCorePlayer, isPendingRelease } from "./release";
 import { secretaryAdvice, eventTab, nextEventLabel } from "./Secretary";
 import { PHASE_FLOW, type WorldState } from "./model";
 
@@ -137,4 +137,98 @@ it("guides every playable phase and routes advances straight to their task", () 
   expect(eventTab({ phase: "budget" })).toBe("経営");
   expect(eventTab({ phase: "season" })).toBe("ホーム");
   expect(secretaryAdvice(world).message).toContain("シーズンお疲れ様でした");
+});
+
+it("keeps released core players visible and restores roster, history and fan rating on cancellation", () => {
+  const w = structuredClone(world);
+  w.phase = "release";
+  const p = roster(w).find(
+    (p) => isCorePlayer(p, w.year) && p.contractYear <= w.year,
+  )!;
+  const initial = structuredClone(p);
+  const count = roster(w).length;
+  const popularity = w.teams[0].finance.popularity;
+  const released = applyOwnerAction(w, { type: "release", id: p.id });
+  const pending = released.players.find((x) => x.id === p.id)!;
+  expect(isPendingRelease(pending, released)).toBe(true);
+  expect(roster(released)).toHaveLength(count - 1);
+  expect(
+    releaseCandidates(released, {
+      excludeYoung: true,
+      excludeCore: true,
+      mode: "戦力外",
+      position: "全守備",
+      search: "",
+    }).some((x) => x.id === p.id),
+  ).toBe(true);
+  // JSON roundtrip represents saving and reopening the game.
+  const restored = applyOwnerAction(JSON.parse(JSON.stringify(released)), {
+    type: "cancelRelease",
+    id: p.id,
+  });
+  expect(roster(restored)).toHaveLength(count);
+  expect(restored.players.find((x) => x.id === p.id)).toEqual(initial);
+  expect(restored.teams[0].finance.popularity).toBeCloseTo(popularity);
+  expect(() =>
+    applyOwnerAction(restored, { type: "cancelRelease", id: p.id }),
+  ).toThrow();
+});
+
+it("finalizes notices at the end of their release period and rejects stale cancellation", () => {
+  const w = structuredClone(world);
+  w.phase = "release";
+  const p = roster(w).find((p) => p.contractYear <= w.year)!;
+  const released = applyOwnerAction(w, { type: "release", id: p.id });
+  const advanced = applyOwnerAction(released, { type: "advance" });
+  expect(advanced.phase).toBe("draft");
+  expect(
+    advanced.players.find((x) => x.id === p.id)?.releaseNotice,
+  ).toBeUndefined();
+  advanced.phase = "release2";
+  expect(() =>
+    applyOwnerAction(advanced, { type: "cancelRelease", id: p.id }),
+  ).toThrow();
+  const stale = structuredClone(released);
+  stale.year++;
+  expect(() =>
+    applyOwnerAction(stale, { type: "cancelRelease", id: p.id }),
+  ).toThrow();
+});
+
+it("cancels second-period notices without inflating a floor-clamped fan rating", () => {
+  const w = structuredClone(world);
+  w.phase = "release2";
+  w.teams[0].finance.popularity = 1.1;
+  const players = roster(w)
+    .filter((p) => p.contractYear <= w.year)
+    .slice(0, 2);
+  let updated = w;
+  for (const p of players)
+    updated = applyOwnerAction(updated, { type: "release", id: p.id });
+  for (const p of players)
+    updated = applyOwnerAction(updated, { type: "cancelRelease", id: p.id });
+  expect(updated.teams[0].finance.popularity).toBeCloseTo(1.1);
+  expect(roster(updated)).toHaveLength(roster(w).length);
+});
+
+it("does not let cancelling a notice exceed the seventy-player senior limit", () => {
+  const w = structuredClone(world);
+  w.phase = "release";
+  const p = roster(w).find(
+    (p) => p.registration === "senior" && p.contractYear <= w.year,
+  )!;
+  const released = applyOwnerAction(w, { type: "release", id: p.id });
+  while (
+    roster(released).filter((p) => p.registration === "senior").length < 70
+  )
+    newPlayer(released, 0, "投", "roster");
+  expect(() =>
+    applyOwnerAction(released, { type: "cancelRelease", id: p.id }),
+  ).toThrow(/支配下枠/);
+  expect(
+    isPendingRelease(
+      released.players.find((x) => x.id === p.id)!,
+      released,
+    ),
+  ).toBe(true);
 });

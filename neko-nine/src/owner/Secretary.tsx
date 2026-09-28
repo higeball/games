@@ -188,7 +188,19 @@ export function FoomyGuide({
             ].map(([date, name, detail]) => (
               <li key={name}>
                 <small>{date}</small>
-                <b>{name}</b>
+                <b>
+                  {name.split(" → ").map((step, i) => (
+                    <span className="route-line" key={step}>
+                      {i > 0 && "→ "}
+                      {step.split("・").map((token, j) => (
+                        <span className="route-token" key={token}>
+                          {j > 0 && "・"}
+                          {token}
+                        </span>
+                      ))}
+                    </span>
+                  ))}
+                </b>
                 <span>{detail}</span>
               </li>
             ))}

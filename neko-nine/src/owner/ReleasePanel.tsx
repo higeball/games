@@ -13,8 +13,15 @@ import {
 import { seniorRoster } from "./operations";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { AbilityBadge, GradeMark } from "./AbilityBadge";
-import { releaseCandidates, releaseReasons, isCorePlayer } from "./release";
+import {
+  releaseCandidates,
+  releaseReasons,
+  isCorePlayer,
+  isPendingRelease,
+} from "./release";
 import { RecentResults } from "./RecentResults";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { ProfileAbilities } from "./ProfileAbilities";
 export function ReleasePanel({
   w,
   act,
@@ -27,7 +34,12 @@ export function ReleasePanel({
     [excludeCore, setCore] = useState(true),
     [position, setPosition] = useState("全守備"),
     [search, setSearch] = useState(""),
-    [page, setPage] = useState(0);
+    [page, setPage] = useState(0),
+    [confirmation, setConfirmation] = useState<{
+      id: string;
+      type: "release" | "development";
+    } | null>(null);
+  const confirmingPlayer = w.players.find((p) => p.id === confirmation?.id);
   const list = releaseCandidates(w, {
     excludeYoung,
     excludeCore,
@@ -71,7 +83,7 @@ export function ReleasePanel({
       <h2>戦力外候補を比較する</h2>
       <p>
         現在の空き枠は<strong>{70 - seniorRoster(w).length}人</strong>
-        。候補は出場機会・年齢・戦力評価から並べています。自動的に通告はしません。
+        。通告した選手は一覧に残り、この通告期間を終了するまではキャンセルできます。
       </p>
       <div
         className="position-tabs"
@@ -161,6 +173,7 @@ export function ReleasePanel({
         aria-labelledby={`release-tab-${positions.indexOf(position)}`}
       >
         {list.slice(current * 10, current * 10 + 10).map((p) => {
+          const released = isPendingRelease(p, w);
           const locked = p.contractYear > w.year;
           const depth = roster(w).filter(
             (x) =>
@@ -181,17 +194,21 @@ export function ReleasePanel({
                 ] as const);
           return (
             <article
-              className="release-candidate"
+              className={`release-candidate${released ? " release-selected" : ""}`}
               key={p.id}
               data-player-id={p.id}
               data-pro={p.pro}
               data-position={p.position}
+              data-released={released}
               data-core={isCorePlayer(p, w.year)}
             >
               <div className="candidate-heading">
                 <AnimalPortrait p={p} />
                 <div>
                   <h3>{p.name}</h3>
+                  {released && (
+                    <span className="release-state">戦力外通告済み</span>
+                  )}
                   <p>
                     {p.position} /{" "}
                     {(p.species === "cat" ? CAT_BREEDS : DOG_BREEDS)[p.breed]} /{" "}
@@ -230,15 +247,7 @@ export function ReleasePanel({
                   <AbilityBadge key={k} label={SKILLS[k]} low={p.skills[k]} />
                 ))}
               </div>
-              <p className="candidate-trait">
-                {p.position === "投"
-                  ? `球速${p.velocity}km/h · `
-                  : `弾道${p.trajectory} · `}
-                {p.trait} ·{" "}
-                {p.injured > 0 ? `故障あと${p.injured}日` : "故障なし"}
-                {p.position === "投" &&
-                  ` · ${p.pitches.map((x) => `${x.name}${x.level}`).join(" / ")}`}
-              </p>
+              <ProfileAbilities p={p} />
               <RecentResults p={p} w={w} />
               <p className="candidate-reasons">
                 判断材料：{releaseReasons(p, w.year).join(" / ")}
@@ -249,6 +258,7 @@ export function ReleasePanel({
                 </p>
               )}
               {!locked &&
+                !released &&
                 depth <
                   (p.position === "投" ? 10 : p.position === "捕" ? 2 : 1) &&
                 p.registration === "senior" && (
@@ -257,34 +267,69 @@ export function ReleasePanel({
                   </p>
                 )}
               <button
-                className="candidate-action"
+                className={`candidate-action${released ? " cancel-release" : ""}`}
                 disabled={locked}
-                aria-label={`${p.name}に${mode === "戦力外" ? "戦力外通告" : "育成契約を打診"}`}
+                aria-label={
+                  released
+                    ? `${p.name}の戦力外通告をキャンセル`
+                    : `${p.name}に${mode === "戦力外" ? "戦力外通告" : "育成契約を打診"}`
+                }
                 onClick={() => {
-                  const warning = isCorePlayer(p, w.year)
-                    ? "主力選手です。退団は戦力やファン評価に影響します。\n"
-                    : "";
-                  if (
-                    confirm(
-                      `${warning}${p.name}に${mode === "戦力外" ? "戦力外通告" : "育成打診（拒否時は退団）"}しますか？`,
-                    )
-                  )
-                    act({
-                      type: mode === "戦力外" ? "release" : "development",
+                  if (released) act({ type: "cancelRelease", id: p.id });
+                  else
+                    setConfirmation({
                       id: p.id,
+                      type: mode === "戦力外" ? "release" : "development",
                     });
                 }}
               >
                 {locked
                   ? "契約継続中"
-                  : mode === "戦力外"
-                    ? "この選手に戦力外通告"
-                    : "この選手に育成契約を打診"}
+                  : released
+                    ? "戦力外通告をキャンセル"
+                    : mode === "戦力外"
+                      ? "この選手に戦力外通告"
+                      : "この選手に育成契約を打診"}
               </button>
             </article>
           );
         })}
       </div>
+      {confirmation && confirmingPlayer && (
+        <ConfirmDialog
+          title={
+            confirmation.type === "release"
+              ? "戦力外通告の確認"
+              : "育成契約打診の確認"
+          }
+          confirmLabel={
+            confirmation.type === "release"
+              ? "戦力外通告を確定"
+              : "育成契約を打診"
+          }
+          onClose={() => setConfirmation(null)}
+          onConfirm={() => {
+            act({ type: confirmation.type, id: confirmation.id });
+            setConfirmation(null);
+          }}
+        >
+          <p>
+            <strong>{confirmingPlayer.name}</strong>に
+            {confirmation.type === "release" ? "戦力外通告" : "育成契約を打診"}
+            しますか？
+          </p>
+          {isCorePlayer(confirmingPlayer, w.year) && (
+            <p className="warning">
+              主力選手です。退団はチーム戦力とファン評価に影響します。
+            </p>
+          )}
+          <p>
+            {confirmation.type === "release"
+              ? "この通告期間を終了するまでは、一覧の「戦力外通告をキャンセル」で戻せます。終了すると退団が確定します。"
+              : "育成打診は選手が拒否すると退団します。育成打診の結果は取り消せません。"}
+          </p>
+        </ConfirmDialog>
+      )}
       {!list.length && (
         <p className="empty">
           条件に合う候補はいません。除外チェックや守備位置を見直してください。

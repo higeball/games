@@ -30,9 +30,15 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     name: /第1次戦力外通告へ進む/,
   });
   const flow = page.getByRole("region", { name: "球団運営の年間の流れ" });
-  await expect(flow).toContainText("戦力外通告 → ドラフト");
+  await expect(flow.locator(".route-line").first()).toHaveText("戦力外通告");
+  await expect(flow.locator(".route-line").nth(1)).toHaveText("→ ドラフト");
+  expect(
+    (await flow.locator(".route-line").nth(1).boundingBox())!.y,
+  ).toBeGreaterThan(
+    (await flow.locator(".route-line").first().boundingBox())!.y,
+  );
   await expect(flow).toContainText("春季キャンプ");
-  const strength = page.getByRole("heading", { name: "どこを補強する？" });
+  const strength = page.getByRole("heading", { name: "補強ポイント" });
   expect((await flow.boundingBox())!.y).toBeLessThan(
     (await strength.boundingBox())!.y,
   );
@@ -131,14 +137,45 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     .getByRole("img")
     .screenshot({ path: "test-results/unique-cat-portrait.png" });
   const playerId = await first.getAttribute("data-player-id");
-  const action = first.getByRole("button", { name: /戦力外通告/ });
-  page.once("dialog", (dialog) => dialog.dismiss());
+  const selected = page.locator(`[data-player-id="${playerId}"]`);
+  const action = selected.getByRole("button", { name: /戦力外通告/ });
+  page.on("dialog", () => {
+    throw new Error("OS confirmation must not appear");
+  });
   await action.click();
-  await expect(page.locator(`[data-player-id="${playerId}"]`)).toHaveCount(1);
-  page.once("dialog", (dialog) => dialog.accept());
+  const confirmation = page.getByRole("dialog", { name: "戦力外通告の確認" });
+  await expect(confirmation).toBeVisible();
+  await confirmation.screenshot({
+    path: "test-results/release-confirm-modal.png",
+  });
+  await confirmation.getByRole("button", { name: "戻る", exact: true }).click();
+  await expect(confirmation).toHaveCount(0);
+  await expect(selected).toHaveAttribute("data-released", "false");
   await action.click();
+  await page.keyboard.press("Escape");
+  await expect(confirmation).toHaveCount(0);
+  await action.click();
+  await confirmation.getByRole("button", { name: "戦力外通告を確定" }).click();
   await settle();
-  await expect(page.locator(`[data-player-id="${playerId}"]`)).toHaveCount(0);
+  await expect(selected).toHaveAttribute("data-released", "true");
+  await expect(
+    selected.getByRole("button", { name: /戦力外通告をキャンセル/ }),
+  ).toBeVisible();
+  await page.reload();
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: /編成・補強/ })
+    .click();
+  await settle();
+  await expect(selected).toHaveAttribute("data-released", "true");
+  await selected
+    .getByRole("button", { name: /戦力外通告をキャンセル/ })
+    .click();
+  await settle();
+  await expect(selected).toHaveAttribute("data-released", "false");
+  await expect(
+    selected.getByRole("button", { name: /に戦力外通告/ }),
+  ).toHaveText("この選手に戦力外通告");
   const mainName = await page.evaluate(
     () =>
       new Promise<string>((resolve, reject) => {

@@ -1544,13 +1544,50 @@ export function applyOwnerAction(
       if (p.team !== 0) throw Error("自球団の選手ではありません。");
       if (p.contractYear > w.year)
         throw Error("来季以降の契約が残る選手は戦力外通告できません。");
+      const previousPopularity = f.popularity;
+      p.releaseNotice = {
+        year: w.year,
+        phase: w.phase as "release" | "release2",
+        market: p.market,
+        popularityLoss: 0,
+      };
       p.team = null;
       p.market = "tryout";
       f.popularity = clamp(f.popularity - p.popularity * 0.025);
+      p.releaseNotice.popularityLoss = previousPopularity - f.popularity;
       news(
         w,
         `${p.name}に戦力外通告`,
         `${money(p.salary)}の年俸枠を整理しました。人気選手の退団はファン評価にも影響します。`,
+      );
+      break;
+    }
+    case "cancelRelease": {
+      requirePhase(["release", "release2"]);
+      const p = player(action.id),
+        notice = p.releaseNotice;
+      if (
+        !notice ||
+        notice.year !== w.year ||
+        notice.phase !== w.phase ||
+        p.team !== null ||
+        p.market !== "tryout"
+      )
+        throw Error(
+          "この戦力外通告は取り消せません。通告した期間内にキャンセルしてください。",
+        );
+      if (p.registration === "senior" && seniorRoster(w).length >= SENIOR_LIMIT)
+        throw Error(
+          "支配下枠が満員のためキャンセルできません。枠を空けてください。",
+        );
+      p.team = 0;
+      p.market = notice.market;
+      f.popularity = clamp(f.popularity + notice.popularityLoss);
+      delete p.releaseNotice;
+      news(
+        w,
+        `${p.name}の戦力外通告をキャンセル`,
+        "所属・支配下枠・ファン評価を復元しました。選手の成績と契約は変更しません。",
       );
       break;
     }
@@ -1820,6 +1857,10 @@ function advancePhaseMutable(w: WorldState) {
   if (w.phase === "season") throw Error("月次処理を実行してください。");
   const blockers = phaseBlockers(w);
   if (blockers.length) throw Error(blockers.join(" "));
+  if (w.phase === "release" || w.phase === "release2")
+    for (const p of w.players)
+      if (p.releaseNotice?.year === w.year && p.releaseNotice.phase === w.phase)
+        delete p.releaseNotice;
   if (w.phase === "budget") {
     for (const id of w.teams.slice(1).map((t) => t.id))
       for (const role of STAFF_ROLES) {
