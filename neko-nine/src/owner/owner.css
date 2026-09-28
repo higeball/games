@@ -2225,8 +2225,8 @@ b {
   grid-template-columns: auto auto;
   justify-content: center;
   align-content: center;
-  gap: 7px 6px;
-  padding: 10px 4px;
+  gap: 4px;
+  padding: 6px 4px;
   min-width: 0;
   background: transparent;
   border: 0;
@@ -2238,25 +2238,25 @@ b {
 .batter-primary .ability-chip small {
   grid-column: 1 / -1;
   text-align: center;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--ink);
   font-weight: 700;
 }
 .batter-primary .grade {
-  font-size: 25px;
+  font-size: 18px;
 }
 .batter-primary .ability-chip > b {
-  font-size: 22px;
+  font-size: 16px;
 }
 .batter-primary .ability-chip:has(.ability-rank i) {
   grid-template-columns: auto;
 }
 .batter-primary .ability-chip:has(.ability-rank i) > b {
   text-align: center;
-  font-size: 15px;
+  font-size: 12px;
 }
 .batter-primary .ability-chip:has(.ability-rank i) .grade {
-  font-size: 20px;
+  font-size: 16px;
 }
 .batter-trajectory {
   display: flex;
@@ -2373,22 +2373,97 @@ b {
   grid-column: 2;
   font-size: 11px;
 }
-.batter-special,
-.batter-season {
+.batter-special {
   margin: 0 10px 10px;
   border-radius: 0;
 }
-.batter-season dl {
+.pitcher-velocity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  justify-content: center;
+  align-content: center;
+  align-items: baseline;
+  padding: 6px 3px;
+  min-width: 0;
+}
+.pitcher-primary > .ability-chip {
+  border-left: 1px solid var(--line);
+}
+.pitcher-velocity small {
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+.pitcher-velocity b {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.pitcher-velocity span {
+  font-size: 9px;
+  color: var(--muted);
+}
+.pitcher-estimate {
+  margin: 5px 10px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.pitch-repertoire {
+  margin: 10px;
+  border: 1px solid var(--line);
+  background: var(--ability-surface);
+}
+.pitch-repertoire-body {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 8px;
+  padding: 8px;
 }
-.batter-season dl > div {
+.pitch-repertoire .pitch-chart {
+  padding: 0;
+  margin: 0;
+  border: 0;
+}
+.pitch-repertoire .pitch-chart svg {
+  max-width: 220px;
+  margin: auto;
+}
+.pitch-repertoire small {
   display: block;
+  font-size: 9px;
+  color: var(--muted);
+  line-height: 1.5;
 }
-.batter-season dd {
-  margin-top: 4px;
+.pitch-list {
+  min-width: 0;
+}
+.pitch-list-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 10px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 5px;
+}
+.pitch-list .pitch-labels {
+  margin-top: 0;
+}
+.pitch-list .pitch-labels li {
+  border-bottom: 1px solid var(--line);
+  padding: 7px 0;
+}
+.pitch-list .pitch-labels b {
   font-size: 14px;
+  min-width: 2ch;
+  text-align: right;
+}
+.pitch-list > small {
+  margin-top: 6px;
+}
+.pitch-list p {
+  font-size: 11px;
 }
 @media (max-width: 380px) {
   .ability-panel-columns {

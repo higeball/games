@@ -1,6 +1,5 @@
 import { estimate } from "./engine";
-import { completedSeasonYear } from "./history";
-import { SKILLS, type Player, type Skill, type WorldState } from "./model";
+import { type Player, type WorldState } from "./model";
 import { AbilityBadge } from "./AbilityBadge";
 import { ProfileAbilities } from "./ProfileAbilities";
 import { BatterAbilityPanel } from "./BatterAbilityPanel";
@@ -15,6 +14,7 @@ const direction = (name: string) =>
         : /シンカー/.test(name)
           ? 3
           : 4;
+
 export function PitchChart({ p, known }: { p: Player; known: boolean }) {
   const ends = [
     [16, 58],
@@ -24,184 +24,136 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
     [204, 58],
   ];
   const mirror = p.throws === "左" ? -1 : 1;
+  const arrows =
+    mirror === 1 ? ["←", "↙", "↓", "↘", "→"] : ["→", "↘", "↓", "↙", "←"];
   return (
-    <div className="pitch-chart" aria-label="球種と変化量">
-      <div className="pitch-straight">↑ ストレート</div>
-      <svg
-        viewBox="0 0 220 156"
-        role="img"
-        aria-label="変化球の方向と7段階の変化量"
-      >
-        <circle cx="110" cy="58" r="12" fill="#fff" stroke="#6487b2" />
-        <path
-          d="M104 51 Q110 58 104 65 M116 51 Q110 58 116 65"
-          fill="none"
-          stroke="#d26c72"
-        />
-        <path
-          d="M110 44 V15 M106 20 L110 14 L114 20"
-          stroke="#6389bc"
-          fill="none"
-          strokeWidth="2"
-        />
-        {ends.map(([ex, ey], index) => {
-          const pitches = p.pitches.filter(
-            (pitch) => direction(pitch.name) === index,
-          );
-          const level = known
-            ? Math.max(0, ...pitches.map((pitch) => pitch.level))
-            : 0;
-          const x = 110 + (ex - 110) * mirror;
-          const dx = x - 110,
-            dy = ey - 58;
-          const rotation = (Math.atan2(dy, dx) * 180) / Math.PI;
-          return (
-            <g key={index}>
-              <line
-                x1="110"
-                y1="58"
-                x2={x}
-                y2={ey}
-                stroke="#c1ccd9"
-                strokeWidth="2"
-              />
-              {Array.from({ length: 7 }, (_, i) => {
-                const t = 0.23 + i * 0.102;
-                const rx = 110 + dx * t,
-                  ry = 58 + dy * t;
-                return (
-                  <rect
-                    key={i}
-                    x={rx - 4}
-                    y={ry - 3}
-                    width="8"
-                    height="6"
-                    rx="1"
-                    transform={`rotate(${rotation},${rx},${ry})`}
-                    fill={i < level ? "#32b8e8" : "#e1e8ef"}
-                    stroke="#6487b2"
-                    strokeWidth="0.8"
+    <section className="pitch-repertoire" aria-label="球種と変化量">
+      <h3>球種・変化量</h3>
+      <div className="pitch-repertoire-body">
+        <div className="pitch-chart">
+          <div className="pitch-straight">↑ ストレート</div>
+          <svg
+            viewBox="0 0 220 156"
+            role="img"
+            aria-label="変化球の方向と7段階の変化量"
+          >
+            {ends.map(([ex, ey], index) => {
+              const pitches = p.pitches.filter(
+                (pitch) => direction(pitch.name) === index,
+              );
+              const level = known
+                ? Math.max(0, ...pitches.map((pitch) => pitch.level))
+                : 0;
+              const x = 110 + (ex - 110) * mirror;
+              const t = known ? 0.25 + (Math.min(7, level) / 7) * 0.75 : 1;
+              const targetX = 110 + (x - 110) * t,
+                targetY = 58 + (ey - 58) * t;
+              const angle = Math.atan2(ey - 58, x - 110);
+              return (
+                <g key={index}>
+                  <line
+                    x1="110"
+                    y1="58"
+                    x2={x}
+                    y2={ey}
+                    stroke="#d2d5c8"
+                    strokeWidth="2"
                   />
-                );
-              })}
-            </g>
-          );
-        })}
-      </svg>
-      <ul className="pitch-labels">
-        {p.pitches.map((pitch) => {
-          const index = direction(pitch.name);
-          const arrows =
-            mirror === 1
-              ? ["←", "↙", "↓", "↘", "→"]
-              : ["→", "↘", "↓", "↙", "←"];
-          return (
-            <li
-              key={pitch.name}
-              aria-label={`${pitch.name} 変化量 ${known ? pitch.level : "未調査"}`}
-            >
-              <span aria-hidden="true">{arrows[index]}</span>
-              <span>{pitch.name}</span>
-              <b>{known ? pitch.level : "？"}</b>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+                  {!!pitches.length && (
+                    <>
+                      <line
+                        x1="110"
+                        y1="58"
+                        x2={targetX}
+                        y2={targetY}
+                        stroke="#24628c"
+                        strokeWidth="3"
+                        strokeDasharray={known ? undefined : "4 4"}
+                      />
+                      <path
+                        d={`M${targetX - 8 * Math.cos(angle - 0.5)} ${targetY - 8 * Math.sin(angle - 0.5)} L${targetX} ${targetY} L${targetX - 8 * Math.cos(angle + 0.5)} ${targetY - 8 * Math.sin(angle + 0.5)}`}
+                        fill="none"
+                        stroke="#24628c"
+                        strokeWidth="3"
+                      />
+                    </>
+                  )}
+                </g>
+              );
+            })}
+            <path
+              d="M110 58 V14 M106 20 L110 14 L114 20"
+              stroke="#24628c"
+              strokeWidth="2"
+              fill="none"
+            />
+            <circle cx="110" cy="58" r="10" fill="#f8f7ef" stroke="#71786f" />
+          </svg>
+          <small>{known ? "矢印の長さ＝変化量" : "破線＝変化量は未調査"}</small>
+        </div>
+        <div className="pitch-list">
+          <div className="pitch-list-heading">
+            <span>球種</span>
+            <span>変化量</span>
+          </div>
+          <ul className="pitch-labels">
+            {p.pitches.map((pitch) => (
+              <li
+                key={pitch.name}
+                aria-label={`${pitch.name} 変化量 ${known ? pitch.level : "未調査"}`}
+              >
+                <span aria-hidden="true">{arrows[direction(pitch.name)]}</span>
+                <span>{pitch.name}</span>
+                <b>{known ? pitch.level : "？"}</b>
+              </li>
+            ))}
+          </ul>
+          {!p.pitches.length && <p>変化球の登録なし</p>}
+          <small>変化量は1〜7段階</small>
+        </div>
+      </div>
+    </section>
   );
 }
 
 export function PlayerAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
   if (p.position !== "投") return <BatterAbilityPanel p={p} w={w} />;
-  const pitching = p.position === "投";
   const known = p.team === 0 || p.scouting >= 100;
-  const keys: Skill[] = pitching
-    ? ["control", "stamina"]
-    : ["contact", "power", "speed", "arm", "fielding", "catching"];
-  const year = w.phase === "season" ? w.year : completedSeasonYear(w);
-  const r = p.reports[year];
-  const stats = pitching
-    ? [
-        ["登板", `${r?.games ?? 0}試合`],
-        ["防御率", r?.outs ? ((r.earned * 27) / r.outs).toFixed(2) : "—"],
-        ["勝敗", `${r?.wins ?? 0}勝 ${r?.losses ?? 0}敗`],
-        ["セーブ", r?.saves ?? 0],
-        ["ホールド", r?.holds ?? 0],
-        ["奪三振", r?.k ?? 0],
-      ]
-    : [
-        ["出場", `${r?.games ?? 0}試合`],
-        ["打率", r?.ab ? (r.hits / r.ab).toFixed(3).replace(/^0/, "") : "—"],
-        ["本塁打", `${r?.hr ?? 0}本`],
-        ["打点", r?.rbi ?? 0],
-        ["盗塁", r?.steals ?? 0],
-        ["安打", r?.hits ?? 0],
-      ];
   return (
     <section
-      className="player-ability-panel"
-      aria-label={pitching ? "投手能力画面" : "野手能力画面"}
+      className="player-ability-panel pitcher-ability-panel"
+      aria-label="投手能力画面"
     >
-      <div className="ability-panel-title">
-        {pitching ? "投手能力" : "野手能力"}
+      <header className="ability-panel-title">
+        <strong>投手能力</strong>
         <span>
-          {p.throws}投{p.bats}打 · {p.position}
+          {p.throws}投{p.bats}打
         </span>
-      </div>
-      <div className="ability-panel-columns">
-        <section className="ability-panel-left" aria-label="基本能力">
-          {pitching ? (
-            <div className="ability-fact">
-              <span>球速</span>
-              <b>
-                {known ? p.velocity : `${p.velocity - 5}〜${p.velocity + 5}`}
-              </b>
-              <small>km/h{known ? "" : "（推定）"}</small>
-            </div>
-          ) : (
-            <div className="ability-fact trajectory">
-              <span>弾道</span>
-              <b>↗ {known ? p.trajectory : "？"}</b>
-            </div>
-          )}
-          {keys.map((k) => {
-            const e = estimate(w, p, k);
-            return (
-              <AbilityBadge
-                key={k}
-                label={k === "control" ? "コントロール" : SKILLS[k]}
-                low={known ? p.skills[k] : e.low}
-                high={known ? p.skills[k] : e.high}
-              />
-            );
-          })}
-          {pitching && <PitchChart p={p} known={known} />}
-        </section>
-        <div className="ability-panel-right">
-          <section className="ability-season" aria-label="直近の一軍成績">
-            <h3>{year}年 一軍成績</h3>
-            {p.market === "draft" || p.draftYear > year ? (
-              <p>プロ入り前</p>
-            ) : (
-              <>
-                <dl>
-                  {stats.map(([label, value]) => (
-                    <div key={label}>
-                      <dt>{label}</dt>
-                      <dd>{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-                {!r?.games && <p>一軍出場なし</p>}
-              </>
-            )}
-          </section>
-          <section className="ability-special" aria-label="特殊能力">
-            <h3>特殊能力</h3>
-            <ProfileAbilities p={p} known={known} includeBasics={false} />
-          </section>
+      </header>
+      <div className="batter-primary pitcher-primary" aria-label="投球能力">
+        <div className="pitcher-velocity">
+          <small>球速</small>
+          <b>{known ? p.velocity : `${p.velocity - 5}〜${p.velocity + 5}`}</b>
+          <span>km/h</span>
         </div>
+        {(["control", "stamina"] as const).map((key) => {
+          const range = estimate(w, p, key);
+          return (
+            <AbilityBadge
+              key={key}
+              label={key === "control" ? "制球" : "スタミナ"}
+              low={known ? p.skills[key] : range.low}
+              high={known ? p.skills[key] : range.high}
+            />
+          );
+        })}
       </div>
+      {!known && <p className="pitcher-estimate">能力は調査に基づく推定範囲</p>}
+      <PitchChart p={p} known={known} />
+      <section className="ability-special batter-special" aria-label="特殊能力">
+        <h3>特殊能力</h3>
+        <ProfileAbilities p={p} known={known} includeBasics={false} />
+      </section>
     </section>
   );
 }

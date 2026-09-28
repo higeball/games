@@ -104,14 +104,16 @@ test("restrained profile styling, entry pay and persistent scouting feedback", a
   modal = page.getByRole("dialog", { name: "選手詳細" });
   const panel = modal.getByRole("region", { name: "投手能力画面" });
   await expect(panel).toBeVisible();
-  await expect(panel.locator(".ability-panel-left .ability-chip")).toHaveCount(
-    2,
-  );
+  await expect(panel.locator(".pitcher-primary .ability-chip")).toHaveCount(2);
   const labels = await panel
-    .locator(".ability-panel-left .ability-chip small")
+    .locator(".pitcher-primary .ability-chip small")
     .allTextContents();
-  expect(labels).toEqual(["コントロール", "スタミナ"]);
-  await expect(panel.locator(".ability-panel-left")).toContainText("球速");
+  expect(labels).toEqual(["制球", "スタミナ"]);
+  await expect(panel.locator(".pitcher-primary")).toContainText("球速");
+  await expect(panel.locator(".ability-season")).toHaveCount(0);
+  await expect(
+    modal.getByRole("table", { name: /一軍直近3年成績/ }),
+  ).toBeVisible();
   await expect(
     panel.getByRole("img", { name: "変化球の方向と7段階の変化量" }),
   ).toBeVisible();
@@ -130,8 +132,11 @@ test("restrained profile styling, entry pay and persistent scouting feedback", a
     expect(await modal.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
       true,
     );
-    const left = await panel.locator(".ability-panel-left").boundingBox();
-    const right = await panel.locator(".ability-panel-right").boundingBox();
+    expect(
+      (await panel.locator(".pitcher-primary").boundingBox())!.height,
+    ).toBeLessThanOrEqual(60);
+    const left = await panel.locator(".pitch-chart").boundingBox();
+    const right = await panel.locator(".pitch-list").boundingBox();
     expect(left!.x + left!.width).toBeLessThan(right!.x);
   }
   await page.setViewportSize({ width: 390, height: 844 });

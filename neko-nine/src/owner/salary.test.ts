@@ -142,16 +142,14 @@ it("does not invent investigation counts for older saves", () => {
     ),
   ).toContain("更新後の調査");
 });
-it("renders separate pitcher and batter ability layouts with real traits, stats and seven-step pitches", () => {
+it("renders separate pitcher and batter abilities without duplicated season stats", () => {
   const p = roster(world).find((p) => p.position === "投")!;
   const pitcher = renderToStaticMarkup(
     createElement(PlayerAbilityPanel, { p, w: world }),
   );
   expect(pitcher).toContain("投手能力画面");
   expect(pitcher).toContain("球速");
-  expect(pitcher.indexOf("コントロール")).toBeLessThan(
-    pitcher.indexOf("スタミナ"),
-  );
+  expect(pitcher.indexOf("制球")).toBeLessThan(pitcher.indexOf("スタミナ"));
   expect(pitcher).toContain("7段階");
   expect(pitcher).toContain(p.trait);
   const playing = structuredClone(world);
@@ -162,8 +160,8 @@ it("renders separate pitcher and batter ability layouts with real traits, stats 
   const current = renderToStaticMarkup(
     createElement(PlayerAbilityPanel, { p: active, w: playing }),
   );
-  expect(current).toContain("2027年 一軍成績");
-  expect(current).toContain("7試合");
+  expect(current).not.toContain("一軍成績");
+  expect(current).not.toContain("7試合");
   const batter = renderToStaticMarkup(
     createElement(PlayerAbilityPanel, {
       p: roster(world).find((p) => p.position !== "投")!,
@@ -175,7 +173,6 @@ it("renders separate pitcher and batter ability layouts with real traits, stats 
   expect(batter).toContain("守備適性");
   expect(batter).toContain("その他は未評価");
   expect(batter).not.toContain("スローイング");
-  expect(batter.indexOf("ability-special")).toBeLessThan(
-    batter.indexOf("ability-season"),
-  );
+  expect(batter).toContain("ability-special");
+  expect(batter).not.toContain("ability-season");
 });

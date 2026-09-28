@@ -121,10 +121,14 @@ test("old saves gain career history and compact individually colored ranks", asy
   expect(grades.map((g) => g.rank)).toEqual(["S", "A", "B", "E", "C", "D"]);
   expect(new Set(grades.map((g) => g.color)).size).toBe(6);
   const skills = card.getByRole("region", { name: "野手能力画面" });
+  await expect(skills.locator(".ability-season")).toHaveCount(0);
   await expect(card.locator(".candidate-skills")).toHaveCount(0);
   for (const width of [360, 390, 430, 1100]) {
     await page.setViewportSize({ width, height: 844 });
     await expectAlignedRanks(skills);
+    expect(
+      (await skills.locator(".batter-primary").boundingBox())!.height,
+    ).toBeLessThanOrEqual(60);
     expect(
       await skills.evaluate((el) => el.scrollWidth <= el.clientWidth),
     ).toBe(true);
@@ -197,6 +201,7 @@ test("old saves gain career history and compact individually colored ranks", asy
   ).toHaveCount(3);
   await expect(modal.locator(".ability-chip")).toHaveCount(6);
   const panel = modal.getByRole("region", { name: "野手能力画面" });
+  await expect(panel.locator(".ability-season")).toHaveCount(0);
   expect(await panel.innerHTML()).toBe(releaseAbilityMarkup);
   await expect(panel.locator(".batter-primary .ability-chip")).toHaveCount(3);
   expect(

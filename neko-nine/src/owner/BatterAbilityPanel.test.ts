@@ -34,7 +34,7 @@ it("does not reveal unknown prospect ratings or trajectory", () => {
   expect(html).toContain(`${e.low}〜${e.high}`);
   expect(html).toContain("能力は調査に基づく推定範囲");
   expect(html).toContain("↗ ？");
-  expect(html).toContain("プロ入り前");
+  expect(html).not.toContain("ability-season");
 });
 it("fully scouted prospects show exact existing ratings", () => {
   const p = structuredClone(
@@ -46,7 +46,7 @@ it("fully scouted prospects show exact existing ratings", () => {
   expect(html).toContain(`↗ ${p.trajectory}`);
   expect(html).toContain(`>${p.skills.contact}</b>`);
 });
-it("shows current-season first-team results and never substitutes farm statistics", () => {
+it("omits duplicated season results without altering first-team or farm reports", () => {
   const p = structuredClone(roster(world).find((p) => p.position !== "投")!);
   const w = { ...world, year: 2027, phase: "season" as const };
   p.reports[2027] = {
@@ -57,10 +57,9 @@ it("shows current-season first-team results and never substitutes farm statistic
     hr: 2,
   };
   p.farmReports = { 2027: { ...blankRecord(2027, 0), games: 70, hr: 55 } };
+  const before = JSON.stringify(p);
   const html = render(p, w);
-  expect(html).toContain("2027年 一軍成績");
-  expect(html).toContain("10試合");
-  expect(html).toContain(".300");
-  expect(html).toContain("2本");
-  expect(html).not.toContain("55本");
+  expect(html).not.toContain("一軍成績");
+  expect(html).not.toContain("ability-season");
+  expect(JSON.stringify(p)).toBe(before);
 });

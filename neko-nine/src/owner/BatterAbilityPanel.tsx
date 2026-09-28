@@ -1,5 +1,4 @@
 import { estimate } from "./engine";
-import { completedSeasonYear } from "./history";
 import {
   POSITIONS,
   SKILLS,
@@ -35,8 +34,6 @@ const positionNames = {
 /** A presentation-only, shared-data prototype. No new ratings or simulation rules. */
 export function BatterAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
   const known = p.team === 0 || p.scouting >= 100;
-  const year = w.phase === "season" ? w.year : completedSeasonYear(w);
-  const r = p.reports[year];
   const badge = (key: Skill) => {
     const range = estimate(w, p, key);
     return (
@@ -125,37 +122,6 @@ export function BatterAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
       <section className="ability-special batter-special" aria-label="特殊能力">
         <h3>特殊能力</h3>
         <ProfileAbilities p={p} known={known} includeBasics={false} />
-      </section>
-      <section
-        className="ability-season batter-season"
-        aria-label="直近の一軍成績"
-      >
-        <h3>{year}年 一軍成績</h3>
-        {p.market === "draft" || p.draftYear > year ? (
-          <p>プロ入り前</p>
-        ) : (
-          <>
-            <dl>
-              {[
-                ["出場", `${r?.games ?? 0}試合`],
-                [
-                  "打率",
-                  r?.ab ? (r.hits / r.ab).toFixed(3).replace(/^0/, "") : "—",
-                ],
-                ["本塁打", `${r?.hr ?? 0}本`],
-                ["打点", r?.rbi ?? 0],
-                ["盗塁", r?.steals ?? 0],
-                ["安打", r?.hits ?? 0],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            {!r?.games && <p>一軍出場なし</p>}
-          </>
-        )}
       </section>
     </section>
   );
