@@ -25,7 +25,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
       await click(/今すぐイベントへ進む/);
   };
   const camp = async () => click("保存した計画でキャンプを実施");
-  await page.goto("/neko-card-game/");
+  await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
   await expect(page.getByRole("heading", { name: /福岡から/ })).toBeVisible({
     timeout: 30_000,
@@ -171,7 +171,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   });
   expect(
     await page.evaluate(
-      async () => !!(await caches.match("/neko-card-game/index.html")),
+      async () => !!(await caches.match("/games/neko-nine/index.html")),
     ),
   ).toBe(true);
   const cdp = await context.newCDPSession(page);

@@ -845,7 +845,7 @@ b {
   background: #f2eee3;
   background-image: none;
   filter: none;
-  image-rendering: auto;
+  image-rendering: pixelated;
   border-radius: 9px;
   overflow: hidden;
 }
@@ -879,6 +879,7 @@ b {
   padding: 15px 15px 10px;
 }
 .secretary-briefing img {
+  image-rendering: pixelated;
   object-fit: contain;
   object-position: center bottom;
   flex: 0 0 76px;
@@ -1639,6 +1640,16 @@ b {
   font-size: 8px;
   font-weight: normal;
   color: #7b7968;
+}
+.history-note {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 5px;
+  line-height: 1.6;
+}
+.player-row > .recent-results {
+  margin: 0 0 9px;
 }
 .contract-facts {
   display: grid;

@@ -23,7 +23,7 @@ it("new careers include simulated pre-ownership history without pre-pro records"
   expect(veterans.some((p) => p.reports[2024].games > 0)).toBe(true);
   expect(
     world.players
-      .filter((p) => p.pro <= 1)
+      .filter((p) => p.team !== null && p.pro <= 1)
       .every((p) => !p.reports[2024] && !p.reports[2025]),
   ).toBe(true);
   expect(world.archives).toHaveLength(0);

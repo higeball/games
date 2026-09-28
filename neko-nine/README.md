@@ -77,6 +77,16 @@ React・TypeScript・Vite。`src/owner/engine.ts` は描画から独立した試
 - 元画像: `yasu-character-v3.png`
 - `public/assets/characters/dog-player-sheet.png`: 今回生成した犬9枠
 - `public/assets/characters/foomy-secretary.png`: 組み込み画像生成ツールで新規生成した秘書フーミーの透過立ち絵
+- `public/assets/characters/foomy-secretary-pixel.png`: ヤスのドット絵を参照し、組み込み画像生成で絵柄を統一した現在のフーミー。元画像は保持しています。
+- 選手の肖像は `src/owner/PixelAnimalPortrait.tsx` の48×54ドットの整数グリッドで描画。猫・犬それぞれ36万通り以上の配色・模様・耳・目・ユニフォームの組み合わせを維持しています。
+
+直近3年の成績は選手名鑑の一覧・戦力外候補・詳細画面に共通表示します。初期データと既存セーブの欠けた架空のプロ経歴は自動補完し、実際にプレイした年度の成績は上書きしません。プロ入り前は「プロ入り前」、登板・出場0の年は「一軍出場なし」と区別します。シーズン中の直近3年表は、進行中ではなく直前に終了した年を基準にします。
+
+一軍出場0の年度には独立した `farmReports` に二軍参考成績（架空データ）を補完し、3年表で「二軍参考（一軍0）」と明記して表示します。一軍のゼロ記録は保持し、リーグ集計やタイトルには二軍参考成績を含めません。
+
+ドット絵フーミーの最終プロンプト（組み込み画像生成・style-transfer）:
+
+> Asset: transparent portrait sprite for a Japanese baseball-owner mobile game. Image 1 is the edit target: secretary Foomy. Image 2 is the style reference ONLY, Yasu's existing pixel sprites. Redraw Image 1 as genuine crisp square-pixel 16-bit JRPG character artwork at the SAME pixel density, dark pixel outlines, limited palette, stepped shading, large friendly eyes and chibi proportions as Yasu. Preserve Foomy's short chestnut-brown bob hair, adult female identity, friendly smile, navy business jacket, cream blouse and clipboard. A single front-facing upper-body portrait centered, head and shoulders fully visible with small transparent padding. True alpha transparent background. No smooth anime linework, no antialiasing, no gradients, no text, no watermark. Do not draw Yasu, no sheet, only one Foomy sprite.
 
 フーミー画像の最終生成指示（組み込みツール使用）:
 

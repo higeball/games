@@ -93,6 +93,8 @@ export type Player = {
   formerTeam: number | null;
   faRank: "A" | "B" | "C";
   reports: Record<number, RecordLine>;
+  /** Fictional reserve-league reference stats; never included in league totals. */
+  farmReports?: Record<number, RecordLine>;
   growth: string[];
   scouting: number;
   preference: "優勝" | "出場" | "年俸";

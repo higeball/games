@@ -1,5 +1,6 @@
 import { nextRandom } from "../game/simulation/rng";
 import { playerName } from "./identity";
+import { backfillCareerHistory } from "./history";
 import {
   CAMPS,
   CLUBS,
@@ -446,6 +447,7 @@ export function createWorld(seed = 20261026): WorldState {
   seedCareerHistory(w);
   prepareOffseason(w);
   w.phase = "review";
+  backfillCareerHistory(w);
   w.news = [];
   w.milestones = [];
   news(

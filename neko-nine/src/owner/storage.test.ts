@@ -73,3 +73,19 @@ it("backfills and saves missing old career years on load without changing real r
       ?.reports[2024],
   ).toEqual(p.reports[2024]);
 });
+
+it("migrates and persists reserve reference records while keeping first-team zeros", async () => {
+  const old = structuredClone(world);
+  const p = old.players.find(
+    (p) => p.team === 0 && p.pro >= 4 && !p.reports[2026]?.games,
+  )!;
+  const official = structuredClone(p.reports);
+  delete p.farmReports;
+  await persistWorld(old);
+  const loaded = (await loadWorld())!.players.find((x) => x.id === p.id)!;
+  expect(loaded.reports).toEqual(official);
+  expect(loaded.farmReports?.[2026].games).toBeGreaterThan(0);
+  expect(
+    (await loadWorld())!.players.find((x) => x.id === p.id)!.farmReports,
+  ).toEqual(loaded.farmReports);
+});

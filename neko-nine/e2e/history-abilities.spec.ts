@@ -7,7 +7,7 @@ test("old saves gain career history and compact individually colored ranks", asy
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.setViewportSize({ width: 360, height: 844 });
-  await page.goto("/neko-card-game/");
+  await page.goto("/games/neko-nine/");
   await page.getByRole("button", { name: /2026年オフから就任/ }).click();
   await expect(page.getByRole("status")).toHaveCount(0);
   const original = await page.evaluate(
@@ -132,8 +132,17 @@ test("old saves gain career history and compact individually colored ranks", asy
     .getByRole("button", { name: /選手名鑑/ })
     .click();
   await page.getByLabel("選手名・種類・役割で検索").fill(original.name);
+  const catalogue = page.locator(`.player-row[data-player-id="${original.id}"]`);
+  await expect(catalogue.getByRole("table")).toContainText("2024〜2026年");
+  await expect(catalogue.getByRole("table").locator("tbody tr")).toHaveCount(3);
+  await expect(catalogue.getByRole("table")).not.toContainText("プロ入り前");
+  await expect(catalogue.locator("[data-style='pixel']")).toHaveCount(1);
+  expect(await catalogue.locator("svg").getAttribute("shape-rendering")).toBe("crispEdges");
+  await catalogue.screenshot({ path: "test-results/pixel-player-three-years.png" });
+  await expect(catalogue).toContainText("二軍参考（一軍0）");
   await page.locator(".player-summary").click();
   const modal = page.getByRole("dialog");
+  await expect(modal.getByRole("table").locator("tbody tr")).toHaveCount(3);
   await expect(modal.locator(".ability-chip")).toHaveCount(6);
   expect(
     (await modal.locator(".ability-grid").boundingBox())!.height,

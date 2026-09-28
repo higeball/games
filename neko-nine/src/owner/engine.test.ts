@@ -150,7 +150,10 @@ describe("owner simulation", () => {
       ).toBe(12);
   });
   it("preserves league-wide score and batting/pitching accounting", () => {
-    const rs = initial.players.map((p) => p.reports[2026]).filter(Boolean);
+    // Fictional career lines are not part of this league's simulated accounting.
+    const rs = initial.players
+      .map((p) => p.reports[2026])
+      .filter((r) => r && r.source !== "backfill");
     expect(initial.teams.reduce((n, t) => n + t.scored, 0)).toBe(
       initial.teams.reduce((n, t) => n + t.conceded, 0),
     );

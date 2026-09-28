@@ -1,27 +1,44 @@
 import { nextRandom } from "../game/simulation/rng";
 import { blankRecord, type Player, type WorldState } from "./model";
 
+export const completedSeasonYear = (w: Pick<WorldState, "phase" | "year">) =>
+  w.phase === "season" ? w.year - 1 : w.year;
+
+export function professionalStartYear(p: Player, w: Pick<WorldState, "year">) {
+  if (p.draftYear > 0) return p.draftYear;
+  // Older saves generated veteran tryout/foreign ages after computing tenure.
+  // Infer the missing career span without modifying any saved player fields.
+  const veteranMarket = ["tryout", "foreign"].includes(p.market) && p.age >= 29;
+  const tenure = Math.max(1, p.pro, veteranMarket ? p.age - 24 : 1);
+  return w.year - tenure + 1;
+}
+
 /** Fill absent fictional career data only. Never overwrite played-season records. */
 export function backfillCareerHistory(w: WorldState) {
-  const lastYear = w.phase === "season" ? w.year - 1 : w.year;
+  const lastYear = completedSeasonYear(w);
   let changed = false;
   for (const p of w.players) {
     if (p.market === "draft") continue;
-    const joined =
-      p.draftYear > 0 ? p.draftYear : w.year - Math.max(1, p.pro) + 1;
+    const joined = professionalStartYear(p, w);
     for (let year = lastYear - 2; year <= lastYear; year++) {
-      if (p.reports[year] || year < joined || p.age - (w.year - year) < 18)
-        continue;
-      p.reports[year] = careerRecord(p, year);
-      changed = true;
+      if (year < joined || p.age - (w.year - year) < 18) continue;
+      if (!p.reports[year]) {
+        p.reports[year] = careerRecord(p, year);
+        changed = true;
+      }
+      if (!p.reports[year].games && !p.farmReports?.[year]) {
+        p.farmReports ??= {};
+        p.farmReports[year] = careerRecord(p, year, true);
+        changed = true;
+      }
     }
   }
   return changed;
 }
 
-function careerRecord(p: Player, year: number) {
+function careerRecord(p: Player, year: number, farm = false) {
   // Independent RNG: importing/reloading must not change future lottery/game RNG.
-  let seed = [...`${p.id}:${year}:career`].reduce(
+  let seed = [...`${p.id}:${year}:career${farm ? ":farm" : ""}`].reduce(
     (s, c) => (Math.imul(s, 31) + c.charCodeAt(0)) >>> 0,
     2166136261,
   );
@@ -76,7 +93,9 @@ function careerRecord(p: Player, year: number) {
   } else {
     const score =
       s.contact * 0.35 + s.power * 0.25 + s.speed * 0.15 + s.fielding * 0.25;
-    r.games = count((score - 20) * 2 + vary(34), 143);
+    r.games = farm
+      ? count(Math.max(20, 70 + (score - 40) + vary(24)), 120)
+      : count((score - 20) * 2 + vary(34), 143);
     if (!r.games) return r;
     r.ab = count(r.games * (1.8 + score * 0.024 + vary(0.5)));
     r.hits = count(

@@ -137,7 +137,7 @@ export function FoomyGuide({
     >
       <div className="secretary-briefing">
         <img
-          src={`${import.meta.env.BASE_URL}assets/characters/foomy-secretary.png`}
+          src={`${import.meta.env.BASE_URL}assets/characters/foomy-secretary-pixel.png`}
           alt="茶髪のショートヘアーの秘書フーミー"
           width="90"
           height="108"

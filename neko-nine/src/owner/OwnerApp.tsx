@@ -38,6 +38,7 @@ import { FoomyGuide, eventTab, nextEventLabel } from "./Secretary";
 import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { AbilityBadge } from "./AbilityBadge";
+import { RecentResults } from "./RecentResults";
 
 type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ";
 const tabs: Tab[] = ["ホーム", "選手", "編成", "経営"];
@@ -444,11 +445,11 @@ export function PlayerList({
         </select>
       </div>
       <small className="muted">
-        {filtered.length}選手 ／ タップで能力・契約・成績
+        {filtered.length}選手 ／ 直近3年成績は一覧表示・タップで能力と契約
       </small>
       <div className="player-list">
         {filtered.slice(current * 20, current * 20 + 20).map((p) => (
-          <article className="player-row" key={p.id}>
+          <article className="player-row" key={p.id} data-player-id={p.id}>
             <button className="player-summary" onClick={() => open(p.id)}>
               {portrait(p)}
               <div>
@@ -476,6 +477,7 @@ export function PlayerList({
               </div>
               <b>›</b>
             </button>
+            {p.market !== "draft" && <RecentResults p={p} w={w} />}
             {action && (
               <button className="row-action" onClick={() => action(p)}>
                 {label}
@@ -822,7 +824,8 @@ function PlayerDetail({
               追加調査 200万円（残り{w.scoutsLeft}件）
             </button>
           )}
-        <h3>年度別成績</h3>
+        <h3>直近3年・年度別成績</h3>
+        <RecentResults p={p} w={w} />
         <div className="history-list">
           {Object.values(p.reports)
             .sort((a, b) => b.year - a.year)

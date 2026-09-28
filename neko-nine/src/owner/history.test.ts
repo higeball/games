@@ -5,6 +5,8 @@ import { grade, type WorldState } from "./model";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AbilityBadge } from "./AbilityBadge";
+import { RecentResults } from "./RecentResults";
+import { AnimalPortrait } from "./AnimalPortrait";
 
 let initial: WorldState;
 beforeAll(() => {
@@ -89,6 +91,85 @@ it("keeps individual stat lines consistent, finite and non-negative", () => {
       expect(r.wins + r.losses).toBeLessThanOrEqual(r.games);
       expect(r.earned).toBeLessThanOrEqual(r.allowed);
     }
+});
+it("initializes all eligible careers, including veteran tryout candidates", () => {
+  for (const p of initial.players.filter(
+    (p) => p.market === "tryout" && p.age >= 29,
+  )) {
+    for (const year of [2024, 2025, 2026])
+      expect(p.reports[year]).toBeDefined();
+  }
+  const old = structuredClone(initial);
+  const veteran = old.players.find(
+    (p) => p.market === "tryout" && p.age >= 29,
+  )!;
+  veteran.pro = 1;
+  veteran.reports = {};
+  backfillCareerHistory(old);
+  expect(veteran.pro).toBe(1);
+  for (const year of [2024, 2025, 2026])
+    expect(veteran.reports[year]?.games).toBeGreaterThan(0);
+});
+it("uses completed seasons in the shared history view and distinguishes pre-pro years", () => {
+  const w = structuredClone(initial);
+  const p = w.players.find((p) => p.pro >= 4 && p.team === 0)!;
+  w.year = 2027;
+  w.phase = "season";
+  const html = renderToStaticMarkup(createElement(RecentResults, { p, w }));
+  expect(html).toContain("2024〜2026年");
+  expect(html).not.toContain("2027");
+  const rookie = {
+    ...p,
+    pro: 1,
+    draftYear: 2026,
+    reports: {},
+    farmReports: {},
+  };
+  const young = renderToStaticMarkup(
+    createElement(RecentResults, { p: rookie, w: initial }),
+  );
+  expect(young.match(/プロ入り前/g)).toHaveLength(2);
+  expect(young).toContain("一軍出場なし");
+});
+it("renders cats and dogs as crisp grid sprites with no smooth curves", () => {
+  for (const species of ["cat", "dog"] as const) {
+    const html = renderToStaticMarkup(
+      createElement(AnimalPortrait, {
+        p: { ...initial.players[0], species },
+      }),
+    );
+    expect(html).toContain('data-style="pixel"');
+    expect(html).toContain('shape-rendering="crispEdges"');
+    expect(html).not.toContain("<ellipse");
+    expect(html).not.toContain("<circle");
+    expect(html).toContain("ドット絵ポートレート");
+  }
+});
+it("adds meaningful reserve history without replacing a zero-appearance first-team record", () => {
+  const w = structuredClone(initial);
+  const p = w.players.find(
+    (p) =>
+      p.team === 0 &&
+      p.pro >= 4 &&
+      p.position !== "投" &&
+      !p.reports[2026]?.games,
+  )!;
+  const official = structuredClone(p.reports);
+  delete p.farmReports;
+  expect(backfillCareerHistory(w)).toBe(true);
+  for (const year of [2024, 2025, 2026]) {
+    if (p.reports[year].games) continue;
+    const r = p.farmReports![year];
+    expect(r.games).toBeGreaterThan(0);
+    expect(r.games).toBeLessThanOrEqual(120);
+    expect(r.hits).toBeLessThanOrEqual(r.ab);
+    expect(r.hr + r.doubles + r.triples).toBeLessThanOrEqual(r.hits);
+    expect(r.source).toBe("backfill");
+  }
+  expect(p.reports).toEqual(official);
+  const html = renderToStaticMarkup(createElement(RecentResults, { p, w }));
+  expect(html).toContain("二軍参考（一軍0）");
+  expect(backfillCareerHistory(w)).toBe(false);
 });
 it("renders every letter rank separately and retains unscouted bounds", () => {
   for (const [value, rank] of [

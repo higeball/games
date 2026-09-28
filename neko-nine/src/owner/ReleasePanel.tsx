@@ -9,77 +9,12 @@ import {
   type Player,
   type OwnerAction,
   type WorldState,
-  type RecordLine,
 } from "./model";
 import { seniorRoster } from "./operations";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { AbilityBadge, GradeMark } from "./AbilityBadge";
 import { releaseCandidates, releaseReasons, isCorePlayer } from "./release";
-
-const rate = (n: number, d: number, digits = 3) =>
-  d ? (n / d).toFixed(digits).replace(/^0\./, ".") : "—";
-function RecentResults({ p, year }: { p: Player; year: number }) {
-  const pitching = p.position === "投";
-  const cell = (r: RecordLine) =>
-    pitching
-      ? [
-          r.games,
-          `${r.wins}勝${r.losses}敗`,
-          `${r.saves}S/${r.holds}H`,
-          r.outs ? ((r.earned * 27) / r.outs).toFixed(2) : "—",
-          `${Math.floor(r.outs / 3)}.${r.outs % 3}`,
-          r.k,
-        ]
-      : [
-          r.games,
-          rate(r.hits, r.ab),
-          r.hr,
-          r.rbi,
-          r.steals,
-          `${r.ab}打数${r.hits}安打`,
-        ];
-  return (
-    <div className="recent-results">
-      <table aria-label={`${p.name}の直近3年成績`}>
-        <caption>直近3年の成績</caption>
-        <thead>
-          <tr>
-            {[
-              "年度",
-              ...(pitching
-                ? ["登板", "勝敗", "S/H", "防御率", "回", "奪三振"]
-                : ["試合", "打率", "本", "打点", "盗塁", "打数・安打"]),
-            ].map((s) => (
-              <th key={s} scope="col">
-                {s}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {[year, year - 1, year - 2].map((y) => {
-            const r = p.reports[y];
-            return (
-              <tr key={y}>
-                <th scope="row">
-                  {y}
-                  {r?.source === "backfill" && (
-                    <small className="history-backfill">補完</small>
-                  )}
-                </th>
-                {r ? (
-                  cell(r).map((v, i) => <td key={i}>{v}</td>)
-                ) : (
-                  <td colSpan={6}>記録なし（未記録／プロ入り前）</td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import { RecentResults } from "./RecentResults";
 export function ReleasePanel({
   w,
   act,
@@ -246,7 +181,7 @@ export function ReleasePanel({
                 {p.position === "投" &&
                   ` · ${p.pitches.map((x) => `${x.name}${x.level}`).join(" / ")}`}
               </p>
-              <RecentResults p={p} year={w.year} />
+              <RecentResults p={p} w={w} />
               <p className="candidate-reasons">
                 判断材料：{releaseReasons(p, w.year).join(" / ")}
               </p>

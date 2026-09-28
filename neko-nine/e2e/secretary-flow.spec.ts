@@ -10,13 +10,15 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     await expect(page.getByRole("status")).toHaveCount(0);
     await expect(page.getByRole("alert")).toHaveCount(0);
   };
-  await page.goto("/neko-card-game/");
+  await page.goto("/games/neko-nine/");
   await page.getByRole("button", { name: /2026年オフから就任/ }).click();
   await settle();
   const guide = page.getByRole("complementary", { name: "秘書フーミーの案内" });
   await expect(guide).toContainText("シーズンお疲れ様でした");
   const image = guide.getByRole("img");
   await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute("src", /foomy-secretary-pixel\.png$/);
+  expect(await image.evaluate((el) => getComputedStyle(el).imageRendering)).toBe("pixelated");
   expect(
     await image.evaluate(
       (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
@@ -68,6 +70,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   await expect(first).toContainText("契約");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await first.screenshot({ path: "test-results/release-inline-card.png" });
+  await expect(first).toContainText("二軍参考");
   await first
     .getByRole("img")
     .evaluate((el) =>
