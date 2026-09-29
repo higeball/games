@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseInvitations } from "./invitation-helpers";
 
 test("old saves gain career history and compact individually colored ranks", async ({
   page,
@@ -97,7 +98,7 @@ test("old saves gain career history and compact individually colored ranks", asy
       }),
   );
   await page.reload();
-  await page.getByRole("button", { name: /主力選手一覧へ進む/ }).click();
+  await chooseInvitations(page);
   await page
     .getByRole("button", { name: /第1次戦力外通告・育成打診へ進む/ })
     .click();

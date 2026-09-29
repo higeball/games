@@ -1,5 +1,6 @@
 import { nextRandom } from "../game/simulation/rng";
 import { playerName } from "./identity";
+import { invitationAvailable, invitationCandidates } from "./invitation";
 import { abilityUncertainty } from "./scouting";
 import {
   abilitySnapshot,
@@ -429,6 +430,7 @@ export function createWorld(seed = 20261026): WorldState {
     chooseActive(w, id);
   });
   // Generate internally consistent baseline records for the completed 2026 season.
+  w.invitationOffered = true;
   startDevelopmentRecord(w, w.year, "2026年シーズン開始時");
   w.phase = "season";
   w.teams.forEach((t) => {
@@ -1571,6 +1573,25 @@ export function applyOwnerAction(
     return w;
   }
   switch (action.type) {
+    case "toggleInvitation": {
+      requirePhase(["invitation"]);
+      if (
+        !invitationAvailable(w) ||
+        !invitationCandidates().some((p) => p.id === action.id)
+      )
+        throw Error("特別招待選手を選べるのは就任時だけです。");
+      const picks = w.invitationPicks ?? [];
+      if (picks.includes(action.id))
+        w.invitationPicks = picks.filter((id) => id !== action.id);
+      else {
+        if (picks.length >= 2)
+          throw Error(
+            "招待できるのは2名です。選択を取り消してから選んでください。",
+          );
+        w.invitationPicks = [...picks, action.id];
+      }
+      break;
+    }
     case "release": {
       requirePhase(["release", "release2"]);
       const p = player(action.id);
@@ -1993,6 +2014,37 @@ function advancePhaseMutable(w: WorldState) {
   if (w.phase === "season") throw Error("月次処理を実行してください。");
   const blockers = phaseBlockers(w);
   if (blockers.length) throw Error(blockers.join(" "));
+  if (w.phase === "invitation") {
+    if (!invitationAvailable(w))
+      throw Error("特別招待選手の獲得は完了しています。");
+    const invited = invitationCandidates().filter((p) =>
+      w.invitationPicks?.includes(p.id),
+    );
+    if (
+      invited.length !== 2 ||
+      invited.some((p) => w.players.some((existing) => existing.id === p.id))
+    )
+      throw Error("特別招待選手を2名選んでください。");
+    if (roster(w).filter((p) => p.registration === "senior").length + 2 > 70)
+      throw Error("特別招待選手2名分の支配下枠が必要です。");
+    invited.forEach((p) => {
+      p.team = 0;
+      w.players.push(p);
+    });
+    w.invitationComplete = true;
+    recordNewOwnerPlayers(w);
+    news(
+      w,
+      "特別招待選手が入団",
+      `${invited.map((p) => p.name).join("、")}が入団しました。来季の新戦力として育成しましょう。`,
+    );
+    w.phase = "core";
+    return;
+  }
+  if (w.phase === "review" && !invitationAvailable(w)) {
+    w.phase = "core";
+    return;
+  }
   if (w.phase === "release" || w.phase === "release2")
     for (const p of w.players)
       if (p.releaseNotice?.year === w.year && p.releaseNotice.phase === w.phase)

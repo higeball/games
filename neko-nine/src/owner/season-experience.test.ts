@@ -37,7 +37,16 @@ const dom = (html: string) => {
   return el;
 };
 it("moves from overview to main players then release, showing every position and unique pitcher roles", () => {
-  const core = applyOwnerAction(base, { type: "advance" });
+  let invitation = applyOwnerAction(base, { type: "advance" });
+  invitation = applyOwnerAction(invitation, {
+    type: "toggleInvitation",
+    id: "invite-moji",
+  });
+  invitation = applyOwnerAction(invitation, {
+    type: "toggleInvitation",
+    id: "invite-yasu",
+  });
+  const core = applyOwnerAction(invitation, { type: "advance" });
   expect(core.phase).toBe("core");
   expect(applyOwnerAction(core, { type: "advance" }).phase).toBe("release");
   const groups = coreRoster(core);

@@ -125,6 +125,12 @@ export function activeError(w: WorldState) {
 }
 export function phaseBlockers(w: WorldState) {
   const tasks: string[] = [];
+  if (w.phase === "invitation") {
+    if (w.invitationPicks?.length !== 2)
+      tasks.push("特別招待選手を2名選んでください。");
+    if (seniorRoster(w).length + 2 > SENIOR_LIMIT)
+      tasks.push("招待選手2名分の支配下枠が必要です。");
+  }
   if (seniorRoster(w).length > SENIOR_LIMIT)
     tasks.push("支配下70人枠を超えています。");
   if (w.phase === "draft" && (w.draftRound < 6 || w.draftPending))

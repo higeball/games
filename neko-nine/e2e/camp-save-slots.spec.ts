@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseInvitations } from "./invitation-helpers";
 
 test("camp plan and results survive three-slot saves, title return and a new game", async ({
   page,
@@ -45,7 +46,7 @@ test("camp plan and results survive three-slot saves, title return and a new gam
   };
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
-  await click(/主力選手一覧へ進む/);
+  await chooseInvitations(page);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await click(/ドラフト会議へ進む/);
   await click("指名を終了");

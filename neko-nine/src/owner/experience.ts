@@ -52,6 +52,7 @@ export function eventObjective(w: WorldState) {
       "promotion",
     ].includes(w.phase);
   const text: Partial<Record<WorldState["phase"], string>> = {
+    invitation: `特別招待選手を2名選ぶ · ${w.invitationPicks?.length ?? 0}/2名`,
     release: "来季に向けて登録枠を整理",
     release2: "補強前の最終チェック",
     draft:

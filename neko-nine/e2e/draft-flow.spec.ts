@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseInvitations } from "./invitation-helpers";
 
 test("mobile draft advances only after each result, including lottery and reload", async ({
   page,
@@ -18,10 +19,10 @@ test("mobile draft advances only after each result, including lottery and reload
   };
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
-  await click(/主力選手一覧へ進む/);
+  await chooseInvitations(page);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await expect(page.locator(".release-candidate")).toHaveCount(10);
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     await page
       .locator('.release-candidate[data-released="false"]')
       .first()
@@ -176,7 +177,7 @@ test("mobile draft advances only after each result, including lottery and reload
     .getByRole("navigation")
     .getByRole("button", { name: /チーム戦力/ })
     .click();
-  await expect(page.locator(".newcomer-list > div")).toHaveCount(6);
+  await expect(page.locator(".newcomer-list > div")).toHaveCount(8);
   await expect(page.locator(".status-advance")).toHaveCount(0);
   await click(/ドラフト会議に戻る/);
   await expect(

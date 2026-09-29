@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => ({
           "assets/characters/cat-player-sheet.png",
           "assets/characters/dog-player-sheet.png",
           "assets/characters/foomy-secretary-pixel.png",
+          "characters/invited/shiroxler.png",
+          "characters/invited/moji.png",
+          "characters/invited/yasu.png",
+          "characters/invited/hin.png",
         ];
         const version = createHash("sha256")
           .update(JSON.stringify(files))

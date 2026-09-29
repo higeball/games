@@ -1,15 +1,21 @@
 import { PHASE_FLOW, PHASE_NAMES, PHASE_DATES, type WorldState } from "./model";
 import { phaseBlockers, seniorRoster } from "./operations";
 import { eventObjective } from "./experience";
+import { invitationAvailable } from "./invitation";
 
 export function nextEventLabel(w: WorldState) {
   if (w.phase === "season") return `${w.month}月を進める`;
+  if (w.phase === "review" && invitationAvailable(w))
+    return "特別招待選手を選ぶ";
+  if (w.phase === "review" && !invitationAvailable(w))
+    return "主力選手一覧へ進む";
   if (w.phase === "retain" && w.retentionReturn)
     return `${PHASE_NAMES[w.retentionReturn]}へ進む`;
   const next = PHASE_FLOW[PHASE_FLOW.indexOf(w.phase) + 1];
   return next ? `${PHASE_NAMES[next]}へ進む` : "レギュラーシーズン開幕";
 }
 export function phaseFinishLabel(w: WorldState) {
+  if (w.phase === "invitation") return "この2名を獲得して主力選手一覧へ進む";
   if (w.phase === "season") return `${nextEventLabel(w)} →`;
   return `${PHASE_NAMES[w.phase]}を終了し${nextEventLabel(w)}`;
 }
@@ -23,11 +29,12 @@ export function secretaryAdvice(w: WorldState) {
   const completed = phaseBlockers(w).length === 0;
   const instructions: Record<string, { message: string; steps: string[] }> = {
     review: {
-      message:
-        "ヤスオーナー、シーズンお疲れ様でした。まずは来季までの流れをご説明します。補強ポイントと次の画面の主力一覧を確認してから、戦力外通告・育成打診へ進みましょう。",
+      message: invitationAvailable(w)
+        ? "ヤスオーナー、シーズンお疲れ様でした。まずは来季までの流れと補強ポイントを確認しましょう。次の画面では、就任祝いの特別招待選手4名から2名を獲得できます。その後、主力一覧と戦力外通告・育成打診へ進みます。"
+        : "ヤスオーナー、シーズンお疲れ様でした。まずは来季までの流れをご説明します。補強ポイントと次の画面の主力一覧を確認してから、戦力外通告・育成打診へ進みましょう。",
       steps: [
         "年間の流れ・補強ポイントを確認",
-        "主力一覧へ",
+        invitationAvailable(w) ? "特別招待選手を2名選ぶ" : "主力一覧へ",
         "戦力外通告・育成打診へ",
       ],
     },
@@ -35,6 +42,11 @@ export function secretaryAdvice(w: WorldState) {
       message:
         "守備位置ごとの主力選手を確認しましょう。投手は先発・中継ぎ・抑えに分けています。金枠の選手を軸に、次の画面で戦力外通告・育成打診を検討してください。",
       steps: ["主力を確認", "手薄な守備位置を確認", "戦力外通告・育成打診へ"],
+    },
+    invitation: {
+      message:
+        "就任祝いに4名の特別招待選手が来てくれました。入団できるのは2名です。能力と守備位置を見比べて選び、上のボタンで獲得を確定してください。",
+      steps: ["能力・守備位置を確認", "2名を選ぶ", "獲得を確定して主力一覧へ"],
     },
     release: {
       message: `第1次戦力外通告になります。能力と直近3年成績を比べ、候補を選んでください。若手・主力の除外はチェックで解除できます。空き枠は${room}人。整理が済んだらドラフトへ進みましょう。`,
@@ -209,26 +221,30 @@ export function FoomyGuide({
         <section className="season-overview" aria-label="球団運営の年間の流れ">
           <h3>来季までの全体の流れ</h3>
           <ol>
-            {[...PHASE_FLOW.slice(1), "season" as const].map((phase) => (
-              <li key={phase} data-phase={phase}>
-                <small>
-                  {w.year +
-                    ([
-                      "budget",
-                      "staff",
-                      "spring",
-                      "preseason",
-                      "promotion",
-                      "registration",
-                      "season",
-                    ].includes(phase)
-                      ? 1
-                      : 0)}
-                  年{PHASE_DATES[phase]}
-                </small>
-                <b>{PHASE_NAMES[phase]}</b>
-              </li>
-            ))}
+            {[...PHASE_FLOW.slice(1), "season" as const]
+              .filter(
+                (phase) => phase !== "invitation" || invitationAvailable(w),
+              )
+              .map((phase) => (
+                <li key={phase} data-phase={phase}>
+                  <small>
+                    {w.year +
+                      ([
+                        "budget",
+                        "staff",
+                        "spring",
+                        "preseason",
+                        "promotion",
+                        "registration",
+                        "season",
+                      ].includes(phase)
+                        ? 1
+                        : 0)}
+                    年{PHASE_DATES[phase]}
+                  </small>
+                  <b>{PHASE_NAMES[phase]}</b>
+                </li>
+              ))}
           </ol>
         </section>
       ) : compact ? null : (

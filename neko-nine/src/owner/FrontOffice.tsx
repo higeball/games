@@ -30,6 +30,8 @@ import { AbilityBadge } from "./AbilityBadge";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { ScoutingStatus } from "./ScoutingStatus";
 import { CampPanel } from "./CampPanel";
+import { SpecialInvitation } from "./SpecialInvitation";
+import { nextEventLabel } from "./Secretary";
 import { TeamProgress } from "./TeamProgress";
 import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
 import { CoreRoster } from "./CoreRoster";
@@ -243,7 +245,7 @@ export function Dashboard({
             className="primary review-advance"
             onClick={() => act({ type: "advance" })}
           >
-            主力選手一覧へ進む →
+            {nextEventLabel(w)} →
           </button>
         </>
       )}
@@ -266,6 +268,7 @@ export function Dashboard({
   );
 }
 export function FrontOffice({ w, act, open }: Props) {
+  if (w.phase === "invitation") return <SpecialInvitation w={w} act={act} />;
   if (w.phase === "core") return <CoreRoster w={w} open={open} />;
   if (w.phase === "draft") return <DraftBoard w={w} act={act} open={open} />;
   return (

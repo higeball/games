@@ -460,6 +460,77 @@
   box-shadow: 0 0 0 5px #f1e3b8;
   border-radius: 6px;
 }
+.invitation-portrait {
+  filter: none;
+  object-fit: contain;
+  background: transparent;
+  image-rendering: auto;
+  border-radius: 6px;
+}
+.invitation-portrait.core-portrait {
+  outline: 3px solid #bd943a;
+  outline-offset: 2px;
+}
+.invitation-summary {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.invitation-summary p {
+  margin: 8px 0;
+}
+.invitation-arrivals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.invitation-arrivals > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.invitation-arrivals small {
+  display: block;
+  font-size: 11px;
+}
+.invitation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+.invitation-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  min-width: 0;
+}
+.invitation-card.selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green);
+}
+.invitation-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.invitation-hero .invitation-portrait {
+  width: 100px;
+  height: 110px;
+  flex-shrink: 0;
+}
+.invitation-hero h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.invitation-hero p {
+  font-size: 12px;
+}
+.invitation-card > button {
+  width: 100%;
+  margin-top: 12px;
+}
 .core-player-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

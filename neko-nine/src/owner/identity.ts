@@ -51,7 +51,7 @@ export function normalizePlayerNames(w: WorldState): boolean {
       !p.name ||
       /[0-9０-９]/.test(p.name) ||
       used.has(p.name) ||
-      !p.name.includes(" ")
+      (!p.name.includes(" ") && !p.invitationKey)
     ) {
       const old = p.name;
       changed = true;

@@ -69,6 +69,32 @@ export function CoreRoster({
 }) {
   return (
     <section aria-label="ポジション別の主力選手">
+      {w.year === 2026 && w.invitationComplete && (
+        <section
+          className="invitation-summary"
+          aria-label="特別招待選手の獲得結果"
+        >
+          <h2>特別招待選手が入団しました</h2>
+          <div className="invitation-arrivals">
+            {w.players
+              .filter((p) => w.invitationPicks?.includes(p.id) && p.team === 0)
+              .map((p) => (
+                <div key={p.id}>
+                  <AnimalPortrait p={p} />
+                  <span>
+                    <b>{p.name}</b>
+                    <small>
+                      {p.position} · {p.age}歳 · 新人
+                    </small>
+                  </span>
+                </div>
+              ))}
+          </div>
+          <p>
+            2名を支配下に登録しました。来季の新戦力としてキャンプで育てましょう。
+          </p>
+        </section>
+      )}
       <p>
         今季の出場実績を優先して選出。金枠の選手を軸に、補強と世代交代を考えましょう。
       </p>

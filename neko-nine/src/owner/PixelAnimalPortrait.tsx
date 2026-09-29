@@ -52,6 +52,16 @@ export function PixelAnimalPortrait({
     core ??
     (p.team === 0 &&
       isCorePlayer(p, Math.max(...Object.keys(p.reports).map(Number))));
+  if (p.invitationKey)
+    return (
+      <img
+        className={`animal invitation-portrait${featured ? " core-portrait" : ""}`}
+        src={`${import.meta.env.BASE_URL}characters/invited/${p.invitationKey}.png`}
+        alt={`${p.name}の猫ポートレート`}
+        data-core={featured}
+        data-portrait={`invitation:${p.invitationKey}`}
+      />
+    );
   const v = portraitPattern(p),
     dog = p.species === "dog";
   const fur = coats[v.coat],

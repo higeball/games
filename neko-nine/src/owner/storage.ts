@@ -7,6 +7,7 @@ import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { normalizeSalaryScale } from "./salary";
 import { recordStrengthBaseline } from "./experience";
+import { INVITATION_KEYS, invitationCandidates } from "./invitation";
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const r = indexedDB.open("neko-owner-v3", 1);
@@ -53,6 +54,8 @@ export function validateWorld(value: unknown): asserts value is WorldState {
     w.players.some(
       (p) =>
         !p.skills ||
+        (p.invitationKey !== undefined &&
+          !INVITATION_KEYS.includes(p.invitationKey)) ||
         !p.reports ||
         !Number.isFinite(p.age) ||
         !POSITIONS.includes(p.position) ||
@@ -80,6 +83,22 @@ export function validateWorld(value: unknown): asserts value is WorldState {
   )
     throw Error("キャンプ開催地が不正です。");
   const report = w.campReport;
+  if (
+    (w.invitationOffered !== undefined &&
+      typeof w.invitationOffered !== "boolean") ||
+    (w.invitationComplete !== undefined &&
+      typeof w.invitationComplete !== "boolean") ||
+    (w.invitationPicks !== undefined &&
+      (!Array.isArray(w.invitationPicks) ||
+        w.invitationPicks.length > 2 ||
+        new Set(w.invitationPicks).size !== w.invitationPicks.length ||
+        w.invitationPicks.some(
+          (id) => !invitationCandidates().some((p) => p.id === id),
+        ))) ||
+    (w.phase === "invitation" &&
+      (w.year !== 2026 || w.invitationOffered !== true || w.invitationComplete))
+  )
+    throw Error("特別招待選手の記録が壊れています。");
   const validSnapshot = (s: AbilitySnapshot) =>
     s &&
     s.skills &&

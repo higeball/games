@@ -21,6 +21,10 @@ function autoOffseason(start: WorldState) {
   let w = structuredClone(start);
   let guard = 0;
   while (w.phase !== "season" && guard++ < 30) {
+    if (w.phase === "invitation") {
+      w = applyOwnerAction(w, { type: "toggleInvitation", id: "invite-moji" });
+      w = applyOwnerAction(w, { type: "toggleInvitation", id: "invite-yasu" });
+    }
     if (["release", "release2"].includes(w.phase)) {
       while (seniorRoster(w).length > 64) {
         const list = seniorRoster(w);

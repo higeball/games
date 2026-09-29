@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { completeInvitation } from "./invitation-helpers";
 
 test("Foomy guides directly to inline release comparisons on mobile", async ({
   page,
@@ -27,13 +28,13 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     ),
   ).toBe(true);
   const startButton = page.getByRole("button", {
-    name: /主力選手一覧へ進む/,
+    name: /特別招待選手を選ぶ/,
   });
   const flow = page.getByRole("region", { name: "球団運営の年間の流れ" });
-  await expect(flow.locator("li > b").first()).toHaveText("主力選手一覧");
+  await expect(flow.locator("li > b").first()).toHaveText("特別招待選手");
   await expect(flow.locator(".route-line")).toHaveCount(0);
-  await expect(flow.locator("li")).toHaveCount(19);
-  await expect(flow.locator("li > b").nth(2)).toHaveText("ドラフト会議");
+  await expect(flow.locator("li")).toHaveCount(20);
+  await expect(flow.locator("li > b").nth(3)).toHaveText("ドラフト会議");
   expect(
     await flow
       .locator("li > b")
@@ -101,6 +102,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     fullPage: true,
   });
   await startButton.click();
+  await completeInvitation(page);
   await settle();
   await expect(
     page.getByRole("heading", { name: "主力選手一覧", exact: true }),

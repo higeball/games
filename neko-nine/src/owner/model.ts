@@ -58,6 +58,7 @@ export type RecordLine = {
   holds: number;
 };
 export type Player = {
+  invitationKey?: "shiroxler" | "moji" | "yasu" | "hin";
   id: string;
   name: string;
   species: "cat" | "dog";
@@ -184,6 +185,7 @@ export type Team = {
 };
 export type Phase =
   | "review"
+  | "invitation"
   | "core"
   | "release"
   | "release2"
@@ -208,6 +210,7 @@ export type Phase =
   | "settlement";
 export const PHASE_NAMES: Record<Phase, string> = {
   review: "シーズン総括",
+  invitation: "特別招待選手",
   core: "主力選手一覧",
   release: "第1次戦力外通告・育成打診",
   release2: "第2次戦力外通告・育成打診",
@@ -291,6 +294,9 @@ export type SeasonReview = {
   }[];
 };
 export type WorldState = {
+  invitationOffered?: boolean;
+  invitationPicks?: string[];
+  invitationComplete?: boolean;
   developmentBaseline?: {
     year: number;
     label: string;
@@ -384,6 +390,7 @@ export type CampPlan = {
   }[];
 };
 export type OwnerAction =
+  | { type: "toggleInvitation"; id: string }
   | { type: "waiveRetention"; id: string }
   | { type: "advance" }
   | { type: "release"; id: string }
@@ -527,6 +534,7 @@ export const CLUBS = [
 ] as const;
 export const PHASE_DATES: Record<Phase, string> = {
   review: "10月上旬",
+  invitation: "10月上旬",
   core: "10月上旬",
   release: "10月上旬",
   draft: "10月下旬",
@@ -552,6 +560,7 @@ export const PHASE_DATES: Record<Phase, string> = {
 };
 export const PHASE_FLOW: Phase[] = [
   "review",
+  "invitation",
   "core",
   "release",
   "draft",

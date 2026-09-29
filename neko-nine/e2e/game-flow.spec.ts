@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { chooseInvitations } from "./invitation-helpers";
 test("Fukuoka owner completes the new calendar, negotiates and resumes offline", async ({
   page,
   context,
@@ -42,7 +43,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     path: "test-results/fukuoka-home.png",
     fullPage: true,
   });
-  await click(/主力選手一覧へ進む/);
+  await chooseInvitations(page);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await expect(
     page.getByRole("heading", { name: "戦力外候補を比較する" }),
