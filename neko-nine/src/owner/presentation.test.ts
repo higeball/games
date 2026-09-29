@@ -175,8 +175,8 @@ it("guides every playable phase and routes advances straight to their task", () 
     expect(secretaryAdvice(w).steps.length).toBe(3);
     expect(nextEventLabel(w)).not.toContain("undefined");
   }
-  expect(eventTab({ phase: "release" })).toBe("編成");
-  expect(eventTab({ phase: "budget" })).toBe("経営");
+  expect(eventTab({ phase: "release" })).toBe("ホーム");
+  expect(eventTab({ phase: "budget" })).toBe("ホーム");
   expect(eventTab({ phase: "season" })).toBe("ホーム");
   expect(secretaryAdvice(world).message).toContain("シーズンお疲れ様でした");
 });

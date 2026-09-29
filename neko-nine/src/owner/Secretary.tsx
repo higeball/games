@@ -1,9 +1,11 @@
-import { PHASE_FLOW, PHASE_NAMES, type WorldState } from "./model";
+import { PHASE_FLOW, PHASE_NAMES, PHASE_DATES, type WorldState } from "./model";
 import { phaseBlockers, seniorRoster } from "./operations";
 import { eventObjective } from "./experience";
 
 export function nextEventLabel(w: WorldState) {
   if (w.phase === "season") return `${w.month}月を進める`;
+  if (w.phase === "retain" && w.retentionReturn)
+    return `${PHASE_NAMES[w.retentionReturn]}へ進む`;
   const next = PHASE_FLOW[PHASE_FLOW.indexOf(w.phase) + 1];
   return next ? `${PHASE_NAMES[next]}へ進む` : "レギュラーシーズン開幕";
 }
@@ -58,8 +60,8 @@ export function secretaryAdvice(w: WorldState) {
     },
     release2: {
       message:
-        "日本シリーズが終了し、FA宣言が公示されました。第2次戦力外通告になります。新戦力を迎える枠を確認して、必要なら候補を見直してください。整理が済んだらトライアウトへ進みましょう。",
-      steps: ["FA市場と空き枠を確認", "最終の枠整理", "トライアウトへ"],
+        "日本シリーズが終了し、FA宣言が公示されました。第2次戦力外通告になります。新戦力を迎える枠を確認して、必要なら候補を見直してください。整理が済んだら自球団FA選手の引き止めへ進みましょう。",
+      steps: ["空き枠を確認", "最終の枠整理", "自球団FA選手の引き止めへ"],
     },
     tryout: {
       message:
@@ -74,15 +76,44 @@ export function secretaryAdvice(w: WorldState) {
     },
     contracts: {
       message: completed
-        ? "契約更改の必須手続きが完了しました。補強交渉と年俸予算を最終確認し、自主トレ・施設・人事へ進んでください。"
-        : `契約更改になります。まずは査定年俸を一括提示してください。保留した主力だけ個別に面談します。FA・外国人・トレードもこの期間です。${w.compensations.length ? "人的補償のプロテクトも必要です。" : ""}想定総年俸が予算に収まるかも確認してください。`,
-      steps: ["年俸を一括提示", "要面談・補強・人的補償", "施設・人事へ"],
+        ? "契約更改の必須手続きが完了しました。年俸予算を確認し、他球団FA選手の獲得へ進んでください。"
+        : `契約更改になります。まずは査定年俸を一括提示してください。保留した主力だけ個別に面談します。他球団FA・外国人・トレードは、この後それぞれの画面で進めます。${w.compensations.length ? "人的補償のプロテクトも必要です。" : ""}想定総年俸が予算に収まるかも確認してください。`,
+      steps: ["年俸を一括提示", "要面談選手と交渉", "他球団FA選手の獲得へ"],
     },
     budget: {
-      message: completed
-        ? "監督・コーチ6職種の契約が揃いました。施設への投資は任意です。経営計画を確認したら、春季キャンプへ進んでください。"
-        : "自主トレ期間になります。球団施設と集客へ投資できる時期です。監督・コーチ6職種の契約を更新してください。契約が揃ったら春季キャンプへ進めます。",
-      steps: ["施設・収支を確認", "スタッフ6職種を契約", "春季キャンプへ"],
+      message:
+        "施設と集客への投資を決めましょう。投資は任意です。来季年俸が予算に収まったら、監督・コーチ人事へ進んでください。",
+      steps: ["収支を確認", "必要な設備へ投資", "監督・コーチ人事へ"],
+    },
+    staff: {
+      message:
+        "監督とコーチ6職種を契約しましょう。現スタッフと契約を更新するか、新しい候補を選んでください。契約が揃ったら春季キャンプです。",
+      steps: ["現スタッフを確認", "6職種を契約", "春季キャンプへ"],
+    },
+    retain: {
+      message:
+        "自球団のFA宣言選手を引き止める期間です。残したい選手と残留交渉し、それ以外は引き止めを見送ってください。他球団からのFA獲得は契約更改の後です。",
+      steps: ["自球団のFA宣言を確認", "残留交渉または見送り", "トライアウトへ"],
+    },
+    fa: {
+      message:
+        "他球団のFA選手を獲得できます。必要な選手だけ交渉してください。A・Bランクの獲得時は、人的補償のプロテクトも確定します。",
+      steps: ["他球団のFA選手を比較", "獲得交渉・人的補償", "外国人補強へ"],
+    },
+    foreign: {
+      message:
+        "外国人選手を補強できます。調査で能力の幅を絞り、弱点を補える選手を探しましょう。補強は任意です。検討を終えたらトレードへ進みます。",
+      steps: ["外国人候補を調査", "必要な選手を獲得", "トレードへ"],
+    },
+    trade: {
+      message:
+        "他球団に選手交換を打診できます。放出と獲得の戦力差を比べて条件を提示してください。トレードは任意です。次は施設・経営計画になります。",
+      steps: ["交換候補を比較", "交換条件を提示", "施設・経営計画へ"],
+    },
+    promotion: {
+      message:
+        "開幕前に育成選手の支配下昇格を決めましょう。一軍で起用したい育成選手を昇格させてください。昇格は任意です。次の画面で一軍メンバーを選びます。",
+      steps: ["育成選手を比較", "支配下昇格を決定", "開幕一軍登録へ"],
     },
     spring: {
       message: w.campDone
@@ -92,15 +123,15 @@ export function secretaryAdvice(w: WorldState) {
     },
     preseason: {
       message: w.preseasonDone
-        ? "オープン戦が終了しました。状態評価を確認したら、開幕一軍登録へ進んでください。"
+        ? "オープン戦が終了しました。状態評価を確認したら、育成選手の支配下昇格へ進んでください。"
         : "オープン戦になります。「オープン戦を実施」を押し、新戦力の状態評価を確認してください。公式戦の成績には含まれません。",
-      steps: ["オープン戦を実施", "調整状態を確認", "開幕一軍登録へ"],
+      steps: ["オープン戦を実施", "調整状態を確認", "育成選手の支配下昇格へ"],
     },
     registration: {
       message:
         "開幕一軍を決める時期になります。自動選抜を土台に、守備位置・投手・捕手の人数を確認してください。一軍は31人、外国人は4人までです。編成が決まったら開幕へ進みましょう。",
       steps: [
-        "育成選手の昇格を検討",
+        "支配下選手の状態を確認",
         "開幕一軍を選ぶ",
         "レギュラーシーズン開幕",
       ],
@@ -157,9 +188,7 @@ export function FoomyGuide({
         <div>
           <small>OWNER'S SECRETARY</small>
           <h2>フーミーからのご案内</h2>
-          <p>
-            {w.phase === "review" ? advice.message : eventObjective(w).hint}
-          </p>
+          <p>{advice.message}</p>
         </div>
       </div>
       {onAdvance && (
@@ -171,42 +200,24 @@ export function FoomyGuide({
         <section className="season-overview" aria-label="球団運営の年間の流れ">
           <h3>来季までの全体の流れ</h3>
           <ol>
-            {[
-              [
-                `${w.year}年10月`,
-                "戦力外通告 → ドラフト",
-                "枠を空けて、新人を迎えます。",
-              ],
-              [
-                `${w.year}年10〜11月`,
-                "秋季キャンプ → FA公示",
-                "若手を育て、第2次戦力外も検討します。",
-              ],
-              [
-                `${w.year}年11月`,
-                "トライアウト → 現役ドラフト",
-                "再生候補と他球団の選手を探します。",
-              ],
-              [
-                `${w.year}年11〜12月`,
-                "契約更改・FA・外国人・トレード",
-                "年俸を決め、不足する戦力を補います。",
-              ],
-              [
-                `${w.year + 1}年1〜2月`,
-                "施設・スタッフ → 春季キャンプ",
-                "球団の土台と新戦力を整えます。",
-              ],
-              [
-                `${w.year + 1}年3〜9月`,
-                "オープン戦 → 一軍登録 → ペナント",
-                "開幕の編成を決め、年間成績を見届けます。",
-              ],
-            ].map(([date, name, detail]) => (
-              <li key={name}>
-                <small>{date}</small>
-                <b>{name}</b>
-                <span>{detail}</span>
+            {[...PHASE_FLOW.slice(1), "season" as const].map((phase) => (
+              <li key={phase} data-phase={phase}>
+                <small>
+                  {w.year +
+                    ([
+                      "budget",
+                      "staff",
+                      "spring",
+                      "preseason",
+                      "promotion",
+                      "registration",
+                      "season",
+                    ].includes(phase)
+                      ? 1
+                      : 0)}
+                  年{PHASE_DATES[phase]}
+                </small>
+                <b>{PHASE_NAMES[phase]}</b>
               </li>
             ))}
           </ol>

@@ -18,7 +18,7 @@ test("mobile draft advances only after each result, including lottery and reload
   };
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
-  await click(/第1次戦力外通告へ進む/);
+  await click(/第1次戦力外通告・育成打診へ進む/);
   await expect(page.locator(".release-candidate")).toHaveCount(10);
   for (let i = 0; i < 3; i++) {
     await page
@@ -32,7 +32,7 @@ test("mobile draft advances only after each result, including lottery and reload
       .click();
     await settle();
   }
-  await click("第1次戦力外通告を終了しドラフト会議へ進む");
+  await click("第1次戦力外通告・育成打診を終了しドラフト会議へ進む");
   // A deterministic high-profile prospect ensures the browser test exercises a lottery.
   await page.evaluate(
     () =>
@@ -184,7 +184,7 @@ test("mobile draft advances only after each result, including lottery and reload
   );
   await click("ドラフト会議を終了し秋季キャンプへ進む");
   await expect(
-    page.getByRole("heading", { name: "育成方針を選び、キャンプ実施" }),
+    page.getByRole("heading", { name: "秋季キャンプ", exact: true }),
   ).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -29,8 +29,7 @@ export function ReleasePanel({
   w: WorldState;
   act: (a: OwnerAction) => void;
 }) {
-  const [mode, setMode] = useState("戦力外"),
-    [excludeYoung, setYoung] = useState(true),
+  const [excludeYoung, setYoung] = useState(true),
     [excludeCore, setCore] = useState(true),
     [position, setPosition] = useState("全守備"),
     [search, setSearch] = useState(""),
@@ -45,7 +44,7 @@ export function ReleasePanel({
   const list = releaseCandidates(w, {
     excludeYoung,
     excludeCore,
-    mode,
+    mode: "戦力外",
     position,
     search,
     recommendedIds: scope === "おすすめ" ? recommendedIds : undefined,
@@ -75,7 +74,7 @@ export function ReleasePanel({
       releaseCandidates(w, {
         excludeYoung,
         excludeCore,
-        mode,
+        mode: "戦力外",
         position: pos,
         search,
         recommendedIds: scope === "おすすめ" ? recommendedIds : undefined,
@@ -202,17 +201,6 @@ export function ReleasePanel({
           />
         </div>
       </details>
-      <div className="segmented">
-        {["戦力外", "育成打診"].map((v) => (
-          <button
-            key={v}
-            className={mode === v ? "selected" : ""}
-            onClick={() => changeFilter(() => setMode(v))}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
       <p className="muted">
         表示 {list.length}人 / 所属 {roster(w).length}人 ·
         来季の契約が残る選手は通告不可。育成打診は拒否されると退団します。
@@ -313,14 +301,14 @@ export function ReleasePanel({
                 aria-label={
                   released
                     ? `${p.name}の戦力外通告をキャンセル`
-                    : `${p.name}に${mode === "戦力外" ? "戦力外通告" : "育成契約を打診"}`
+                    : `${p.name}に戦力外通告`
                 }
                 onClick={() => {
                   if (released) act({ type: "cancelRelease", id: p.id });
                   else
                     setConfirmation({
                       id: p.id,
-                      type: mode === "戦力外" ? "release" : "development",
+                      type: "release",
                     });
                 }}
               >
@@ -328,9 +316,23 @@ export function ReleasePanel({
                   ? "契約継続中"
                   : released
                     ? "戦力外通告をキャンセル"
-                    : mode === "戦力外"
-                      ? "この選手に戦力外通告"
-                      : "この選手に育成契約を打診"}
+                    : "この選手に戦力外通告"}
+              </button>
+              <button
+                className="candidate-action"
+                disabled={
+                  locked ||
+                  released ||
+                  p.registration === "development" ||
+                  p.species === "dog"
+                }
+                onClick={() =>
+                  setConfirmation({ id: p.id, type: "development" })
+                }
+              >
+                {p.registration === "development"
+                  ? "育成契約済み"
+                  : "この選手に育成打診"}
               </button>
             </article>
           );

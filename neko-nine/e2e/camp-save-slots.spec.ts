@@ -45,7 +45,7 @@ test("camp plan and results survive three-slot saves, title return and a new gam
   };
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
-  await click(/第1次戦力外通告へ進む/);
+  await click(/第1次戦力外通告・育成打診へ進む/);
   await click(/ドラフト会議へ進む/);
   await click("指名を終了");
   await click(/ドラフト会議を終了し秋季キャンプへ進む/);

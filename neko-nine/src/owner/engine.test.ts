@@ -36,7 +36,13 @@ function autoOffseason(start: WorldState) {
         w = applyOwnerAction(w, { type: "release", id: p.id });
       }
     }
-    if (w.phase === "budget")
+    if (w.phase === "retain") {
+      for (const p of w.players.filter(
+        (p) => p.market === "fa" && p.formerTeam === 0,
+      ))
+        w = applyOwnerAction(w, { type: "waiveRetention", id: p.id });
+    }
+    if (w.phase === "staff")
       for (const role of STAFF_ROLES) {
         const s =
           w.staff.find((s) => s.team === 0 && s.role === role) ??
@@ -86,7 +92,7 @@ function autoOffseason(start: WorldState) {
     if (w.phase === "tryout") {
       let tries = 0;
       while (validateRoster(w) && tries++ < 40) {
-        const list = roster(w);
+        const list = seniorRoster(w);
         const pos =
           list.filter((p) => p.position === "投").length < 10
             ? "投"

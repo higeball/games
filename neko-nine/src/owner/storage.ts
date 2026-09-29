@@ -1,3 +1,4 @@
+import { upgradeSerialFlow } from "./calendar";
 import type { WorldState } from "./model";
 import { PHASE_NAMES, SKILLS, POSITIONS } from "./model";
 import { upgradeLegacy } from "./operations";
@@ -79,6 +80,19 @@ export function validateWorld(value: unknown): asserts value is WorldState {
     throw Error("キャンプ開催地が不正です。");
   const report = w.campReport;
   if (
+    (w.serialFlowVersion !== undefined && w.serialFlowVersion !== 1) ||
+    (w.retentionReturn !== undefined && w.retentionReturn !== "contracts") ||
+    (w.retentionPassed !== undefined &&
+      (!Array.isArray(w.retentionPassed) ||
+        w.retentionPassed.some((id) => typeof id !== "string"))) ||
+    (w.faDeclarations !== undefined &&
+      (!w.faDeclarations ||
+        !Number.isInteger(w.faDeclarations.year) ||
+        !Array.isArray(w.faDeclarations.ids) ||
+        w.faDeclarations.ids.some((id) => typeof id !== "string")))
+  )
+    throw Error("FA手続きの記録が壊れています。");
+  if (
     w.strengthBaseline &&
     (!Array.isArray(w.strengthBaseline.scores) ||
       w.strengthBaseline.scores.length !== 5 ||
@@ -155,12 +169,13 @@ async function readWorld(backup = false): Promise<WorldState | null> {
 export async function loadWorld(backup = false): Promise<WorldState | null> {
   const current = await readWorld(backup);
   if (current) {
+    const migrated = upgradeSerialFlow(current);
     const needsBaseline = !current.strengthBaseline;
     recordStrengthBaseline(current);
     const renamed = normalizePlayerNames(current);
     const filled = backfillCareerHistory(current);
     const salaries = normalizeSalaryScale(current);
-    if ((renamed || filled || salaries || needsBaseline) && !backup)
+    if ((renamed || filled || salaries || needsBaseline || migrated) && !backup)
       await persistWorld(current, false);
     return current;
   }
@@ -191,6 +206,7 @@ export async function loadWorld(backup = false): Promise<WorldState | null> {
   });
   if (!legacy) return null;
   const upgraded = upgradeLegacy(legacy);
+  upgradeSerialFlow(upgraded);
   normalizePlayerNames(upgraded);
   backfillCareerHistory(upgraded);
   normalizeSalaryScale(upgraded);
@@ -279,9 +295,14 @@ export async function listSaveSlots(): Promise<Array<SaveSlotInfo | null>> {
         savedAt: value.savedAt,
         year:
           w.year +
-          (["budget", "staff", "spring", "preseason", "registration"].includes(
-            w.phase,
-          )
+          ([
+            "budget",
+            "staff",
+            "spring",
+            "preseason",
+            "promotion",
+            "registration",
+          ].includes(w.phase)
             ? 1
             : 0),
         phase: w.phase,
@@ -336,6 +357,7 @@ export async function loadWorldSlot(slot: number): Promise<WorldState> {
   if (!value) throw Error("このセーブ枠は空いています。");
   validateWorld(value.world);
   const w = value.world;
+  upgradeSerialFlow(w);
   normalizePlayerNames(w);
   backfillCareerHistory(w);
   normalizeSalaryScale(w);

@@ -206,7 +206,7 @@ describe("recruitment and opening registration", () => {
     expect(next.preseasonDone).toBe(true);
   });
   it("queues A-rank compensation and loses an unprotected player", () => {
-    let w = state("contracts");
+    let w = state("fa");
     const fa = seniorRoster(w, 1).find((p) => p.species === "cat")!;
     fa.team = null;
     fa.market = "fa";
@@ -235,7 +235,7 @@ describe("recruitment and opening registration", () => {
     ).toBe(true);
   });
   it("C-rank acquisitions do not require compensation", () => {
-    let w = state("contracts");
+    let w = state("fa");
     const p = seniorRoster(w, 1).find((p) => p.species === "cat")!;
     p.team = null;
     p.market = "fa";
@@ -247,7 +247,7 @@ describe("recruitment and opening registration", () => {
     expect(w.compensations).toHaveLength(0);
   });
   it("requires valid one-for-one trade value and moves both players", () => {
-    const w = state("contracts"),
+    const w = state("trade"),
       give = seniorRoster(w).find((p) => p.species === "cat")!,
       take = seniorRoster(w, 1).sort((a, b) => ability(a) - ability(b))[0];
     Object.keys(give.skills).forEach((k) => {
@@ -281,6 +281,7 @@ describe("recruitment and opening registration", () => {
     expect(() =>
       applyOwnerAction(w, { type: "active", id: development.id }),
     ).toThrow(/支配下/);
+    w.phase = "promotion";
     const promoted = applyOwnerAction(w, {
       type: "promote",
       id: development.id,

@@ -13,6 +13,7 @@ import {
   CAT_BREEDS,
   DOG_BREEDS,
   FACILITIES,
+  PHASE_NAMES,
   POSITIONS,
   SKILLS,
   blankRecord,
@@ -23,6 +24,7 @@ import {
   type Staff,
   type WorldState,
 } from "./model";
+import { upgradeSerialFlow } from "./calendar";
 import { exportWorld, loadWorld, persistWorld, validateWorld } from "./storage";
 import { YasuPortrait } from "../ui/Sprites";
 import {
@@ -30,7 +32,6 @@ import {
   FrontOffice,
   OwnerStatus,
   SalaryBudget,
-  StaffPanel,
 } from "./FrontOffice";
 import { upgradeLegacy } from "./operations";
 import { AnimalPortrait } from "./AnimalPortrait";
@@ -80,6 +81,7 @@ export default function OwnerApp() {
     }
   });
   const [newGameConfirm, setNewGameConfirm] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
   useEffect(() => {
     try {
       sessionStorage.setItem("neko-owner-title", atTitle ? "1" : "0");
@@ -158,6 +160,7 @@ export default function OwnerApp() {
     });
   }
   async function commit(next: WorldState) {
+    upgradeSerialFlow(next);
     recordStrengthBaseline(next);
     backfillCareerHistory(next);
     normalizeSalaryScale(next);
@@ -211,14 +214,6 @@ export default function OwnerApp() {
   }
   async function restore(file?: File) {
     try {
-      if (
-        file &&
-        w &&
-        !confirm(
-          "現在のデータを読み込み内容で置き換えます。直前の状態はバックアップに残ります。",
-        )
-      )
-        return;
       let next = file ? JSON.parse(await file.text()) : await loadWorld(true);
       if (next?.version === 2) next = upgradeLegacy(next);
       validateWorld(next);
@@ -333,7 +328,7 @@ export default function OwnerApp() {
                   {w.phase !== "review" && w.phase !== "draft" && (
                     <div className="event-title">
                       <small>{objective!.state}</small>
-                      <h1>{objective!.title}</h1>
+                      <h1>{PHASE_NAMES[w.phase]}</h1>
                     </div>
                   )}
                   <FoomyGuide w={w} compact={w.phase !== "review"} />
@@ -369,13 +364,7 @@ export default function OwnerApp() {
                     go={(t) => setTab(t === "編成" ? "調査" : t)}
                   />
                 ) : w.phase === "budget" ? (
-                  <>
-                    <StaffPanel w={w} act={act} />
-                    <details className="optional-section">
-                      <summary>施設・集客に投資する（任意）</summary>
-                      <Business w={w} act={act} />
-                    </details>
-                  </>
+                  <Business w={w} act={act} />
                 ) : (
                   <FrontOffice
                     key={`${w.phase}-${eventVisit}`}
@@ -484,7 +473,14 @@ export default function OwnerApp() {
                 <input
                   type="file"
                   accept=".json"
-                  onChange={(e) => restore(e.target.files?.[0])}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (w) setImportFile(file);
+                      else void restore(file);
+                    }
+                    e.target.value = "";
+                  }}
                 />
               </label>
               <button onClick={() => restore()}>
@@ -522,6 +518,22 @@ export default function OwnerApp() {
             error={error}
           />
         )}{" "}
+        {importFile && (
+          <ConfirmDialog
+            title="セーブを読み込みますか？"
+            confirmLabel="読み込む"
+            onClose={() => setImportFile(null)}
+            onConfirm={() => {
+              const file = importFile;
+              setImportFile(null);
+              void restore(file);
+            }}
+          >
+            <p>
+              現在のプレイを読み込んだデータに置き換えます。直前の状態はバックアップに残ります。手動セーブ枠は変更しません。
+            </p>
+          </ConfirmDialog>
+        )}
         {newGameConfirm && (
           <ConfirmDialog
             title="最初からプレイしますか？"
@@ -910,7 +922,11 @@ function PlayerDetail({
         {p.meetingReason && p.contractYear < w.year + 1 && (
           <p className="warning">要面談：{p.meetingReason}</p>
         )}
-        {((p.market === "fa" && ["fa", "contracts"].includes(w.phase)) ||
+        {((p.market === "fa" &&
+          ((w.phase === "fa" && p.formerTeam !== 0) ||
+            (w.phase === "retain" &&
+              p.formerTeam === 0 &&
+              !w.retentionPassed?.includes(p.id)))) ||
           (ours && w.phase === "contracts" && p.contractYear < w.year + 1)) && (
           <div className="offer-box">
             <label>
@@ -1003,7 +1019,7 @@ function PlayerDetail({
           </p>
         )}
         {!ours &&
-          ["season", "draft", "fa", "tryout", "contracts"].includes(w.phase) &&
+          ["season", "draft", "fa", "tryout", "foreign"].includes(w.phase) &&
           p.market !== "retired" && (
             <button
               disabled={w.scoutsLeft <= 0 || p.scouting >= 100}

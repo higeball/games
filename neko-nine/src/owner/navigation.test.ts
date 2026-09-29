@@ -55,7 +55,7 @@ it("blocks header progression until the required camp has been completed", () =>
     render().querySelector(".status-advance")!.hasAttribute("disabled"),
   ).toBe(true);
   expect(phaseFinishLabel(w)).toBe(
-    "秋季キャンプを終了しFA公示・第2次戦力外へ進む",
+    "秋季キャンプを終了し第2次戦力外通告・育成打診へ進む",
   );
   w.campDone = true;
   expect(
@@ -94,5 +94,5 @@ it("shows only in-period markets and no routes to other calendar events", () => 
     [...render().querySelectorAll(".market-tabs button")].map(
       (b) => b.textContent,
     ),
-  ).toEqual(["契約更改", "FA市場", "外国人", "トレード"]);
+  ).toEqual([]);
 });

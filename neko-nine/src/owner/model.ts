@@ -193,6 +193,10 @@ export type Phase =
   | "draft"
   | "autumn"
   | "fa"
+  | "retain"
+  | "foreign"
+  | "trade"
+  | "promotion"
   | "tryout"
   | "contracts"
   | "budget"
@@ -203,18 +207,22 @@ export type Phase =
   | "settlement";
 export const PHASE_NAMES: Record<Phase, string> = {
   review: "シーズン総括",
-  release: "第1次戦力外通告",
-  release2: "FA公示・第2次戦力外",
+  release: "第1次戦力外通告・育成打診",
+  release2: "第2次戦力外通告・育成打診",
   activeDraft: "現役ドラフト",
   preseason: "オープン戦",
   registration: "開幕一軍登録",
   staff: "監督・コーチ人事",
   draft: "ドラフト会議",
   autumn: "秋季キャンプ",
-  fa: "FA交渉",
+  fa: "他球団FA選手の獲得",
+  retain: "自球団FA選手の引き止め",
+  foreign: "外国人補強",
+  trade: "トレード",
+  promotion: "育成選手の支配下昇格",
   tryout: "合同トライアウト",
   contracts: "契約更改",
-  budget: "自主トレ・施設・人事",
+  budget: "施設・経営計画",
   spring: "春季キャンプ",
   season: "ペナント",
   cs: "クライマックスシリーズ",
@@ -258,6 +266,10 @@ export type YearReport = {
 export type WorldState = {
   version: 3;
   salaryModelVersion?: 1;
+  serialFlowVersion?: 1;
+  faDeclarations?: { year: number; ids: string[] };
+  retentionPassed?: string[];
+  retentionReturn?: "contracts";
   revision: number;
   strengthBaseline?: {
     year: number;
@@ -333,6 +345,7 @@ export type CampPlan = {
   }[];
 };
 export type OwnerAction =
+  | { type: "waiveRetention"; id: string }
   | { type: "advance" }
   | { type: "release"; id: string }
   | { type: "cancelRelease"; id: string }
@@ -483,6 +496,10 @@ export const PHASE_DATES: Record<Phase, string> = {
   activeDraft: "11月中旬",
   contracts: "11月下旬〜12月",
   fa: "11月下旬〜12月",
+  retain: "11月上旬",
+  foreign: "12月",
+  trade: "12月",
+  promotion: "3月中旬",
   budget: "1月",
   staff: "1月",
   spring: "2月",
@@ -499,12 +516,18 @@ export const PHASE_FLOW: Phase[] = [
   "draft",
   "autumn",
   "release2",
+  "retain",
   "tryout",
   "activeDraft",
   "contracts",
+  "fa",
+  "foreign",
+  "trade",
   "budget",
+  "staff",
   "spring",
   "preseason",
+  "promotion",
   "registration",
 ];
 export const emptyCampPlan = (): CampPlan => ({

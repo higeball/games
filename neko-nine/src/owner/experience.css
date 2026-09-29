@@ -412,3 +412,22 @@
     scroll-behavior: auto !important;
   }
 }
+.owner-status {
+  padding-bottom: 10px;
+}
+.owner-status .status-advance {
+  white-space: normal;
+  line-height: 1.5;
+}
+.retention-card {
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid var(--line, #d5dadd);
+  border-radius: 12px;
+}
+.retention-card button {
+  margin: 6px 8px 0 0;
+}
+.candidate-action + .candidate-action {
+  margin-top: 8px;
+}

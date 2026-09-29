@@ -139,6 +139,18 @@ export function phaseBlockers(w: WorldState) {
     tasks.push("キャンプ計画を実施してください。");
   if (w.phase === "activeDraft" && !w.activeDraftDone)
     tasks.push("現役ドラフトの放出候補と獲得選手を選んでください。");
+  if (w.phase === "retain") {
+    const count = w.players.filter(
+      (p) =>
+        p.market === "fa" &&
+        p.formerTeam === 0 &&
+        !w.retentionPassed?.includes(p.id),
+    ).length;
+    if (count)
+      tasks.push(
+        `FA宣言した${count}人に残留交渉するか、引き止めを見送ってください。`,
+      );
+  }
   if (w.phase === "contracts") {
     const count = roster(w).filter((p) => p.contractYear < w.year + 1).length;
     if (count) tasks.push(`契約未確定 ${count}人（一括提示・要面談）。`);
@@ -151,8 +163,17 @@ export function phaseBlockers(w: WorldState) {
         "来季年俸が予算を超えています。予算か契約条件を見直してください。",
       );
   }
+  if (w.phase === "fa" && w.compensations.length)
+    tasks.push(
+      `人的補償 ${w.compensations.length}件のプロテクトを確定してください。`,
+    );
   if (
     w.phase === "budget" &&
+    projectedPayroll(w) > w.teams[0].finance.salaryBudget
+  )
+    tasks.push("来季年俸が予算を超えています。年俸予算を調整してください。");
+  if (
+    w.phase === "staff" &&
     STAFF_ROLES.some(
       (role) =>
         !w.staff.some(
@@ -199,6 +220,8 @@ export function contractAssessment(w: WorldState) {
   }
 }
 export function announceFa(w: WorldState) {
+  w.faDeclarations = { year: w.year, ids: [] };
+  w.retentionPassed = [];
   w.players
     .filter((p) => p.market === "foreign")
     .forEach((p) => {
@@ -211,9 +234,11 @@ export function announceFa(w: WorldState) {
     for (const [i, p] of list.entries()) {
       if (p.pro < 8 || p.contractYear > w.year || random(w) > 0.09) continue;
       p.formerTeam = team.id;
+      if (team.id === 0) p.scouting = 100;
       p.faRank = i < 3 ? "A" : i < 10 ? "B" : "C";
       p.team = null;
       p.market = "fa";
+      w.faDeclarations.ids.push(p.id);
       news(
         w,
         `${p.name}がFA宣言`,
@@ -252,6 +277,7 @@ export function makeActiveDraftPool(w: WorldState) {
     w.activeDraftPool.push(...list.map((p) => p.id));
   }
   if (
+    !w.activeDraftPool.length ||
     !seniorRoster(w).some(
       (p) =>
         p.species === "cat" &&
@@ -316,8 +342,16 @@ const offerScore = (w: WorldState, p: Player, o: Player["offers"][number]) =>
   (p.preference === "出場"
     ? Math.max(0, 70 - seniorRoster(w, o.team).length) * 0.025
     : 0);
-export function finalizeFa(w: WorldState) {
-  for (const p of w.players.filter((p) => p.market === "fa")) {
+export function finalizeFa(
+  w: WorldState,
+  scope: "own" | "other" | "all" = "all",
+) {
+  for (const p of w.players.filter(
+    (p) =>
+      p.market === "fa" &&
+      (scope === "all" ||
+        (scope === "own" ? p.formerTeam === 0 : p.formerTeam !== 0)),
+  )) {
     const offers = p.offers.filter(
       (o) => seniorRoster(w, o.team).length < SENIOR_LIMIT,
     );
@@ -341,6 +375,7 @@ export function finalizeFa(w: WorldState) {
       p.ask = Math.min(1500, p.ask);
     }
   }
+  if (scope === "own") return;
   for (const team of w.teams.slice(1)) {
     if (
       seniorRoster(w, team.id).length >= 70 ||
@@ -480,7 +515,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       return true;
     }
     case "promote": {
-      phase(["spring", "registration"]);
+      phase(["promotion"]);
       const p = player(a.id);
       if (p.team !== 0 || p.registration !== "development")
         throw Error("育成選手ではありません。");
@@ -631,7 +666,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       return true;
     }
     case "foreign": {
-      phase(["contracts"]);
+      phase(["foreign"]);
       const p = player(a.id);
       if (p.market !== "foreign" || p.species !== "dog")
         throw Error("外国人候補ではありません。");
@@ -641,7 +676,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       return true;
     }
     case "trade": {
-      phase(["contracts"]);
+      phase(["trade"]);
       const give = player(a.give),
         take = player(a.take);
       if (
@@ -678,7 +713,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       return true;
     }
     case "protect": {
-      phase(["contracts"]);
+      phase(["fa", "contracts"]);
       const c = w.compensations[0];
       if (!c) throw Error("人的補償はありません。");
       if (!protectionCandidates(w).some((p) => p.id === a.id))
@@ -692,7 +727,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       return true;
     }
     case "autoProtect": {
-      phase(["contracts"]);
+      phase(["fa", "contracts"]);
       const c = w.compensations[0];
       if (!c) throw Error("人的補償はありません。");
       c.protected = protectionCandidates(w)
@@ -702,7 +737,7 @@ export function handleOperation(w: WorldState, a: OwnerAction): boolean {
       return true;
     }
     case "compensate": {
-      phase(["contracts"]);
+      phase(["fa", "contracts"]);
       const c = w.compensations[0];
       if (!c) throw Error("人的補償はありません。");
       const list = protectionCandidates(w);

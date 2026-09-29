@@ -32,13 +32,14 @@ import { ScoutingStatus } from "./ScoutingStatus";
 import { CampPanel } from "./CampPanel";
 import { TeamProgress } from "./TeamProgress";
 import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
+import { ConfirmDialog } from "./ConfirmDialog";
 type Props = {
   w: WorldState;
   act: (a: OwnerAction) => void;
   open: (id: string) => void;
 };
 export const phaseDate = (w: WorldState) =>
-  `${w.year + (["budget", "staff", "spring", "preseason", "registration"].includes(w.phase) ? 1 : 0)}年 ${w.phase === "season" ? `${w.month}月` : PHASE_DATES[w.phase]}`;
+  `${w.year + (["budget", "staff", "spring", "preseason", "promotion", "registration"].includes(w.phase) ? 1 : 0)}年 ${w.phase === "season" ? `${w.month}月` : PHASE_DATES[w.phase]}`;
 export function OwnerStatus({
   w,
   onAdvance,
@@ -231,7 +232,7 @@ export function Dashboard({
             className="primary review-advance"
             onClick={() => act({ type: "advance" })}
           >
-            第1次戦力外通告へ進む →
+            第1次戦力外通告・育成打診へ進む →
           </button>
         </>
       )}
@@ -254,28 +255,9 @@ export function Dashboard({
   );
 }
 export function FrontOffice({ w, act, open }: Props) {
-  const [view, setView] = useState("契約更改");
   if (w.phase === "draft") return <DraftBoard w={w} act={act} open={open} />;
-  const releasing = ["release", "release2"].includes(w.phase);
-  const choices =
-    w.phase === "contracts" ? ["契約更改", "FA市場", "外国人", "トレード"] : [];
-  const marketTabs = (
-    <div className="market-tabs">
-      {choices.map((v) => (
-        <button
-          key={v}
-          className={view === v ? "selected" : ""}
-          aria-pressed={view === v}
-          onClick={() => setView(v)}
-        >
-          {v}
-        </button>
-      ))}
-    </div>
-  );
   return (
     <>
-      {choices.length > 0 && marketTabs}
       {w.phase === "release2" && w.archives.at(-1)?.year === w.year && (
         <details className="optional-section">
           <summary>日本シリーズ・シーズン決算を見る</summary>
@@ -286,16 +268,16 @@ export function FrontOffice({ w, act, open }: Props) {
           <Annual w={w} />
         </details>
       )}
-      {w.phase === "contracts" && w.compensations.length > 0 && (
+      {["contracts", "fa"].includes(w.phase) && w.compensations.length > 0 && (
         <Protection w={w} act={act} open={open} />
       )}
       {w.phase === "season" ? (
         <DraftBoard w={w} act={act} open={open} />
-      ) : view === "FA市場" ? (
+      ) : w.phase === "fa" ? (
         <Market w={w} act={act} open={open} kind="fa" />
-      ) : view === "外国人" ? (
+      ) : w.phase === "foreign" ? (
         <Market w={w} act={act} open={open} kind="foreign" />
-      ) : view === "トレード" ? (
+      ) : w.phase === "trade" ? (
         <TradePanel w={w} act={act} />
       ) : ["release", "release2"].includes(w.phase) ? (
         <ReleasePanel w={w} act={act} />
@@ -309,7 +291,22 @@ export function FrontOffice({ w, act, open }: Props) {
         <>
           <Contracts w={w} act={act} open={open} />
         </>
-      ) : w.phase === "budget" ? (
+      ) : w.phase === "retain" ? (
+        <Retention w={w} act={act} open={open} />
+      ) : w.phase === "promotion" ? (
+        <>
+          <p>
+            育成選手を支配下へ昇格できます。必要な選手だけ選んだら、開幕一軍の選抜へ進んでください。
+          </p>
+          <PlayerList
+            w={w}
+            list={roster(w).filter((p) => p.registration === "development")}
+            open={open}
+            label="支配下へ昇格"
+            action={(p) => act({ type: "promote", id: p.id })}
+          />
+        </>
+      ) : w.phase === "staff" ? (
         <StaffPanel w={w} act={act} />
       ) : w.phase === "preseason" ? (
         <>
@@ -596,16 +593,88 @@ function DraftBoard({ w, act, open }: Props) {
     </>
   );
 }
+function Retention({ w, act, open }: Props) {
+  const [waive, setWaive] = useState<Player | null>(null);
+  const ids = w.faDeclarations?.year === w.year ? w.faDeclarations.ids : [];
+  const list = w.players.filter(
+    (p) => p.formerTeam === 0 && (ids.includes(p.id) || p.market === "fa"),
+  );
+  return (
+    <section aria-label="自球団FA選手の引き止め">
+      <p>
+        FA宣言 {list.length}人 ／ 未決定{" "}
+        {
+          list.filter(
+            (p) => p.market === "fa" && !w.retentionPassed?.includes(p.id),
+          ).length
+        }
+        人
+      </p>
+      {!list.length && (
+        <p className="completion-card">
+          自球団のFA宣言選手はいません。次へ進めます。
+        </p>
+      )}
+      {list.map((p) => {
+        const passed = w.retentionPassed?.includes(p.id);
+        const pending = p.market === "fa" && !passed;
+        return (
+          <article className="retention-card" key={p.id}>
+            <h2>
+              {p.name}{" "}
+              <small>
+                {p.age}歳・{p.position}
+              </small>
+            </h2>
+            <p>
+              現在年俸 {money(p.salary)} ／ 希望年俸 {money(p.ask)}
+            </p>
+            {pending ? (
+              <>
+                <p>交渉 {p.offerRound}/3回</p>
+                <button className="primary" onClick={() => open(p.id)}>
+                  残留交渉をする
+                </button>
+                <button onClick={() => setWaive(p)}>引き止めを見送る</button>
+              </>
+            ) : (
+              <p className="completion-card">
+                {p.team === 0
+                  ? "残留決定"
+                  : p.team !== null
+                    ? `${w.teams[p.team].name}へ移籍`
+                    : "引き止め見送り · この期間の終了時に移籍先が決まります"}
+              </p>
+            )}
+          </article>
+        );
+      })}
+      {waive && (
+        <ConfirmDialog
+          title="引き止めを見送りますか？"
+          confirmLabel="見送りを確定"
+          onClose={() => setWaive(null)}
+          onConfirm={() => {
+            act({ type: "waiveRetention", id: waive.id });
+            setWaive(null);
+          }}
+        >
+          <p>
+            {waive.name}
+            への残留交渉を終了します。この決定は取り消せません。移籍先はこの期間の終了時に決まります。
+          </p>
+        </ConfirmDialog>
+      )}
+    </section>
+  );
+}
 function Market({
   w,
   act,
   open,
   kind,
 }: Props & { kind: "fa" | "foreign" | "tryout" }) {
-  const enabled =
-    kind === "tryout"
-      ? ["tryout", "contracts"].includes(w.phase)
-      : w.phase === "contracts";
+  const enabled = w.phase === kind;
   return (
     <>
       <h2>
@@ -630,7 +699,9 @@ function Market({
       )}
       <PlayerList
         w={w}
-        list={w.players.filter((p) => p.market === kind)}
+        list={w.players.filter(
+          (p) => p.market === kind && (kind !== "fa" || p.formerTeam !== 0),
+        )}
         open={open}
         label={
           kind === "fa"
@@ -815,14 +886,27 @@ function ActiveDraft({ w, act }: Omit<Props, "open">) {
   if (w.activeDraftDone)
     return (
       <section className="completion-card">
-        <h2>選手交換が完了しました</h2>
-        <p>新しい戦力が合流しました。チーム戦力で加入選手を確認できます。</p>
+        <h2>
+          {!w.activeDraftPool.length || !ours.length
+            ? "交換可能な対象選手がいません"
+            : "選手交換が完了しました"}
+        </h2>
+        <p>
+          {!w.activeDraftPool.length || !ours.length
+            ? "今季は交換不要です。契約更改へ進めます。"
+            : "新しい戦力が合流しました。チーム戦力で加入選手を確認できます。"}
+        </p>
       </section>
     );
   return (
     <>
       <h2>現役ドラフト</h2>
       <p className="decision-caption">放出する選手と、迎える選手を比較</p>
+      <p>
+        {ours.length && others.length
+          ? "このゲームでは、対象選手がいる場合は1対1の交換が必須です。放出・獲得候補を選び、交換を確定すると次へ進めます。"
+          : "交換可能な対象選手がいないため、このまま次へ進めます。"}
+      </p>
       <PlayerSelect
         label="放出候補"
         list={ours}
@@ -970,7 +1054,7 @@ function TradePanel({ w, act }: Omit<Props, "open">) {
       <ExchangePreview w={w} give={give} take={take} />
       <button
         className="primary"
-        disabled={w.phase !== "contracts" || !give || !take}
+        disabled={w.phase !== "trade" || !give || !take}
         onClick={() => act({ type: "trade", give, take, cash })}
       >
         交換条件を提示
@@ -1032,8 +1116,7 @@ export function StaffPanel({ w, act }: Omit<Props, "open">) {
   );
 }
 function Registration({ w, act, open }: Props) {
-  const [mode, setMode] = useState("一軍選抜"),
-    [group, setGroup] = useState("投手"),
+  const [group, setGroup] = useState("投手"),
     ids = w.teams[0].activeIds;
   const groups: Record<string, string[]> = {
     投手: ["投"],
@@ -1050,17 +1133,6 @@ function Registration({ w, act, open }: Props) {
       <button onClick={() => act({ type: "autoActive" })}>
         監督の一軍案を再提案
       </button>
-      <div className="segmented">
-        {["一軍選抜", "育成から昇格"].map((v) => (
-          <button
-            key={v}
-            className={mode === v ? "selected" : ""}
-            onClick={() => setMode(v)}
-          >
-            {v}
-          </button>
-        ))}
-      </div>
       <p>
         <b>一軍 {ids.length}/31人</b> ／ 外国人{" "}
         {
@@ -1070,15 +1142,7 @@ function Registration({ w, act, open }: Props) {
         }
         /4人
       </p>
-      {mode === "育成から昇格" ? (
-        <PlayerList
-          w={w}
-          list={roster(w).filter((p) => p.registration === "development")}
-          open={open}
-          label="支配下へ昇格"
-          action={(p) => act({ type: "promote", id: p.id })}
-        />
-      ) : (
+      {
         <>
           <div className="segmented" aria-label="一軍候補のポジション">
             {Object.entries(groups).map(([name, positions]) => (
@@ -1135,7 +1199,7 @@ function Registration({ w, act, open }: Props) {
               ))}
           </div>
         </>
-      )}
+      }
     </>
   );
 }

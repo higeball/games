@@ -328,6 +328,7 @@ function newStaff(w: WorldState, team: number | null, role: Staff["role"]) {
 export function createWorld(seed = 20261026): WorldState {
   const w: WorldState = {
     version: 3,
+    serialFlowVersion: 1,
     revision: 0,
     seed: seed || 1,
     nextId: 1,
@@ -1598,7 +1599,7 @@ export function applyOwnerAction(
       break;
     }
     case "hire": {
-      requirePhase(["staff", "budget"]);
+      requirePhase(["staff"]);
       const s = w.staff.find((s) => s.id === action.id);
       if (!s || (s.team !== null && s.team !== 0))
         throw Error("契約できないスタッフです。");
@@ -1758,9 +1759,13 @@ export function applyOwnerAction(
       break;
     }
     case "offer": {
-      requirePhase(["fa", "contracts"]);
+      requirePhase(["fa", "retain"]);
       const p = player(action.id);
       if (p.market !== "fa") throw Error("FA市場の選手ではありません。");
+      if ((w.phase === "retain") !== (p.formerTeam === 0))
+        throw Error("自球団の引き止めと他球団FA獲得は別の期間です。");
+      if (w.retentionPassed?.includes(p.id))
+        throw Error("引き止めを見送った選手です。");
       if (seniorRoster(w).length >= SENIOR_LIMIT || f.debt > 0)
         throw Error("選手枠または再建措置により交渉できません。");
       if (
@@ -1811,8 +1816,26 @@ export function applyOwnerAction(
         );
       break;
     }
+    case "waiveRetention": {
+      requirePhase(["retain"]);
+      const p = player(action.id);
+      if (
+        p.market !== "fa" ||
+        p.formerTeam !== 0 ||
+        w.retentionPassed?.includes(p.id)
+      )
+        throw Error("引き止めの対象ではありません。");
+      (w.retentionPassed ??= []).push(p.id);
+      p.offers = p.offers.filter((o) => o.team !== 0);
+      news(
+        w,
+        "FA引き止めを見送り",
+        `${p.name}の移籍先は引き止め期間の終了時に決まります。`,
+      );
+      break;
+    }
     case "sign": {
-      requirePhase(["tryout", "contracts"]);
+      requirePhase(["tryout"]);
       const p = player(action.id);
       if (p.market !== "tryout")
         throw Error("トライアウト候補ではありません。");
@@ -1864,7 +1887,7 @@ export function applyOwnerAction(
       );
       break;
     case "scout": {
-      requirePhase(["season", "draft", "fa", "tryout", "contracts"]);
+      requirePhase(["season", "draft", "fa", "tryout", "foreign"]);
       if (w.scoutsLeft <= 0) throw Error("今季の追加調査枠を使い切りました。");
       const p = player(action.id);
       if (p.team === 0) throw Error("所属選手は調査不要です。");
@@ -1939,7 +1962,7 @@ function advancePhaseMutable(w: WorldState) {
     for (const p of w.players)
       if (p.releaseNotice?.year === w.year && p.releaseNotice.phase === w.phase)
         delete p.releaseNotice;
-  if (w.phase === "budget") {
+  if (w.phase === "staff") {
     for (const id of w.teams.slice(1).map((t) => t.id))
       for (const role of STAFF_ROLES) {
         let s = coach(w, id, role);
@@ -1948,8 +1971,16 @@ function advancePhaseMutable(w: WorldState) {
         s.salary = s.ask;
       }
   }
-  if (w.phase === "contracts") {
-    finalizeFa(w);
+  if (w.phase === "retain") {
+    finalizeFa(w, "own");
+    if (w.retentionReturn) {
+      w.phase = w.retentionReturn;
+      delete w.retentionReturn;
+      return;
+    }
+  }
+  if (w.phase === "fa") {
+    finalizeFa(w, "other");
     if (w.compensations.length) {
       news(
         w,

@@ -19,7 +19,7 @@ test("FA negotiation shows errors and the player's answer inside the dialog", as
           let name = "";
           q.onsuccess = () => {
             const w = q.result;
-            w.phase = "contracts";
+            w.phase = "fa";
             const p = w.players.find(
               (p: any) => p.team === 1 && p.species === "cat",
             );
@@ -42,7 +42,7 @@ test("FA negotiation shows errors and the player's answer inside the dialog", as
       }),
   );
   await page.reload();
-  await page.getByRole("button", { name: "FA市場", exact: true }).click();
+  await expect(page.locator(".market-tabs")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "FA交渉を始める", exact: true }),
   ).toHaveCount(1);
@@ -72,8 +72,8 @@ test("FA negotiation shows errors and the player's answer inside the dialog", as
     .getByRole("button", { name: /選手名鑑/ })
     .click();
   await expect(page.locator(".status-advance")).toHaveCount(0);
-  await page.getByRole("button", { name: /契約更改に戻る/ }).click();
+  await page.getByRole("button", { name: /他球団FA選手の獲得に戻る/ }).click();
   await expect(
-    page.getByRole("button", { name: "契約更改", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+    page.getByRole("heading", { name: "他球団FA選手の獲得", exact: true }),
+  ).toBeVisible();
 });

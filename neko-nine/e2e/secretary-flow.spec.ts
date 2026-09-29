@@ -27,13 +27,15 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     ),
   ).toBe(true);
   const startButton = page.getByRole("button", {
-    name: /第1次戦力外通告へ進む/,
+    name: /第1次戦力外通告・育成打診へ進む/,
   });
   const flow = page.getByRole("region", { name: "球団運営の年間の流れ" });
   await expect(flow.locator("li > b").first()).toHaveText(
-    "戦力外通告 → ドラフト",
+    "第1次戦力外通告・育成打診",
   );
   await expect(flow.locator(".route-line")).toHaveCount(0);
+  await expect(flow.locator("li")).toHaveCount(18);
+  await expect(flow.locator("li > b").nth(1)).toHaveText("ドラフト会議");
   expect(
     await flow
       .locator("li > b")
@@ -95,12 +97,14 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   );
   expect(
     (await page.locator(".owner-status").boundingBox())!.height,
-  ).toBeLessThanOrEqual(85);
+  ).toBeLessThanOrEqual(95);
   await page.screenshot({
     path: "test-results/foomy-home.png",
     fullPage: true,
   });
-  await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
+  await page
+    .getByRole("button", { name: /第1次戦力外通告・育成打診へ進む/ })
+    .click();
   await settle();
   await expect(page.getByText("他の編成メニューを見る")).toHaveCount(0);
   await expect(page.locator(".market-tabs")).toHaveCount(0);
@@ -119,7 +123,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     page.getByRole("button", { name: "戦力外選手候補（約10人）", exact: true }),
   ).toHaveClass("selected");
   const finish = page.getByRole("button", {
-    name: "第1次戦力外通告を終了しドラフト会議へ進む",
+    name: "第1次戦力外通告・育成打診を終了しドラフト会議へ進む",
     exact: true,
   });
   await expect(finish).toHaveCount(1);
@@ -128,7 +132,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   );
   expect(
     (await page.locator(".owner-status").boundingBox())!.height,
-  ).toBeLessThanOrEqual(130);
+  ).toBeLessThanOrEqual(160);
   await page.getByRole("tab", { name: /^投手/ }).click();
   await expect(page.getByRole("tab", { name: /^投手/ })).toHaveAttribute(
     "aria-selected",
@@ -162,6 +166,14 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
       ),
   ).toBe(true);
   const first = page.locator(".release-candidate").first();
+  await expect(
+    first.getByRole("button", { name: "この選手に育成打診", exact: true }),
+  ).toBeVisible();
+  const headerBox = (await page.locator(".owner-status").boundingBox())!;
+  const advanceBox = (await finish.boundingBox())!;
+  expect(
+    headerBox.y + headerBox.height - advanceBox.y - advanceBox.height,
+  ).toBeGreaterThanOrEqual(10);
   const firstTable = first.getByRole("table", { name: /一軍直近3年成績/ });
   await expect(firstTable).toBeVisible();
   await expect(firstTable.locator("tbody tr")).toHaveCount(3);
@@ -224,6 +236,12 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   await expect(
     selected.getByRole("button", { name: /に戦力外通告/ }),
   ).toHaveText("この選手に戦力外通告");
+  await selected
+    .getByRole("button", { name: "この選手に育成打診", exact: true })
+    .click();
+  const development = page.getByRole("dialog", { name: "育成契約打診の確認" });
+  await expect(development).toContainText("拒否すると退団");
+  await development.getByRole("button", { name: "戻る", exact: true }).click();
   const mainName = await page.evaluate(
     () =>
       new Promise<string>((resolve, reject) => {
@@ -283,7 +301,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     expect(new Set(resourceTops).size).toBe(1);
     expect(
       (await page.locator(".owner-status").boundingBox())!.height,
-    ).toBeLessThanOrEqual(130);
+    ).toBeLessThanOrEqual(160);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => scrollTo(0, 0));

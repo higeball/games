@@ -39,7 +39,18 @@ export function eventObjective(w: WorldState) {
       (s) => s.team === 0 && s.role === role && s.contractYear >= w.year + 1,
     ),
   ).length;
-  const optional = ["release", "release2", "tryout"].includes(w.phase);
+  const optional =
+    !blocked &&
+    [
+      "release",
+      "release2",
+      "tryout",
+      "fa",
+      "foreign",
+      "trade",
+      "budget",
+      "promotion",
+    ].includes(w.phase);
   const text: Partial<Record<WorldState["phase"], string>> = {
     release: "来季に向けて登録枠を整理",
     release2: "補強前の最終チェック",
@@ -61,8 +72,14 @@ export function eventObjective(w: WorldState) {
       ? `来季契約を決める · 残り${remaining}人`
       : w.compensations.length
         ? "人的補償のプロテクトを確定"
-        : "契約完了。補強を最終確認",
-    budget: `監督・コーチの来季契約 · ${staff}/6職種`,
+        : "来季の選手契約が完了",
+    budget: "来季の予算と施設投資を決める",
+    staff: `監督・コーチの来季契約 · ${staff}/6職種`,
+    retain: "FA宣言した自球団選手の残留を交渉",
+    fa: "他球団のFA選手を獲得",
+    foreign: "外国人選手で弱点を補う",
+    trade: "選手交換を他球団に打診",
+    promotion: "育成選手の支配下昇格を決める",
     preseason: w.preseasonDone
       ? "オープン戦の結果を確認"
       : "オープン戦12試合を実施",
@@ -104,6 +121,7 @@ export function actionFeedback(
     renewAll: "一括提示の結果",
     negotiate: "契約交渉の結果",
     offer: "FA交渉の回答",
+    waiveRetention: "FA引き止めを見送りました",
     compensate: "人的補償が確定しました",
     promote: "支配下へ昇格しました",
   };

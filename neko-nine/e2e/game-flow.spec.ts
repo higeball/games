@@ -42,7 +42,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     path: "test-results/fukuoka-home.png",
     fullPage: true,
   });
-  await click(/第1次戦力外通告へ進む/);
+  await click(/第1次戦力外通告・育成打診へ進む/);
   await expect(
     page.getByRole("heading", { name: "戦力外候補を比較する" }),
   ).toBeVisible();
@@ -72,12 +72,24 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await camp();
   await expect(page.locator(".status-advance")).toBeEnabled();
   await home();
-  await click(/FA公示・第2次戦力外へ進む/);
+  await click(/第2次戦力外通告・育成打診へ進む/);
   await home();
   await page
     .getByText("日本シリーズ・シーズン決算を見る", { exact: true })
     .click();
   await expect(page.getByRole("heading", { name: "一年の決算" })).toBeVisible();
+  await click(/自球団FA選手の引き止めへ進む/);
+  while (
+    await page
+      .getByRole("button", { name: "引き止めを見送る", exact: true })
+      .count()
+  ) {
+    await page
+      .getByRole("button", { name: "引き止めを見送る", exact: true })
+      .first()
+      .click();
+    await click("見送りを確定");
+  }
   await click(/合同トライアウトへ進む/);
   await click(/現役ドラフトへ進む/);
   await event();
@@ -106,7 +118,12 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   }
   await expect(page.getByText(/要面談 0人/)).toBeVisible();
   await home();
-  await click(/自主トレ・施設・人事へ進む/);
+  await click(/他球団FA選手の獲得へ進む/);
+  await expect(page.locator(".market-tabs")).toHaveCount(0);
+  await click(/外国人補強へ進む/);
+  await click(/トレードへ進む/);
+  await click(/施設・経営計画へ進む/);
+  await click(/監督・コーチ人事へ進む/);
   await event();
   for (let i = 0; i < 6; i++) {
     await page
@@ -150,6 +167,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await event();
   await click("オープン戦を実施");
   await home();
+  await click(/育成選手の支配下昇格へ進む/);
   await click(/開幕一軍登録へ進む/);
   await event();
   await expect(page.getByText(/一軍 31\/31人/)).toBeVisible();
@@ -213,7 +231,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator(".status-date")).toContainText("2027年 10月上旬");
-  await click(/第1次戦力外通告へ進む/);
+  await click(/第1次戦力外通告・育成打診へ進む/);
   await click(/ドラフト会議へ進む/);
   await event();
   await click("指名を終了");
@@ -222,7 +240,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await event();
   await camp();
   await home();
-  await click(/FA公示・第2次戦力外へ進む/);
+  await click(/第2次戦力外通告・育成打診へ進む/);
   await home();
   await page
     .getByText("日本シリーズ・シーズン決算を見る", { exact: true })

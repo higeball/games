@@ -15,14 +15,18 @@ test("restrained profile styling, entry pay and persistent scouting feedback", a
   await page.getByRole("button", { name: /2026年オフから就任/ }).click();
   await settle();
   const dates = page.locator(".season-overview li small");
-  await expect(dates.first()).toHaveText("2026年10月");
-  await expect(dates.nth(4)).toHaveText("2027年1〜2月");
+  await expect(dates.first()).toHaveText("2026年10月上旬");
+  await expect(
+    page.locator('.season-overview [data-phase="spring"] small'),
+  ).toHaveText("2027年2月");
   expect(
     await dates
       .first()
       .evaluate((el) => getComputedStyle(el, "::before").content),
   ).toBe("none");
-  await page.getByRole("button", { name: /第1次戦力外通告へ進む/ }).click();
+  await page
+    .getByRole("button", { name: /第1次戦力外通告・育成打診へ進む/ })
+    .click();
   await settle();
   await expect(
     page.getByRole("button", { name: "戦力外選手候補（約10人）", exact: true }),
@@ -47,7 +51,9 @@ test("restrained profile styling, entry pay and persistent scouting feedback", a
   await candidate
     .locator(".candidate-heading")
     .screenshot({ path: "test-results/age-prominent.png" });
-  await page.getByRole("button", { name: /第1次戦力外通告を終了し/ }).click();
+  await page
+    .getByRole("button", { name: /第1次戦力外通告・育成打診を終了し/ })
+    .click();
   await settle();
   const name = await page.locator(".prospect-name b").first().innerText();
   const prospect = page
