@@ -3,6 +3,9 @@ import { POSITIONS, type WorldState } from "./model";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { AbilityBadge } from "./AbilityBadge";
 
+const battingRate = (hits: number, attempts: number) =>
+  attempts ? (hits / attempts).toFixed(3).replace(/^0/, "") : "—";
+
 export function coreRoster(w: WorldState) {
   const list = roster(w).filter((p) => p.registration === "senior");
   const pitchers = list.filter((p) => p.position === "投");
@@ -97,11 +100,29 @@ export function CoreRoster({
                       </small>
                     </div>
                   </div>
-                  <p>
-                    {p.position === "投"
-                      ? `${r?.games ?? 0}登板 · ${r?.wins ?? 0}勝 ${r?.saves ?? 0}S ${r?.holds ?? 0}H`
-                      : `${r?.games ?? 0}試合 · ${r?.hr ?? 0}本 ${r?.rbi ?? 0}打点`}
-                  </p>
+                  {p.position === "投" ? (
+                    <p>
+                      {r?.games ?? 0}登板 · {r?.wins ?? 0}勝 {r?.saves ?? 0}S{" "}
+                      {r?.holds ?? 0}H
+                    </p>
+                  ) : (
+                    <div
+                      className="core-batting-stats"
+                      aria-label={`${p.name}の打撃成績`}
+                    >
+                      <p>
+                        {r?.games ?? 0}試合 · {r?.hr ?? 0}本 · {r?.rbi ?? 0}打点
+                      </p>
+                      <p>
+                        打率 {battingRate(r?.hits ?? 0, r?.ab ?? 0)} · 出塁率{" "}
+                        {battingRate(
+                          (r?.hits ?? 0) + (r?.walks ?? 0),
+                          (r?.ab ?? 0) + (r?.walks ?? 0),
+                        )}{" "}
+                        · 盗塁 {r?.steals ?? 0}
+                      </p>
+                    </div>
+                  )}
                   <div className="core-abilities">
                     {keys.map((key) => (
                       <AbilityBadge

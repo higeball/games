@@ -479,6 +479,12 @@
   display: block;
   margin-top: 4px;
 }
+.core-batting-stats p {
+  margin: 5px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+}
 .core-abilities {
   display: flex;
   gap: 6px;
