@@ -32,6 +32,8 @@ import { ScoutingStatus } from "./ScoutingStatus";
 import { CampPanel } from "./CampPanel";
 import { TeamProgress } from "./TeamProgress";
 import { PlayerAbilityPanel } from "./PlayerAbilityPanel";
+import { CoreRoster } from "./CoreRoster";
+import { DraftComparison } from "./DraftComparison";
 import { ConfirmDialog } from "./ConfirmDialog";
 type Props = {
   w: WorldState;
@@ -99,6 +101,15 @@ export function OwnerStatus({
             {rank}位 <em>({outcome})</em>
           </strong>
         </div>
+      </div>
+      <div className="status-positions" aria-label="ポジション別人数（支配下）">
+        <small>支配下</small>
+        {POSITIONS.map((pos) => (
+          <span key={pos}>
+            {pos}
+            <b>{seniorRoster(w).filter((p) => p.position === pos).length}</b>
+          </span>
+        ))}
       </div>
       {onReturn && (
         <button className="return-to-event" onClick={onReturn}>
@@ -232,7 +243,7 @@ export function Dashboard({
             className="primary review-advance"
             onClick={() => act({ type: "advance" })}
           >
-            第1次戦力外通告・育成打診へ進む →
+            主力選手一覧へ進む →
           </button>
         </>
       )}
@@ -255,6 +266,7 @@ export function Dashboard({
   );
 }
 export function FrontOffice({ w, act, open }: Props) {
+  if (w.phase === "core") return <CoreRoster w={w} open={open} />;
   if (w.phase === "draft") return <DraftBoard w={w} act={act} open={open} />;
   return (
     <>
@@ -462,6 +474,7 @@ function DraftBoard({ w, act, open }: Props) {
               {pending.winner === 0 && (
                 <section aria-label="獲得選手の確定能力">
                   <h3>入団時の能力（確定）</h3>
+                  <DraftComparison p={selected} before={pending.before} />
                   <PlayerAbilityPanel p={selected} w={w} />
                 </section>
               )}
@@ -504,6 +517,7 @@ function DraftBoard({ w, act, open }: Props) {
                   <h3>
                     {pick.round}巡目 · {player.name}
                   </h3>
+                  <DraftComparison p={player} before={pick.before} />
                   <PlayerAbilityPanel p={player} w={w} />
                 </section>
               ) : null;

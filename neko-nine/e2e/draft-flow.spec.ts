@@ -18,6 +18,7 @@ test("mobile draft advances only after each result, including lottery and reload
   };
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
+  await click(/主力選手一覧へ進む/);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await expect(page.locator(".release-candidate")).toHaveCount(10);
   for (let i = 0; i < 3; i++) {

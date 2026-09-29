@@ -24,6 +24,7 @@ test("restrained profile styling, entry pay and persistent scouting feedback", a
       .first()
       .evaluate((el) => getComputedStyle(el, "::before").content),
   ).toBe("none");
+  await page.getByRole("button", { name: /主力選手一覧へ進む/ }).click();
   await page
     .getByRole("button", { name: /第1次戦力外通告・育成打診へ進む/ })
     .click();

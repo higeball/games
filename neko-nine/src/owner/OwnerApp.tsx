@@ -33,7 +33,8 @@ import {
   OwnerStatus,
   SalaryBudget,
 } from "./FrontOffice";
-import { upgradeLegacy } from "./operations";
+import { upgradeLegacy, limitContractMeetings } from "./operations";
+import { ensureDevelopmentRecord } from "./development";
 import { AnimalPortrait } from "./AnimalPortrait";
 import { FoomyGuide, eventTab } from "./Secretary";
 import { normalizePlayerNames } from "./identity";
@@ -51,6 +52,8 @@ import {
   recordStrengthBaseline,
 } from "./experience";
 import { TeamProgress } from "./TeamProgress";
+import { SeasonSummary } from "./SeasonSummary";
+import { SeasonStats } from "./SeasonStats";
 
 type Tab = "ホーム" | "選手" | "編成" | "経営" | "リーグ" | "調査";
 const tabs: Tab[] = ["ホーム", "選手", "編成", "経営"];
@@ -161,6 +164,8 @@ export default function OwnerApp() {
   }
   async function commit(next: WorldState) {
     upgradeSerialFlow(next);
+    ensureDevelopmentRecord(next);
+    if (next.phase === "contracts") limitContractMeetings(next);
     recordStrengthBaseline(next);
     backfillCareerHistory(next);
     normalizeSalaryScale(next);
@@ -181,6 +186,18 @@ export default function OwnerApp() {
       await commit(next);
       const result = actionFeedback(w, next, a);
       if (result || a.type === "advance") setFeedback(result);
+      if (
+        a.type === "negotiate" &&
+        (next.players.find((p) => p.id === a.id)?.contractYear ?? 0) >=
+          w.year + 1
+      ) {
+        setDetail(null);
+        requestAnimationFrame(() =>
+          document
+            .querySelector(".action-receipt")
+            ?.scrollIntoView({ block: "start", behavior: "instant" }),
+        );
+      }
       if (a.type === "advance" || a.type === "skipSeason") {
         setDetail(null);
         setEventVisit((n) => n + 1);
@@ -301,7 +318,10 @@ export default function OwnerApp() {
             >
               {w ? "2026年から最初からプレイ" : "2026年オフから就任する"} →
             </button>
-            <button onClick={() => setSettings(true)}>
+            <button
+              className="load-slot-button"
+              onClick={() => setSettings(true)}
+            >
               セーブ枠からロードする
             </button>
             <small>
@@ -331,7 +351,16 @@ export default function OwnerApp() {
                       <h1>{PHASE_NAMES[w.phase]}</h1>
                     </div>
                   )}
+                  {w.phase === "review" && w.year > 2026 && (
+                    <SeasonSummary w={w} open={setDetail} />
+                  )}
                   <FoomyGuide w={w} compact={w.phase !== "review"} />
+                  {w.phase === "review" && w.year === 2026 && (
+                    <details className="optional-section">
+                      <summary>2026年のチーム成績・能力変化を確認</summary>
+                      <SeasonSummary w={w} open={setDetail} />
+                    </details>
+                  )}
                 </>
               )}
               {feedback && (tab === "ホーム" || tab === "経営") && (
@@ -1223,20 +1252,7 @@ function Business({
   );
 }
 function League({ w, open }: { w: WorldState; open: (id: string) => void }) {
-  const [league, setLeague] = useState<"パ" | "セ">("パ"),
-    [kind, setKind] = useState("打者");
-  const list = w.players
-    .filter(
-      (p) =>
-        p.reports[w.year]?.source !== "backfill" &&
-        w.teams[p.reports[w.year]?.team ?? p.team ?? -1]?.league === league &&
-        (kind === "投手" ? p.position === "投" : p.position !== "投"),
-    )
-    .sort((a, b) =>
-      kind === "投手"
-        ? (b.reports[w.year]?.wins ?? 0) - (a.reports[w.year]?.wins ?? 0)
-        : (b.reports[w.year]?.hr ?? 0) - (a.reports[w.year]?.hr ?? 0),
-    );
+  const [league, setLeague] = useState<"パ" | "セ">("パ");
   return (
     <>
       <div className="eyebrow">LEAGUE REPORT</div>
@@ -1287,37 +1303,8 @@ function League({ w, open }: { w: WorldState; open: (id: string) => void }) {
           ))}
         </section>
       )}
-      <div className="section-title">
-        <h2>{w.year}年 個人成績</h2>
-        <select value={kind} onChange={(e) => setKind(e.target.value)}>
-          <option>打者</option>
-          <option>投手</option>
-        </select>
-      </div>
-      <div className="leaders">
-        {list.slice(0, 15).map((p, i) => {
-          const r = p.reports[w.year] ?? blankRecord(w.year, p.team!);
-          return (
-            <button key={p.id} onClick={() => open(p.id)}>
-              <span>{i + 1}</span>
-              <div>
-                <b>{p.name}</b>
-                <small>
-                  {w.teams[r.team]?.short} / {p.age}歳
-                </small>
-              </div>
-              <strong>
-                {kind === "投手" ? `${r.wins}勝` : `${r.hr}本`}
-                <small>
-                  {kind === "投手"
-                    ? `防御率 ${era(r.earned, r.outs)}`
-                    : `打率 ${avg(r.hits, r.ab)}`}
-                </small>
-              </strong>
-            </button>
-          );
-        })}
-      </div>
+      <h2>{w.year}年 個人成績</h2>
+      <SeasonStats w={w} open={open} league={league} />
       <h2>歴代日本一</h2>
       {[...w.archives].reverse().map((a) => (
         <div className="archive-row" key={a.year}>

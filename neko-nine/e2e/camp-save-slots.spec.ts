@@ -45,6 +45,7 @@ test("camp plan and results survive three-slot saves, title return and a new gam
   };
   await page.goto("/games/neko-nine/");
   await click(/2026年オフから就任/);
+  await click(/主力選手一覧へ進む/);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await click(/ドラフト会議へ進む/);
   await click("指名を終了");
@@ -52,11 +53,10 @@ test("camp plan and results survive three-slot saves, title return and a new gam
   await expect(
     page.getByRole("region", { name: "キャンプ計画" }),
   ).toBeVisible();
-  await page.getByLabel("キャンプ開催地").selectOption("1");
+  await page.getByRole("radio", { name: "南島・温暖キャンプ" }).click();
   await settle();
-  await page.getByLabel("追加練習予算").selectOption("2500");
+  await page.locator('input[name="camp-budget"]').nth(1).click();
   await settle();
-  await page.locator(".camp-special-details > summary").click();
   await click("若手5人を自動で選ぶ");
   await expect(
     page.getByRole("button", { name: "集中指導に追加", exact: true }),
@@ -65,9 +65,10 @@ test("camp plan and results survive three-slot saves, title return and a new gam
     page.getByRole("button", { name: "このキャンプ計画を保存", exact: true }),
   ).toHaveCount(0);
   await page.reload();
-  await page.locator(".camp-special-details > summary").click();
-  await expect(page.getByLabel("キャンプ開催地")).toHaveValue("1");
-  await expect(page.getByLabel("追加練習予算")).toHaveValue("2500");
+  await expect(
+    page.getByRole("radio", { name: "南島・温暖キャンプ" }),
+  ).toBeChecked();
+  await expect(page.locator('input[name="camp-budget"]').nth(1)).toBeChecked();
   await expect(page.getByLabel("集中指導5の選手")).not.toHaveValue("");
   await checkWidths();
   await page.screenshot({
@@ -82,6 +83,19 @@ test("camp plan and results survive three-slot saves, title return and a new gam
     page.getByRole("region", { name: "キャンプ結果" }),
   ).toBeVisible();
   expect(await page.locator(".camp-change").count()).toBeGreaterThan(0);
+  await expect
+    .poll(async () => {
+      const first = await page
+        .locator(".camp-result-list article")
+        .first()
+        .boundingBox();
+      const header = await page.locator(".owner-status").boundingBox();
+      return first!.y - header!.y - header!.height;
+    })
+    .toBeGreaterThanOrEqual(0);
+  expect(
+    (await page.locator(".camp-result-list article").first().boundingBox())!.y,
+  ).toBeLessThan(250);
   await page
     .getByRole("navigation")
     .getByRole("button", { name: /チーム戦力/ })
@@ -145,7 +159,7 @@ test("camp plan and results survive three-slot saves, title return and a new gam
   await expect(
     page.getByRole("region", { name: "キャンプ計画" }),
   ).toBeVisible();
-  await expect(page.getByLabel("追加練習予算")).toHaveValue("2500");
+  await expect(page.locator('input[name="camp-budget"]').nth(1)).toBeChecked();
   await expect(page.getByLabel("集中指導5の選手")).not.toHaveValue("");
   await settings();
   await load(3);

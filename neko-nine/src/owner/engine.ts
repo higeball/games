@@ -1,6 +1,12 @@
 import { nextRandom } from "../game/simulation/rng";
 import { playerName } from "./identity";
-import { experiencedTryout } from "./scouting";
+import { abilityUncertainty } from "./scouting";
+import {
+  abilitySnapshot,
+  startDevelopmentRecord,
+  recordSeasonReview,
+  recordNewOwnerPlayers,
+} from "./development";
 import { backfillCareerHistory } from "./history";
 import {
   CAMPS,
@@ -21,6 +27,8 @@ import {
   type Phase,
   type Fixture,
   type RecordLine,
+  type DraftEstimate,
+  SKILLS,
 } from "./model";
 import {
   handleOperation,
@@ -34,6 +42,7 @@ import {
   contractAssessment,
   queueCompensation,
   resetOperations,
+  limitContractMeetings,
 } from "./operations";
 
 import { normalizeSalaryScale, performanceSalary } from "./salary";
@@ -420,6 +429,7 @@ export function createWorld(seed = 20261026): WorldState {
     chooseActive(w, id);
   });
   // Generate internally consistent baseline records for the completed 2026 season.
+  startDevelopmentRecord(w, w.year, "2026年シーズン開始時");
   w.phase = "season";
   w.teams.forEach((t) => {
     t.finance.budget = operatingCost(w, t.id);
@@ -434,6 +444,7 @@ export function createWorld(seed = 20261026): WorldState {
   });
   seedCareerHistory(w);
   normalizeSalaryScale(w);
+  recordSeasonReview(w, standings(w, "パ").findIndex((t) => t.id === 0) + 1);
   prepareOffseason(w);
   w.phase = "review";
   backfillCareerHistory(w);
@@ -482,6 +493,11 @@ function seedCareerHistory(w: WorldState) {
   }
 }
 function prepareOffseason(w: WorldState) {
+  startDevelopmentRecord(
+    w,
+    w.year + 1,
+    `${w.year}年オフ開始時（新加入選手は加入時）`,
+  );
   const ranks = new Map(
     w.teams.map((t) => [
       t.id,
@@ -1211,6 +1227,7 @@ export function simulateMonth(initial: WorldState): WorldState {
   if (w.phase !== "season") throw Error("ペナント期間ではありません。");
   simulateMonthMutable(w, w.month);
   if (w.month === 9) {
+    recordSeasonReview(w, standings(w, "パ").findIndex((t) => t.id === 0) + 1);
     prepareOffseason(w);
     w.phase = "review";
   } else w.month++;
@@ -1370,6 +1387,8 @@ export function acquire(
   p.contractYear = w.year + 1;
   p.offers = [];
   p.morale = 65;
+  if (id === 0 && w.developmentBaseline && !w.developmentBaseline.players[p.id])
+    w.developmentBaseline.players[p.id] = abilitySnapshot(p);
 }
 function cpuPick(w: WorldState, id: number) {
   if (w.draftPicked?.includes(id)) return;
@@ -1407,7 +1426,12 @@ function resolveDraftSelection(w: WorldState, winner: number) {
   const pending = w.draftPending!;
   const p = w.players.find((p) => p.id === pending.player)!;
   acquire(w, p, winner, 600, 1000);
-  w.draftLog.push({ team: winner, player: p.id, round: pending.round });
+  w.draftLog.push({
+    team: winner,
+    player: p.id,
+    round: pending.round,
+    before: pending.before,
+  });
   (w.draftPicked ??= []).push(winner);
   if (winner === 0) w.draftCursor++;
   pending.stage = "result";
@@ -1542,6 +1566,7 @@ export function applyOwnerAction(
       throw Error("現在の期間ではこの操作はできません。");
   };
   if (handleOperation(w, action)) {
+    recordNewOwnerPlayers(w);
     w.revision++;
     return w;
   }
@@ -1638,6 +1663,12 @@ export function applyOwnerAction(
         throw Error("支配下70人枠に空きがありません。");
       if (f.cash < 1000 || f.debt)
         throw Error("契約金の予算が不足しています。");
+      const before = Object.fromEntries(
+        (Object.keys(SKILLS) as Skill[]).map((key) => [
+          key,
+          estimate(w, p, key),
+        ]),
+      ) as DraftEstimate;
       if (w.draftRound === 0) {
         const rivals = w.teams
           .slice(1)
@@ -1650,6 +1681,7 @@ export function applyOwnerAction(
               random(w) < clamp((ability(p) - 45) / 100, 0.05, 0.3),
           );
         w.draftPending = {
+          before,
           round: 1,
           player: p.id,
           rivals: rivals.map((x) => x.id),
@@ -1659,6 +1691,7 @@ export function applyOwnerAction(
         if (rivals.length) break;
       } else {
         w.draftPending = {
+          before,
           round: w.draftRound + 1,
           player: p.id,
           rivals: [],
@@ -1872,6 +1905,7 @@ export function applyOwnerAction(
     }
     case "renewAll":
       requirePhase(["contracts"]);
+      limitContractMeetings(w);
       roster(w)
         .filter(
           (p) => p.contractYear < targetYear && p.negotiation !== "meeting",
@@ -2094,11 +2128,11 @@ export function estimate(w: WorldState, p: Player, k: Skill) {
   if (p.team === 0) return { low: p.skills[k], high: p.skills[k] };
   const scout = coach(w, 0, "スカウト責任者");
   const width = Math.max(
-    experiencedTryout(p) && p.scouting < 100 ? 1 : 0,
+    Number.isFinite(abilityUncertainty(p)) && p.scouting < 100 ? 1 : 0,
     Math.round(
       (1 - p.scouting / 100) *
         Math.min(
-          experiencedTryout(p) ? 4 : Infinity,
+          abilityUncertainty(p),
           32 -
             (scout?.evaluation ?? 40) * 0.08 -
             w.teams[0].finance.facilities[2],

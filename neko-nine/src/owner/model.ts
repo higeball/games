@@ -184,6 +184,7 @@ export type Team = {
 };
 export type Phase =
   | "review"
+  | "core"
   | "release"
   | "release2"
   | "activeDraft"
@@ -207,6 +208,7 @@ export type Phase =
   | "settlement";
 export const PHASE_NAMES: Record<Phase, string> = {
   review: "シーズン総括",
+  core: "主力選手一覧",
   release: "第1次戦力外通告・育成打診",
   release2: "第2次戦力外通告・育成打診",
   activeDraft: "現役ドラフト",
@@ -263,7 +265,38 @@ export type YearReport = {
   }[];
   awards: string[];
 };
+export type DraftEstimate = Record<Skill, { low: number; high: number }>;
+export type AbilitySnapshot = {
+  skills: Record<Skill, number>;
+  velocity: number;
+  pitches: Player["pitches"];
+  position: Position;
+};
+export type SeasonReview = {
+  year: number;
+  comparisonLabel: string;
+  rank: number;
+  team: Pick<
+    Team,
+    "wins" | "losses" | "draws" | "scored" | "conceded" | "previousRank"
+  >;
+  finance: { income: number; expense: number; attendance: number };
+  players: {
+    id: string;
+    name: string;
+    age: number;
+    record: RecordLine;
+    before?: AbilitySnapshot;
+    after: AbilitySnapshot;
+  }[];
+};
 export type WorldState = {
+  developmentBaseline?: {
+    year: number;
+    label: string;
+    players: Record<string, AbilitySnapshot>;
+  };
+  seasonReview?: SeasonReview;
   version: 3;
   salaryModelVersion?: 1;
   serialFlowVersion?: 1;
@@ -294,6 +327,7 @@ export type WorldState = {
   draftPassed: number[];
   draftPicked?: number[];
   draftPending?: {
+    before?: DraftEstimate;
     round: number;
     player: string;
     rivals: number[];
@@ -307,7 +341,12 @@ export type WorldState = {
   milestones: string[];
   explanation: string;
   seriesLog: string[];
-  draftLog: { team: number; player: string; round: number }[];
+  draftLog: {
+    team: number;
+    player: string;
+    round: number;
+    before?: DraftEstimate;
+  }[];
   lottery: { player: string; rivals: number[]; winner: number } | null;
   activeDraftDone: boolean;
   activeDraftPool: string[];
@@ -488,6 +527,7 @@ export const CLUBS = [
 ] as const;
 export const PHASE_DATES: Record<Phase, string> = {
   review: "10月上旬",
+  core: "10月上旬",
   release: "10月上旬",
   draft: "10月下旬",
   autumn: "10月下旬",
@@ -512,6 +552,7 @@ export const PHASE_DATES: Record<Phase, string> = {
 };
 export const PHASE_FLOW: Phase[] = [
   "review",
+  "core",
   "release",
   "draft",
   "autumn",

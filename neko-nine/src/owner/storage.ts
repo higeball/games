@@ -1,7 +1,8 @@
 import { upgradeSerialFlow } from "./calendar";
-import type { WorldState } from "./model";
+import type { WorldState, AbilitySnapshot, DraftEstimate } from "./model";
 import { PHASE_NAMES, SKILLS, POSITIONS } from "./model";
-import { upgradeLegacy } from "./operations";
+import { upgradeLegacy, limitContractMeetings } from "./operations";
+import { ensureDevelopmentRecord } from "./development";
 import { normalizePlayerNames } from "./identity";
 import { backfillCareerHistory } from "./history";
 import { normalizeSalaryScale } from "./salary";
@@ -79,6 +80,96 @@ export function validateWorld(value: unknown): asserts value is WorldState {
   )
     throw Error("キャンプ開催地が不正です。");
   const report = w.campReport;
+  const validSnapshot = (s: AbilitySnapshot) =>
+    s &&
+    s.skills &&
+    Object.keys(SKILLS).every(
+      (k) =>
+        Number.isFinite(s.skills[k as keyof typeof SKILLS]) &&
+        s.skills[k as keyof typeof SKILLS] >= 1 &&
+        s.skills[k as keyof typeof SKILLS] <= 100,
+    ) &&
+    POSITIONS.includes(s.position) &&
+    Number.isFinite(s.velocity) &&
+    Array.isArray(s.pitches) &&
+    s.pitches.every(
+      (p) =>
+        p &&
+        typeof p.name === "string" &&
+        Number.isInteger(p.level) &&
+        p.level >= 1 &&
+        p.level <= 7,
+    );
+  const validEstimate = (e: DraftEstimate) =>
+    e &&
+    Object.keys(SKILLS).every((k) => {
+      const r = e[k as keyof typeof SKILLS];
+      return (
+        r &&
+        Number.isFinite(r.low) &&
+        Number.isFinite(r.high) &&
+        r.low >= 1 &&
+        r.high <= 100 &&
+        r.low <= r.high
+      );
+    });
+  if (
+    (w.developmentBaseline !== undefined &&
+      (!w.developmentBaseline ||
+        !Number.isInteger(w.developmentBaseline.year) ||
+        typeof w.developmentBaseline.label !== "string" ||
+        !w.developmentBaseline.players ||
+        Object.values(w.developmentBaseline.players).some(
+          (s) => !validSnapshot(s),
+        ))) ||
+    (w.draftPending?.before !== undefined &&
+      !validEstimate(w.draftPending.before)) ||
+    w.draftLog.some((d) => d.before !== undefined && !validEstimate(d.before))
+  )
+    throw Error("能力の比較記録が壊れています。");
+  const review = w.seasonReview;
+  if (
+    review !== undefined &&
+    (!review ||
+      !Number.isInteger(review.year) ||
+      typeof review.comparisonLabel !== "string" ||
+      !Number.isInteger(review.rank) ||
+      review.rank < 1 ||
+      review.rank > 6 ||
+      !review.team ||
+      Object.values(review.team).some((n) => !Number.isFinite(n)) ||
+      !review.finance ||
+      Object.values(review.finance).some((n) => !Number.isFinite(n)) ||
+      !Array.isArray(review.players) ||
+      review.players.some(
+        (p) =>
+          !p ||
+          typeof p.id !== "string" ||
+          typeof p.name !== "string" ||
+          !Number.isFinite(p.age) ||
+          !validSnapshot(p.after) ||
+          (p.before !== undefined && !validSnapshot(p.before)) ||
+          !p.record ||
+          ![
+            "team",
+            "games",
+            "wins",
+            "losses",
+            "saves",
+            "holds",
+            "outs",
+            "earned",
+            "k",
+            "ab",
+            "hits",
+            "hr",
+            "rbi",
+            "steals",
+            "pa",
+          ].every((k) => Number.isFinite(p.record[k as keyof typeof p.record])),
+      ))
+  )
+    throw Error("年間総括の記録が壊れています。");
   if (
     (w.serialFlowVersion !== undefined && w.serialFlowVersion !== 1) ||
     (w.retentionReturn !== undefined && w.retentionReturn !== "contracts") ||
@@ -170,12 +261,25 @@ export async function loadWorld(backup = false): Promise<WorldState | null> {
   const current = await readWorld(backup);
   if (current) {
     const migrated = upgradeSerialFlow(current);
+    const needsDevelopment = !current.developmentBaseline;
+    ensureDevelopmentRecord(current);
+    const reducedMeetings =
+      current.phase === "contracts" && limitContractMeetings(current);
     const needsBaseline = !current.strengthBaseline;
     recordStrengthBaseline(current);
     const renamed = normalizePlayerNames(current);
     const filled = backfillCareerHistory(current);
     const salaries = normalizeSalaryScale(current);
-    if ((renamed || filled || salaries || needsBaseline || migrated) && !backup)
+    if (
+      (renamed ||
+        filled ||
+        salaries ||
+        needsBaseline ||
+        migrated ||
+        needsDevelopment ||
+        reducedMeetings) &&
+      !backup
+    )
       await persistWorld(current, false);
     return current;
   }
@@ -207,6 +311,8 @@ export async function loadWorld(backup = false): Promise<WorldState | null> {
   if (!legacy) return null;
   const upgraded = upgradeLegacy(legacy);
   upgradeSerialFlow(upgraded);
+  ensureDevelopmentRecord(upgraded);
+  if (upgraded.phase === "contracts") limitContractMeetings(upgraded);
   normalizePlayerNames(upgraded);
   backfillCareerHistory(upgraded);
   normalizeSalaryScale(upgraded);
@@ -358,6 +464,8 @@ export async function loadWorldSlot(slot: number): Promise<WorldState> {
   validateWorld(value.world);
   const w = value.world;
   upgradeSerialFlow(w);
+  ensureDevelopmentRecord(w);
+  if (w.phase === "contracts") limitContractMeetings(w);
   normalizePlayerNames(w);
   backfillCareerHistory(w);
   normalizeSalaryScale(w);

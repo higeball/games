@@ -1,4 +1,5 @@
 import type { Player } from "./model";
+import { isCorePlayer } from "./release";
 import { portraitPattern } from "./portraitPattern";
 
 const coats = [
@@ -40,7 +41,17 @@ function shade(hex: string, amount: number) {
 }
 
 /** Grid-aligned pixel sprites with stable, independently visible ID variations. */
-export function PixelAnimalPortrait({ p }: { p: Player }) {
+export function PixelAnimalPortrait({
+  p,
+  core,
+}: {
+  p: Player;
+  core?: boolean;
+}) {
+  const featured =
+    core ??
+    (p.team === 0 &&
+      isCorePlayer(p, Math.max(...Object.keys(p.reports).map(Number))));
   const v = portraitPattern(p),
     dog = p.species === "dog";
   const fur = coats[v.coat],
@@ -53,7 +64,8 @@ export function PixelAnimalPortrait({ p }: { p: Player }) {
     muzzle = 3 + v.muzzle;
   return (
     <div
-      className={`animal procedural pixel-portrait ${p.species}`}
+      className={`animal procedural pixel-portrait ${p.species}${featured ? " core-portrait" : ""}`}
+      data-core={featured}
       role="img"
       aria-label={`${p.name}の${dog ? "犬" : "猫"}ドット絵ポートレート`}
       data-style="pixel"

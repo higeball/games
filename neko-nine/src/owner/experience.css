@@ -431,3 +431,213 @@
 .candidate-action + .candidate-action {
   margin-top: 8px;
 }
+.status-positions {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 2px;
+  padding: 2px 8px 8px;
+  font-size: 10px;
+}
+.status-positions small {
+  font-size: 9px;
+  color: var(--muted);
+}
+.status-positions span {
+  white-space: nowrap;
+}
+.status-positions b {
+  margin-left: 3px;
+  font-size: 11px;
+}
+.welcome .load-slot-button {
+  display: block;
+  margin: 24px auto 12px;
+}
+.pixel-portrait.core-portrait {
+  outline: 3px solid #bd943a;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px #f1e3b8;
+  border-radius: 6px;
+}
+.core-player-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.core-player-grid article {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px;
+}
+.core-player-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.core-player-heading small {
+  display: block;
+  margin-top: 4px;
+}
+.core-abilities {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.core-abilities .ability-chip {
+  flex: 1;
+}
+.draft-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+.draft-comparison th,
+.draft-comparison td {
+  padding: 7px;
+  text-align: center;
+  border-bottom: 1px solid var(--line);
+}
+.camp-radio-options {
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+  display: grid;
+  gap: 8px;
+}
+.camp-radio-options label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: 6px;
+}
+.camp-radio-options label:has(input:checked) {
+  border-color: var(--green);
+  background: #eef0e5;
+}
+.camp-radio-options small {
+  display: block;
+  color: var(--muted);
+}
+.camp-result-list article,
+.action-receipt {
+  scroll-margin-top: 175px;
+}
+.stats-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.stats-controls label {
+  font-size: 11px;
+  flex: 1;
+  min-width: 90px;
+}
+.stats-controls select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+}
+.season-table-scroll {
+  width: 100%;
+  overflow: auto;
+  max-height: 560px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.season-stat-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+.season-stat-table caption {
+  text-align: left;
+  padding: 10px;
+  font-weight: 800;
+}
+.season-stat-table th,
+.season-stat-table td {
+  padding: 9px 7px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+.season-stat-table th:first-child {
+  position: sticky;
+  left: 0;
+  text-align: left;
+  min-width: 150px;
+  background: var(--paper);
+  z-index: 1;
+}
+.season-stat-table th button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font-weight: 700;
+}
+.season-stat-table th small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+}
+.season-stat-table thead th {
+  position: sticky;
+  top: 0;
+  background: #eeecdf;
+  z-index: 2;
+}
+.season-stat-table thead th:first-child {
+  z-index: 3;
+}
+.season-stat-table .our-player th,
+.season-stat-table .our-player td {
+  background: #f0f2e6;
+}
+.our-player-label {
+  display: inline-block;
+  color: var(--green);
+  border: 1px solid var(--green);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 10px;
+}
+.season-summary {
+  margin-bottom: 24px;
+}
+.season-summary-score {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.season-summary-score strong {
+  font-size: 23px;
+  color: var(--green);
+}
+.summary-finance {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+  font-size: 12px;
+}
+.annual-growth-list article {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+}
+.annual-growth-list h3 button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 700;
+}

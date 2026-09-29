@@ -4,7 +4,8 @@ import { AbilityBadge } from "./AbilityBadge";
 import { ProfileAbilities } from "./ProfileAbilities";
 import { BatterAbilityPanel } from "./BatterAbilityPanel";
 import {
-  experiencedTryout,
+  abilityUncertainty,
+  estimationCaption,
   pitchLevelEstimate,
   rangeLabel,
   velocityEstimate,
@@ -98,7 +99,7 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
           <small>
             {known
               ? "矢印の長さ＝変化量"
-              : experiencedTryout(p)
+              : Number.isFinite(abilityUncertainty(p))
                 ? "破線＝変化量は推定"
                 : "破線＝変化量は未調査"}
           </small>
@@ -168,13 +169,7 @@ export function PlayerAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
           );
         })}
       </div>
-      {!known && (
-        <p className="pitcher-estimate">
-          {experiencedTryout(p)
-            ? "能力は実績を踏まえた小幅な推定範囲"
-            : "能力は調査に基づく推定範囲"}
-        </p>
-      )}
+      {!known && <p className="pitcher-estimate">{estimationCaption(p)}</p>}
       <PitchChart p={p} known={known} />
       <section className="ability-special batter-special" aria-label="特殊能力">
         <h3>特殊能力</h3>

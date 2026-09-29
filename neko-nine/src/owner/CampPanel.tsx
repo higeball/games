@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { roster } from "./engine";
 import {
   CAMPS,
@@ -20,6 +20,24 @@ export function CampPanel({
   act: (a: OwnerAction) => void;
 }) {
   const [showAll, setShowAll] = useState(false);
+  const firstResult = useRef<HTMLElement>(null);
+  const wasDone = useRef(w.campDone);
+  useEffect(() => {
+    if (w.campDone && !wasDone.current)
+      requestAnimationFrame(() => {
+        const el = firstResult.current;
+        if (el) {
+          const header =
+            document.querySelector(".owner-status")?.getBoundingClientRect()
+              .height ?? 160;
+          window.scrollTo({
+            top: window.scrollY + el.getBoundingClientRect().top - header - 12,
+            behavior: "instant",
+          });
+        }
+      });
+    wasDone.current = w.campDone;
+  }, [w.campDone]);
   const plan = w.campPlan,
     players = roster(w),
     location = plan.location ?? 0;
@@ -56,8 +74,12 @@ export function CampPanel({
               集中指導選手を先に表示しています。数字は実施前 → 実施後です。
             </p>
             <div className="camp-result-list">
-              {(showAll ? rows : rows.slice(0, 8)).map((r) => (
-                <article key={r.id} data-player-id={r.id}>
+              {(showAll ? rows : rows.slice(0, 8)).map((r, index) => (
+                <article
+                  ref={index === 0 ? firstResult : undefined}
+                  key={r.id}
+                  data-player-id={r.id}
+                >
                   <h3>
                     {r.name}{" "}
                     <small>{r.special ? "集中指導" : "全体練習"}</small>
@@ -152,39 +174,39 @@ export function CampPanel({
       </p>
       <section className="camp-step">
         <h3>1. 開催地と予算を選ぶ</h3>
-        <label className="field">
-          開催地
-          <select
-            aria-label="キャンプ開催地"
-            value={location}
-            onChange={(e) =>
-              update({ ...plan, location: Number(e.target.value) })
-            }
-          >
-            {CAMPS.map((c, i) => (
-              <option key={c.name} value={i}>
+        <fieldset className="camp-radio-options">
+          <legend>開催地</legend>
+          {CAMPS.map((c, i) => (
+            <label key={c.name}>
+              <input
+                type="radio"
+                name="camp-location"
+                aria-label={c.name}
+                checked={location === i}
+                onChange={() => update({ ...plan, location: i })}
+              />
+              <span>
                 {c.name} / {money(c.cost)}
-              </option>
-            ))}
-          </select>
-          <small>{CAMPS[location].note}</small>
-        </label>
-        <label className="field">
-          追加練習予算
-          <select
-            aria-label="追加練習予算"
-            value={plan.budget}
-            onChange={(e) =>
-              update({ ...plan, budget: Number(e.target.value) })
-            }
-          >
-            {[0, 2500, 6000, 10000].map((n) => (
-              <option key={n} value={n}>
-                {money(n)}
-              </option>
-            ))}
-          </select>
-        </label>
+                <small>{c.note}</small>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <fieldset className="camp-radio-options">
+          <legend>追加練習予算</legend>
+          {[0, 2500, 6000, 10000].map((budget) => (
+            <label key={budget}>
+              <input
+                type="radio"
+                name="camp-budget"
+                aria-label={`追加練習予算 ${money(budget)}`}
+                checked={plan.budget === budget}
+                onChange={() => update({ ...plan, budget })}
+              />
+              {money(budget)}
+            </label>
+          ))}
+        </fieldset>
       </section>
       <section className="camp-step">
         <h3>2. チーム全体の重点練習を選ぶ ({plan.focuses.length}/2)</h3>
@@ -218,8 +240,8 @@ export function CampPanel({
           })}
         </div>
       </section>
-      <details className="camp-step camp-special-details">
-        <summary>集中指導・OB招聘（任意） · {plan.special.length}/5人</summary>
+      <section className="camp-step camp-special-details">
+        <h3>3. 集中指導・OB招聘（任意） · {plan.special.length}/5人</h3>
         <p>
           上の枠から選手と指導内容を選ぶだけです。「指定しない」に戻すと解除できます。
         </p>
@@ -253,7 +275,6 @@ export function CampPanel({
               <article key={i}>
                 <h4>集中指導 {i + 1}</h4>
                 <label className="field">
-                  選手
                   <select
                     aria-label={`集中指導${i + 1}の選手`}
                     disabled={i > plan.special.length}
@@ -363,7 +384,7 @@ export function CampPanel({
             </option>
           </select>
         </label>
-      </details>
+      </section>
       <section className="camp-execution">
         <h3>この内容で実施</h3>
         <p>

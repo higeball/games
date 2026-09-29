@@ -27,15 +27,13 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     ),
   ).toBe(true);
   const startButton = page.getByRole("button", {
-    name: /第1次戦力外通告・育成打診へ進む/,
+    name: /主力選手一覧へ進む/,
   });
   const flow = page.getByRole("region", { name: "球団運営の年間の流れ" });
-  await expect(flow.locator("li > b").first()).toHaveText(
-    "第1次戦力外通告・育成打診",
-  );
+  await expect(flow.locator("li > b").first()).toHaveText("主力選手一覧");
   await expect(flow.locator(".route-line")).toHaveCount(0);
-  await expect(flow.locator("li")).toHaveCount(18);
-  await expect(flow.locator("li > b").nth(1)).toHaveText("ドラフト会議");
+  await expect(flow.locator("li")).toHaveCount(19);
+  await expect(flow.locator("li > b").nth(2)).toHaveText("ドラフト会議");
   expect(
     await flow
       .locator("li > b")
@@ -97,9 +95,28 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   );
   expect(
     (await page.locator(".owner-status").boundingBox())!.height,
-  ).toBeLessThanOrEqual(95);
+  ).toBeLessThanOrEqual(125);
   await page.screenshot({
     path: "test-results/foomy-home.png",
+    fullPage: true,
+  });
+  await startButton.click();
+  await settle();
+  await expect(
+    page.getByRole("heading", { name: "主力選手一覧", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "先発", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "中継ぎ", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "抑え", exact: true }),
+  ).toBeVisible();
+  expect(await page.locator(".core-portrait").count()).toBeGreaterThan(10);
+  await page.screenshot({
+    path: "test-results/core-roster.png",
     fullPage: true,
   });
   await page
@@ -132,7 +149,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
   );
   expect(
     (await page.locator(".owner-status").boundingBox())!.height,
-  ).toBeLessThanOrEqual(160);
+  ).toBeLessThanOrEqual(190);
   await page.getByRole("tab", { name: /^投手/ }).click();
   await expect(page.getByRole("tab", { name: /^投手/ })).toHaveAttribute(
     "aria-selected",
@@ -301,7 +318,7 @@ test("Foomy guides directly to inline release comparisons on mobile", async ({
     expect(new Set(resourceTops).size).toBe(1);
     expect(
       (await page.locator(".owner-status").boundingBox())!.height,
-    ).toBeLessThanOrEqual(160);
+    ).toBeLessThanOrEqual(190);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => scrollTo(0, 0));

@@ -207,7 +207,7 @@ export function contractAssessment(w: WorldState) {
         (b.reports[w.year]?.hr ?? 0) * 100 -
         (a.ask + (a.age >= 32 ? 2000 : 0) + (a.reports[w.year]?.hr ?? 0) * 100),
     )
-    .slice(0, Math.max(1, Math.round(list.length * 0.13)));
+    .slice(0, 3);
   for (const p of difficult) {
     p.negotiation = "meeting";
     p.meetingReason =
@@ -218,6 +218,17 @@ export function contractAssessment(w: WorldState) {
           : "主力・好成績：査定と待遇を再確認したい";
     p.ask = Math.round((p.ask * 1.1) / 100) * 100;
   }
+}
+export function limitContractMeetings(w: WorldState) {
+  const excess = roster(w)
+    .filter((p) => p.negotiation === "meeting" && p.contractYear < w.year + 1)
+    .sort((a, b) => b.ask - a.ask)
+    .slice(3);
+  for (const p of excess) {
+    p.negotiation = "pending";
+    p.meetingReason = "";
+  }
+  return excess.length > 0;
 }
 export function announceFa(w: WorldState) {
   w.faDeclarations = { year: w.year, ids: [] };

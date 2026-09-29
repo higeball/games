@@ -8,7 +8,7 @@ import {
 } from "./model";
 import { AbilityBadge } from "./AbilityBadge";
 import { ProfileAbilities } from "./ProfileAbilities";
-import { experiencedTryout } from "./scouting";
+import { estimationCaption } from "./scouting";
 
 const fieldSpots = {
   中: [50, 12],
@@ -64,13 +64,7 @@ export function BatterAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
         <span>
           弾道 <b>↗ {known ? p.trajectory : "？"}</b>
         </span>
-        {!known && (
-          <span>
-            {experiencedTryout(p)
-              ? "能力は実績を踏まえた小幅な推定範囲"
-              : "能力は調査に基づく推定範囲"}
-          </span>
-        )}
+        {!known && <span>{estimationCaption(p)}</span>}
       </div>
       <div className="batter-defense">
         <section className="batter-position" aria-label="守備適性">

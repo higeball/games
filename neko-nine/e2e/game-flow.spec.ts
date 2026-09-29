@@ -42,6 +42,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     path: "test-results/fukuoka-home.png",
     fullPage: true,
   });
+  await click(/主力選手一覧へ進む/);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await expect(
     page.getByRole("heading", { name: "戦力外候補を比較する" }),
@@ -98,6 +99,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await click(/契約更改へ進む/);
   await event();
   await click(/査定年俸を一括提示/);
+  expect(await page.locator(".player-summary").count()).toBeLessThanOrEqual(3);
   await page.locator("summary").filter({ hasText: "年俸予算を調整" }).click();
   await page.getByLabel("来季年俸予算").selectOption("400000");
   await expect(page.getByRole("status")).toHaveCount(0);
@@ -114,7 +116,10 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
     await page.getByLabel("契約期間").selectOption("2");
     await page.getByLabel(/出来高を追加/).check();
     await click("年俸を提示する");
-    await click("閉じる ×");
+    await expect(page.getByRole("dialog", { name: "選手詳細" })).toHaveCount(0);
+    await expect(page.locator(".action-receipt")).toContainText(
+      "2年契約＋出来高",
+    );
   }
   await expect(page.getByText(/要面談 0人/)).toBeVisible();
   await home();
@@ -143,7 +148,6 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await home();
   await click(/春季キャンプへ進む/);
   await event();
-  await page.locator(".camp-special-details > summary").click();
   const pitcher = await page
     .getByLabel("集中指導1の選手")
     .locator("option")
@@ -217,6 +221,18 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   ).toHaveCount(0);
   for (let month = 5; month <= 9; month++) await click(`${month}月を進める →`);
   await expect(page.locator(".status-date")).toContainText("2027年 10月上旬");
+  const recap = page.getByRole("region", { name: "年間の総括" });
+  await expect(recap).toContainText("2027年 レギュラーシーズン総括");
+  await expect(recap).toContainText("一年間の能力変化");
+  expect(await recap.locator(".our-player").count()).toBeGreaterThan(0);
+  await recap.getByLabel("成績の選手区分").selectOption("投手");
+  await expect(
+    recap.getByRole("columnheader", { name: "防御率" }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "test-results/season-recap.png",
+    fullPage: true,
+  });
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
@@ -231,6 +247,7 @@ test("Fukuoka owner completes the new calendar, negotiates and resumes offline",
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator(".status-date")).toContainText("2027年 10月上旬");
+  await click(/主力選手一覧へ進む/);
   await click(/第1次戦力外通告・育成打診へ進む/);
   await click(/ドラフト会議へ進む/);
   await event();
