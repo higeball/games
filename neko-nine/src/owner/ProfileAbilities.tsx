@@ -1,4 +1,5 @@
 import type { Player } from "./model";
+import { pitchLevelEstimate, rangeLabel, velocityEstimate } from "./scouting";
 
 /** Shared neutral plates with blue positive text and red warning text. */
 export function ProfileAbilities({
@@ -20,12 +21,19 @@ export function ProfileAbilities({
               <b>
                 {known
                   ? `${p.velocity}km/h`
-                  : `${p.velocity - 5}〜${p.velocity + 5}km/h（推定）`}
+                  : `${rangeLabel(velocityEstimate(p))}km/h（推定）`}
               </b>
             </span>
             {p.pitches.map((pitch) => (
               <span className="ability-plate positive" key={pitch.name}>
-                {pitch.name} <b>{known ? pitch.level : "調査中"}</b>
+                {pitch.name}{" "}
+                <b>
+                  {known
+                    ? pitch.level
+                    : pitchLevelEstimate(p, pitch.level)
+                      ? rangeLabel(pitchLevelEstimate(p, pitch.level)!)
+                      : "調査中"}
+                </b>
               </span>
             ))}
           </>

@@ -1,5 +1,6 @@
 import { nextRandom } from "../game/simulation/rng";
 import { playerName } from "./identity";
+import { experiencedTryout } from "./scouting";
 import { backfillCareerHistory } from "./history";
 import {
   CAMPS,
@@ -2093,12 +2094,15 @@ export function estimate(w: WorldState, p: Player, k: Skill) {
   if (p.team === 0) return { low: p.skills[k], high: p.skills[k] };
   const scout = coach(w, 0, "スカウト責任者");
   const width = Math.max(
-    0,
+    experiencedTryout(p) && p.scouting < 100 ? 1 : 0,
     Math.round(
       (1 - p.scouting / 100) *
-        (32 -
-          (scout?.evaluation ?? 40) * 0.08 -
-          w.teams[0].finance.facilities[2]),
+        Math.min(
+          experiencedTryout(p) ? 4 : Infinity,
+          32 -
+            (scout?.evaluation ?? 40) * 0.08 -
+            w.teams[0].finance.facilities[2],
+        ),
     ),
   );
   const offset =

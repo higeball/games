@@ -3,6 +3,12 @@ import { type Player, type WorldState } from "./model";
 import { AbilityBadge } from "./AbilityBadge";
 import { ProfileAbilities } from "./ProfileAbilities";
 import { BatterAbilityPanel } from "./BatterAbilityPanel";
+import {
+  experiencedTryout,
+  pitchLevelEstimate,
+  rangeLabel,
+  velocityEstimate,
+} from "./scouting";
 
 const direction = (name: string) =>
   /スライダー|カット/.test(name)
@@ -89,7 +95,13 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
             />
             <circle cx="110" cy="58" r="10" fill="#f8f7ef" stroke="#71786f" />
           </svg>
-          <small>{known ? "矢印の長さ＝変化量" : "破線＝変化量は未調査"}</small>
+          <small>
+            {known
+              ? "矢印の長さ＝変化量"
+              : experiencedTryout(p)
+                ? "破線＝変化量は推定"
+                : "破線＝変化量は未調査"}
+          </small>
         </div>
         <div className="pitch-list">
           <div className="pitch-list-heading">
@@ -97,16 +109,24 @@ export function PitchChart({ p, known }: { p: Player; known: boolean }) {
             <span>変化量</span>
           </div>
           <ul className="pitch-labels">
-            {p.pitches.map((pitch) => (
-              <li
-                key={pitch.name}
-                aria-label={`${pitch.name} 変化量 ${known ? pitch.level : "未調査"}`}
-              >
-                <span aria-hidden="true">{arrows[direction(pitch.name)]}</span>
-                <span>{pitch.name}</span>
-                <b>{known ? pitch.level : "？"}</b>
-              </li>
-            ))}
+            {p.pitches.map((pitch) => {
+              const range = known
+                ? { low: pitch.level, high: pitch.level }
+                : pitchLevelEstimate(p, pitch.level);
+              const label = range ? rangeLabel(range) : "未調査";
+              return (
+                <li
+                  key={pitch.name}
+                  aria-label={`${pitch.name} 変化量 ${label}`}
+                >
+                  <span aria-hidden="true">
+                    {arrows[direction(pitch.name)]}
+                  </span>
+                  <span>{pitch.name}</span>
+                  <b>{range ? label : "？"}</b>
+                </li>
+              );
+            })}
           </ul>
           {!p.pitches.length && <p>変化球の登録なし</p>}
           <small>変化量は1〜7段階</small>
@@ -133,7 +153,7 @@ export function PlayerAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
       <div className="batter-primary pitcher-primary" aria-label="投球能力">
         <div className="pitcher-velocity">
           <small>球速</small>
-          <b>{known ? p.velocity : `${p.velocity - 5}〜${p.velocity + 5}`}</b>
+          <b>{rangeLabel(velocityEstimate(p))}</b>
           <span>km/h</span>
         </div>
         {(["control", "stamina"] as const).map((key) => {
@@ -148,7 +168,13 @@ export function PlayerAbilityPanel({ p, w }: { p: Player; w: WorldState }) {
           );
         })}
       </div>
-      {!known && <p className="pitcher-estimate">能力は調査に基づく推定範囲</p>}
+      {!known && (
+        <p className="pitcher-estimate">
+          {experiencedTryout(p)
+            ? "能力は実績を踏まえた小幅な推定範囲"
+            : "能力は調査に基づく推定範囲"}
+        </p>
+      )}
       <PitchChart p={p} known={known} />
       <section className="ability-special batter-special" aria-label="特殊能力">
         <h3>特殊能力</h3>
