@@ -111,15 +111,14 @@ export function CoreRoster({
                       aria-label={`${p.name}の打撃成績`}
                     >
                       <p>
-                        {r?.games ?? 0}試合 · {r?.hr ?? 0}本 · {r?.rbi ?? 0}打点
-                      </p>
-                      <p>
-                        打率 {battingRate(r?.hits ?? 0, r?.ab ?? 0)} · 出塁率{" "}
+                        {r?.games ?? 0}試合 · 打率
+                        {battingRate(r?.hits ?? 0, r?.ab ?? 0)} · {r?.hr ?? 0}本
+                        · {r?.rbi ?? 0}打点 · 出塁率
                         {battingRate(
                           (r?.hits ?? 0) + (r?.walks ?? 0),
                           (r?.ab ?? 0) + (r?.walks ?? 0),
                         )}{" "}
-                        · 盗塁 {r?.steals ?? 0}
+                        · {r?.steals ?? 0}盗塁
                       </p>
                     </div>
                   )}
