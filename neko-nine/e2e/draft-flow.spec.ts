@@ -136,6 +136,21 @@ test("mobile draft advances only after each result, including lottery and reload
       acquired =
         (await result.locator(".lottery-result strong").textContent()) ===
         "交渉権獲得！";
+      const abilities = result.getByRole("region", {
+        name: "獲得選手の確定能力",
+      });
+      if (acquired) {
+        await expect(abilities).toBeVisible();
+        expect(
+          await abilities.locator(".ability-chip .grade").count(),
+        ).toBeGreaterThanOrEqual(2);
+        await expect(abilities.locator(".ability-rank i")).toHaveCount(0);
+        await expect(abilities).not.toContainText("推定範囲");
+        if (round === 2)
+          await abilities.screenshot({
+            path: "test-results/draft-acquired-abilities.png",
+          });
+      } else await expect(abilities).toHaveCount(0);
       if (round === 1)
         await page.screenshot({
           path: "test-results/draft-result.png",

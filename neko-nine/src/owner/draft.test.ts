@@ -1,7 +1,18 @@
 import { beforeAll, expect, it } from "vitest";
 import { advancePhase, applyOwnerAction, createWorld, random } from "./engine";
 import { seniorRoster, phaseBlockers } from "./operations";
-import type { WorldState } from "./model";
+import { grade, type WorldState } from "./model";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { FrontOffice } from "./FrontOffice";
+
+function renderResult(w: WorldState) {
+  const el = document.createElement("div");
+  el.innerHTML = renderToStaticMarkup(
+    createElement(FrontOffice, { w, act: () => {}, open: () => {} }),
+  );
+  return el;
+}
 
 let initial: WorldState;
 beforeAll(() => {
@@ -46,6 +57,49 @@ it("holds a single nomination result until explicit advancement and prevents dup
     winner: 0,
   });
 });
+for (const pitcher of [true, false]) {
+  it(`reveals exact ${pitcher ? "pitcher" : "batter"} grades after acquisition and keeps them in the final recap`, () => {
+    const w = draftWorld();
+    const p = w.players.find(
+      (p) => p.market === "draft" && (p.position === "投") === pitcher,
+    )!;
+    expect(p.scouting).toBeLessThan(100);
+    const result = applyOwnerAction(w, { type: "draft", id: p.id });
+    const keys = pitcher
+      ? (["control", "stamina"] as const)
+      : (["contact", "power", "speed", "catching", "arm", "fielding"] as const);
+    const dom = renderResult(result);
+    const panel = dom.querySelector('[aria-label="獲得選手の確定能力"]')!;
+    expect(panel).not.toBeNull();
+    expect(
+      [...panel.querySelectorAll(".ability-chip .grade")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual(keys.map((key) => grade(p.skills[key])));
+    expect(
+      [...panel.querySelectorAll(".ability-chip > b")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual(keys.map((key) => String(p.skills[key])));
+    expect(panel.textContent).not.toContain("推定範囲");
+    expect(panel.querySelectorAll(".ability-rank i")).toHaveLength(0);
+    const saved = JSON.parse(JSON.stringify(result));
+    expect(
+      renderResult(saved).querySelector('[aria-label="獲得選手の確定能力"]')
+        ?.textContent,
+    ).toBe(panel.textContent);
+    const finished = applyOwnerAction(result, { type: "passDraft" });
+    const recap = renderResult(finished).querySelector(
+      '[aria-label="1巡目の獲得選手の能力"]',
+    )!;
+    expect(recap).not.toBeNull();
+    expect(
+      [...recap.querySelectorAll(".ability-chip .grade")].map(
+        (el) => el.textContent,
+      ),
+    ).toEqual(keys.map((key) => grade(p.skills[key])));
+  });
+}
 it("shows competing nominations before drawing and spends no contract money yet", () => {
   const base = structuredClone(initial);
   base.phase = "release";
@@ -64,6 +118,9 @@ it("shows competing nominations before drawing and spends no contract money yet"
   expect(contested!.players.find((x) => x.id === p.id)?.team).toBeNull();
   expect(contested!.teams[0].finance.cash).toBe(w.teams[0].finance.cash);
   expect(contested!.draftLog).toHaveLength(0);
+  expect(
+    renderResult(contested!).querySelector('[aria-label="獲得選手の確定能力"]'),
+  ).toBeNull();
   expect(() =>
     applyOwnerAction(contested!, { type: "nextDraftRound" }),
   ).toThrow();
@@ -92,6 +149,9 @@ for (const won of [true, false]) {
     });
     expect(result.draftRound).toBe(0);
     expect(result.players.find((x) => x.id === p.id)?.team).toBe(won ? 0 : 1);
+    expect(
+      !!renderResult(result).querySelector('[aria-label="獲得選手の確定能力"]'),
+    ).toBe(won);
     expect(() =>
       applyOwnerAction(result, { type: "drawDraftLottery" }),
     ).toThrow();

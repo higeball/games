@@ -459,6 +459,12 @@ function DraftBoard({ w, act, open }: Props) {
                   ? "契約金1,000万円・年俸600万円で入団。指名結果を確認したら次へ進みましょう。"
                   : "まだ1巡目の指名は終わっていません。別の候補を再指名しましょう。"}
               </p>
+              {pending.winner === 0 && (
+                <section aria-label="獲得選手の確定能力">
+                  <h3>入団時の能力（確定）</h3>
+                  <PlayerAbilityPanel p={selected} w={w} />
+                </section>
+              )}
               <button onClick={() => open(selected.id)}>
                 指名選手のプロフィール
               </button>
@@ -476,7 +482,7 @@ function DraftBoard({ w, act, open }: Props) {
           )}
         </section>
       )}
-      {finished && (
+      {finished && !pending && (
         <section className="draft-outcome">
           <h3>新人の指名が完了しました。</h3>
           <p>
@@ -486,6 +492,22 @@ function DraftBoard({ w, act, open }: Props) {
           <p>
             指名結果を確認したら、ヘッダーの終了ボタンで秋季キャンプへ進んでください。
           </p>
+          {w.draftLog
+            .filter((pick) => pick.team === 0)
+            .map((pick) => {
+              const player = w.players.find((p) => p.id === pick.player);
+              return player ? (
+                <section
+                  key={player.id}
+                  aria-label={`${pick.round}巡目の獲得選手の能力`}
+                >
+                  <h3>
+                    {pick.round}巡目 · {player.name}
+                  </h3>
+                  <PlayerAbilityPanel p={player} w={w} />
+                </section>
+              ) : null;
+            })}
         </section>
       )}
       {!pending && !finished && (
